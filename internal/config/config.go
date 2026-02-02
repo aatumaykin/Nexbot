@@ -160,8 +160,16 @@ func expandEnvVars(c *Config) error {
 		c.Channels.Telegram.Token = expandEnv(c.Channels.Telegram.Token)
 	}
 
-	// Workspace path
+	// Workspace path - support both environment variables and ~ expansion
+	if strings.HasPrefix(c.Workspace.Path, "${") {
+		c.Workspace.Path = expandEnv(c.Workspace.Path)
+	}
 	c.Workspace.Path = expandHome(c.Workspace.Path)
+
+	// Shell working dir
+	if strings.HasPrefix(c.Tools.Shell.WorkingDir, "${") {
+		c.Tools.Shell.WorkingDir = expandEnv(c.Tools.Shell.WorkingDir)
+	}
 	c.Tools.Shell.WorkingDir = expandHome(c.Tools.Shell.WorkingDir)
 
 	// File tool directories
