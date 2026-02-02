@@ -1,0 +1,51 @@
+# Binaries
+nexbot
+nexbot-*
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.out
+coverage.html
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+*.tmp
+*.log
+
+# Workspace
+workspace/sessions/
+workspace/memory/*.md
+!workspace/memory/.gitkeep
+
+# Config
+config.toml
+.env
+.env.local
+
+# Build artifacts
+dist/
