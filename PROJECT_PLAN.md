@@ -188,12 +188,12 @@ timeout_seconds = 30
 
 #### Day 3: Early Z.ai POC (plain chat, без tools)
 
-- [ ] Provider interface definition (internal/llm/provider.go)
-- [ ] Минимальный Z.ai client к `.../coding/paas/v4/chat/completions`:
+- [x] Provider interface definition (internal/llm/provider.go)
+- [x] Минимальный Z.ai клиент к `.../coding/paas/v4/chat/completions`:
     - один метод Chat без tool_calls,
     - маппинг config → HTTP headers/URL.
-- [ ] Простейший прототип: команда/тест, который шлёт запрос и печатает ответ.
-- [ ] Зафиксировать формат сообщений, latency, типичные ошибки.
+- [x] Простейший прототип: команда/тест, который шлёт запрос и печатает ответ.
+- [x] Зафиксировать формат сообщений, latency, типичные ошибки.
 
 
 #### Day 4: Workspace / Bootstrap (3a)
