@@ -19,4 +19,5 @@ func init() {
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(runCmd)
+	rootCmd.AddCommand(testCmd)
 }
