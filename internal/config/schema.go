@@ -2,13 +2,14 @@ package config
 
 // Config представляет основную конфигурацию приложения
 type Config struct {
-	Workspace WorkspaceConfig `toml:"workspace"`
-	Agent     AgentConfig     `toml:"agent"`
-	LLM       LLMConfig       `toml:"llm"`
-	Logging   LoggingConfig   `toml:"logging"`
-	Channels  ChannelsConfig  `toml:"channels"`
-	Tools     ToolsConfig     `toml:"tools"`
-	Cron      CronConfig      `toml:"cron"`
+	Workspace  WorkspaceConfig  `toml:"workspace"`
+	Agent      AgentConfig      `toml:"agent"`
+	LLM        LLMConfig        `toml:"llm"`
+	Logging    LoggingConfig    `toml:"logging"`
+	Channels   ChannelsConfig   `toml:"channels"`
+	Tools      ToolsConfig      `toml:"tools"`
+	Cron       CronConfig       `toml:"cron"`
+	MessageBus MessageBusConfig `toml:"message_bus"`
 }
 
 // WorkspaceConfig представляет конфигурацию workspace
@@ -95,4 +96,9 @@ type ShellToolConfig struct {
 type CronConfig struct {
 	Enabled bool   `toml:"enabled"`
 	JobsDir string `toml:"jobs_dir"`
+}
+
+// MessageBusConfig представляет конфигурацию message bus
+type MessageBusConfig struct {
+	Capacity int `toml:"capacity"`
 }

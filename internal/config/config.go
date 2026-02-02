@@ -142,6 +142,10 @@ func applyDefaults(c *Config) {
 	if c.Tools.Shell.TimeoutSeconds == 0 {
 		c.Tools.Shell.TimeoutSeconds = 30
 	}
+
+	if c.MessageBus.Capacity == 0 {
+		c.MessageBus.Capacity = 1000
+	}
 }
 
 // expandEnvVars расширяет переменные окружения в конфигурации

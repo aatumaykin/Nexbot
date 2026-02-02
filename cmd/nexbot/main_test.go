@@ -65,7 +65,7 @@ func TestCommandStructure(t *testing.T) {
 
 	// Check that subcommands are added
 	subcommands := rootCmd.Commands()
-	expectedCommands := []string{"version", "config", "run"}
+	expectedCommands := []string{"version", "config", "serve", "run"}
 	foundCommands := make(map[string]bool)
 
 	for _, cmd := range subcommands {
@@ -98,5 +98,58 @@ func TestConfigSubcommands(t *testing.T) {
 
 	if !foundValidate {
 		t.Error("Expected 'validate' subcommand not found in configCmd")
+	}
+}
+
+func TestServeCmdFlags(t *testing.T) {
+	tests := []struct {
+		name         string
+		args         []string
+		wantConfig   string
+		wantLogLevel string
+	}{
+		{
+			name:         "with config flag",
+			args:         []string{"--config", "test.toml"},
+			wantConfig:   "test.toml",
+			wantLogLevel: "",
+		},
+		{
+			name:         "with log-level flag",
+			args:         []string{"--log-level", "debug"},
+			wantConfig:   "",
+			wantLogLevel: "debug",
+		},
+		{
+			name:         "with both flags",
+			args:         []string{"--config", "test.toml", "--log-level", "info"},
+			wantConfig:   "test.toml",
+			wantLogLevel: "info",
+		},
+		{
+			name:         "short flags",
+			args:         []string{"-c", "test.toml", "-l", "warn"},
+			wantConfig:   "test.toml",
+			wantLogLevel: "warn",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Reset flags
+			serveConfigPath = ""
+			serveLogLevel = ""
+
+			// Parse flags
+			serveCmd.SetArgs(tt.args)
+			_ = serveCmd.ParseFlags(tt.args)
+
+			if serveConfigPath != tt.wantConfig {
+				t.Errorf("serveConfigPath = %v, want %v", serveConfigPath, tt.wantConfig)
+			}
+			if serveLogLevel != tt.wantLogLevel {
+				t.Errorf("serveLogLevel = %v, want %v", serveLogLevel, tt.wantLogLevel)
+			}
+		})
 	}
 }
