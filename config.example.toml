@@ -49,3 +49,7 @@ jobs_dir = "~/.nexbot/cron"
 level = "info"
 format = "json"
 output = "stdout"
+
+# Message bus configuration
+[message_bus]
+capacity = 1000
