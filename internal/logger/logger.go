@@ -1,3 +1,19 @@
+// Package logger provides a structured logging wrapper around Go's slog package.
+// It supports both JSON and text formatted output, multiple log levels (debug, info, warn, error),
+// and flexible output destinations (stdout, stderr, or file paths).
+//
+// Example usage:
+//
+//	log, err := logger.New(logger.Config{
+//	    Level:  "info",
+//	    Format: "json",
+//	    Output: "stdout",
+//	})
+//	if err != nil {
+//	    log.Fatal("Failed to initialize logger", err)
+//	}
+//
+//	log.Info("Application started", logger.Field{Key: "version", Value: "1.0.0"})
 package logger
 
 import (

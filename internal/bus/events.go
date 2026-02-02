@@ -1,3 +1,16 @@
+// Package bus provides event structures for the message bus system.
+// It defines the core message types used for communication between
+// components in the Nexbot system, including inbound messages from
+// external channels and outbound messages to be sent to external channels.
+//
+// Supported channel types include:
+//   - Telegram
+//   - Discord
+//   - Slack
+//   - Web
+//   - API
+//
+// All message types support JSON serialization for easy transport and storage.
 package bus
 
 import (

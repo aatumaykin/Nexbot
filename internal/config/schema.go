@@ -1,6 +1,23 @@
+// Package config provides configuration loading and validation for Nexbot.
+// It supports TOML configuration files with environment variable expansion,
+// default values, and comprehensive validation.
+//
+// Configuration structure:
+//   - [workspace]: Workspace directory and bootstrap settings
+//   - [agent]: Agent model and behavior configuration
+//   - [llm]: LLM provider configuration (Z.ai, OpenAI)
+//   - [logging]: Logging level, format, and output
+//   - [channels]: Channel configurations (Telegram, Discord)
+//   - [tools]: Tool configurations (file, shell)
+//   - [cron]: Cron job configuration
+//   - [message_bus]: Message bus capacity settings
+//
+// Environment variables:
+// Environment variables can be referenced using ${VAR} or ${VAR:default} syntax.
+// For example: api_key = "${ZAI_API_KEY:default_key}"
 package config
 
-// Config представляет основную конфигурацию приложения
+// Config represents the main application configuration.
 type Config struct {
 	Workspace  WorkspaceConfig  `toml:"workspace"`
 	Agent      AgentConfig      `toml:"agent"`

@@ -9,13 +9,49 @@ import (
 )
 
 var (
-	ErrQueueClosed    = errors.New("queue is closed")
-	ErrQueueFull      = errors.New("queue is full")
+	// ErrQueueClosed is returned when attempting to publish to a closed queue.
+	ErrQueueClosed = errors.New("queue is closed")
+
+	// ErrQueueFull is returned when the message queue is at capacity.
+	ErrQueueFull = errors.New("queue is full")
+
+	// ErrAlreadyStarted is returned when attempting to start an already running message bus.
 	ErrAlreadyStarted = errors.New("message bus is already started")
-	ErrNotStarted     = errors.New("message bus is not started")
+
+	// ErrNotStarted is returned when attempting to operate on a stopped message bus.
+	ErrNotStarted = errors.New("message bus is not started")
 )
 
-// MessageBus represents an asynchronous message queue for inbound and outbound messages
+// MessageBus represents an asynchronous message queue for inbound and outbound messages.
+// It implements the publish-subscribe pattern, allowing multiple subscribers to receive
+// copies of all published messages.
+//
+// The MessageBus provides:
+//   - Thread-safe message publishing and subscribing
+//   - Graceful shutdown with context cancellation
+//   - Configurable queue capacity
+//   - Support for multiple concurrent subscribers
+//
+// Example usage:
+//
+//	bus := bus.New(100, logger)
+//	if err := bus.Start(ctx); err != nil {
+//	    log.Fatal("Failed to start message bus", err)
+//	}
+//
+//	// Subscribe to inbound messages
+//	inboundCh := bus.SubscribeInbound(ctx)
+//	go func() {
+//	    for msg := range inboundCh {
+//	        // Process message
+//	    }
+//	}()
+//
+//	// Publish an inbound message
+//	msg := bus.NewInboundMessage(bus.ChannelTypeTelegram, "user123", "session456", "Hello", nil)
+//	if err := bus.PublishInbound(*msg); err != nil {
+//	    log.Error("Failed to publish message", err)
+//	}
 type MessageBus struct {
 	mu      sync.RWMutex
 	logger  *logger.Logger
