@@ -1,5 +1,39 @@
 # Nexbot - Project Plan (Updated with Z.ai Coding API)
 
+## Current Status (Last Updated: 2026-02-03)
+
+### v0.1.0 Progress: **65% Complete**
+
+**Completed Components:**
+- ✅ Go module initialization and directory structure
+- ✅ Config: TOML parser (config.example.toml) with env var support
+- ✅ Logger: slog wrapper (internal/logger/logger.go)
+- ✅ Message Bus: async channels with context support (internal/bus/queue.go)
+- ✅ CLI: basic `nexbot serve` (cmd/nexbot/main.go)
+- ✅ Makefile: build targets and .gitignore
+- ✅ Provider interface definition (internal/llm/provider.go)
+- ✅ Z.ai Coding API client to `.../coding/paas/v4/chat/completions`
+- ✅ Workspace manager with path expansion and security (internal/workspace/workspace.go)
+- ✅ Bootstrap files loader with template variable substitution (internal/workspace/bootstrap.go)
+- ✅ Template files for bootstrap (workspace/*.md)
+- ✅ Comprehensive unit and integration tests for Workspace & Bootstrap (60+ tests, 82-88% coverage)
+- ✅ Config integration for workspace path expansion (env vars + ~ expansion)
+
+**Next Steps (Day 5):**
+- ⏳ Memory store (markdown/JSONL files) (internal/agent/memory.go)
+- ⏳ Context builder (system prompt assembly) (internal/agent/context.go)
+- ⏳ Session manager (JSONL, append/read operations) (internal/agent/session.go)
+
+**Remaining Work:**
+- Day 5: Memory + Context (3b)
+- Day 6: Agent Loop (без tools)
+- Day 7: Telegram Connector (plain chat, без tools)
+- Day 8: Tool Calling Infrastructure + First Tool
+- Day 9: Other Tools + Simplified Skills
+- Day 10: Integration & Polish (E2E с tools)
+
+---
+
 ## Vision
 
 **Nexbot** — ultra-lightweight self-hosted ИИ-агент на Go (~8–10K строк кода) с message bus архитектурой, расширяемыми каналами и навыками. Вдохновлён nanobot, но с чистой архитектурой и фокусом на простоту.
@@ -80,8 +114,11 @@ nexbot/
 │   │   ├── file.go                 # File operations
 │   │   └── shell.go                # Shell execution
 │   ├── workspace/
-│   │   ├── workspace.go            # Workspace manager
-│   │   └── bootstrap.go            # Bootstrap files loader
+│   │   ├── workspace.go            # Workspace manager ✅
+│   │   ├── bootstrap.go            # Bootstrap files loader ✅
+│   │   ├── workspace_test.go       # Workspace tests ✅
+│   │   ├── bootstrap_test.go       # Bootstrap tests ✅
+│   │   └── integration_test.go     # Integration tests ✅
 │   ├── config/
 │   │   ├── config.go               # TOML config parsing
 │   │   └── schema.go               # Config structs
@@ -196,12 +233,31 @@ timeout_seconds = 30
 - [x] Зафиксировать формат сообщений, latency, типичные ошибки.
 
 
-#### Day 4: Workspace / Bootstrap (3a)
+#### Day 4: Workspace / Bootstrap (3a) ✅ COMPLETED
 
-- [ ] Workspace manager (path, creation) (internal/workspace/workspace.go)
-- [ ] Bootstrap files loader (AGENTS.md, SOUL.md, USER.md, TOOLS.md, IDENTITY.md) (internal/workspace/bootstrap.go)
-- [x] Template files for bootstrap (workspace/*.md)
-- [ ] Tests: базовые happy‑path тесты workspace/bootstrap.
+ - [x] Workspace manager (path, creation) (internal/workspace/workspace.go)
+     - Workspace struct with configuration integration
+     - New() constructor accepting config.WorkspaceConfig
+     - EnsureDir() method for creating workspace directory
+     - Path() and BasePath() methods for path retrieval with ~ expansion
+     - ResolvePath() for resolving relative paths within workspace
+     - Subpath() and EnsureSubpath() for subdirectory management
+     - Security: protection against directory traversal (path escaping)
+ - [x] Bootstrap files loader (AGENTS.md, SOUL.md, USER.md, TOOLS.md, IDENTITY.md) (internal/workspace/bootstrap.go)
+     - BootstrapLoader struct with Workspace instance
+     - LoadFile() method for loading individual bootstrap files
+     - Load() method for loading all bootstrap files in priority order
+     - Assemble() method for concatenating files with separators
+     - Template variable substitution ({{CURRENT_TIME}}, {{CURRENT_DATE}}, {{WORKSPACE_PATH}})
+     - Priority order: IDENTITY.md → AGENTS.md → SOUL.md → USER.md → TOOLS.md
+     - Graceful handling of missing files
+     - Content truncation when exceeding maxChars
+ - [x] Template files for bootstrap (workspace/*.md)
+ - [x] Tests: базовые happy‑path тесты workspace/bootstrap.
+     - Workspace: 37 tests, 82.1% coverage
+     - Bootstrap: 12 tests, 88.0% coverage
+     - Integration: 7 tests for Workspace + Bootstrap workflow
+     - Config integration: 11 tests for path expansion (env vars + ~)
 
 
 #### Day 5: Memory + Context (3b)
@@ -296,6 +352,31 @@ timeout_seconds = 30
 | Testing | github.com/stretchr/testify |
 | CLI Flags | github.com/spf13/cobra |
 
+---
+
+## Code Quality Metrics (v0.1.0 Progress)
+
+### Test Coverage
+| Module | Coverage | Tests | Status |
+| :-- | :-- | :-- | :-- |
+| Config | TBD | 11+ | ✅ Complete |
+| Logger | TBD | TBD | ✅ Implemented |
+| Message Bus | TBD | 7+ | ✅ Complete |
+| LLM (Z.ai) | TBD | 2+ | ✅ Implemented |
+| Workspace | **82.1%** | **37** | ✅ Complete |
+| Bootstrap | **88.0%** | **12** | ✅ Complete |
+| Integration | **N/A** | **7** | ✅ Complete |
+
+**Total Tests:** 75+ tests across all modules
+
+### File Status
+- ✅ workspace/workspace.go (200+ lines, complete)
+- ✅ workspace/bootstrap.go (200+ lines, complete)
+- ✅ workspace/workspace_test.go (500+ lines, 82.1% coverage)
+- ✅ workspace/bootstrap_test.go (500+ lines, 88.0% coverage)
+- ✅ workspace/integration_test.go (400+ lines, integration tests)
+- ✅ config/config.go (updated with env var support)
+- ✅ config/config_test.go (11 new tests)
 
 ---
 
