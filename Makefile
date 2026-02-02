@@ -195,8 +195,8 @@ vet:
 # ==========================================
 # Run targets
 # ==========================================
-run: ## Run server
-	go run cmd/nexbot/main.go
+run: ## Run server (nexbot serve)
+	go run cmd/nexbot/main.go serve
 
 # ==========================================
 # Cleanup
