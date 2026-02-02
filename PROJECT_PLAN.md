@@ -163,17 +163,17 @@ type Tool interface {
 
 #### Day 1–2: Config, Logger, Message Bus, CLI
 
-- [x] Initialize Go module (go mod init)
-- [x] Setup directory structure
-- [x] Config: TOML parser (config.example.toml)
-- [ ] Logger: slog wrapper (internal/logger/logger.go)
-- [ ] Message Bus:
-    - Events: InboundMessage, OutboundMessage structs (internal/bus/events.go)
-    - Queue: async channels with context support (internal/bus/queue.go)
-    - Publish/consume methods
-- [ ] CLI: basic `nexbot serve` (cmd/nexbot/main.go)
-- [x] Makefile: build targets
-- [x] .gitignore: Go specific
+ - [x] Initialize Go module (go mod init)
+ - [x] Setup directory structure
+ - [x] Config: TOML parser (config.example.toml)
+ - [x] Logger: slog wrapper (internal/logger/logger.go)
+ - [x] Message Bus:
+     - [x] Events: InboundMessage, OutboundMessage structs (internal/bus/events.go)
+     - [x] Queue: async channels with context support (internal/bus/queue.go)
+     - [x] Publish/consume methods
+ - [x] CLI: basic `nexbot serve` (cmd/nexbot/main.go)
+ - [x] Makefile: build targets
+ - [x] .gitignore: Go specific
 
 Конфиг (идея):
 
