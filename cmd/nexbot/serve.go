@@ -5,11 +5,17 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
+	"github.com/aatumaykin/nexbot/internal/agent/loop"
 	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/channels/telegram"
 	"github.com/aatumaykin/nexbot/internal/config"
+	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
+	"github.com/aatumaykin/nexbot/internal/tools"
+	"github.com/aatumaykin/nexbot/internal/workspace"
 	"github.com/spf13/cobra"
 )
 
@@ -31,6 +37,27 @@ The serve command is the main entry point for running Nexbot.`,
 }
 
 func serveHandler(cmd *cobra.Command, args []string) {
+	// Load .env file if exists
+	envFile := "./.env"
+	if _, err := os.Stat(envFile); err == nil {
+		data, err := os.ReadFile(envFile)
+		if err == nil {
+			lines := strings.Split(string(data), "\n")
+			for _, line := range lines {
+				line = strings.TrimSpace(line)
+				if line == "" || strings.HasPrefix(line, "#") {
+					continue
+				}
+				parts := strings.SplitN(line, "=", 2)
+				if len(parts) == 2 {
+					key := strings.TrimSpace(parts[0])
+					value := strings.TrimSpace(parts[1])
+					os.Setenv(key, value)
+				}
+			}
+		}
+	}
+
 	// Determine config path
 	configPath := serveConfigPath
 	if configPath == "" {
@@ -98,21 +125,108 @@ func serveHandler(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// Subscribe to message bus for components (placeholder)
-	// TODO: Subscribe inbound messages for agent processing
-	// TODO: Subscribe outbound messages for Telegram connector
+	// Initialize LLM provider
+	var llmProvider llm.Provider
+	switch cfg.LLM.Provider {
+	case "zai":
+		llmProvider = llm.NewZAIProvider(llm.ZAIConfig{
+			APIKey: cfg.LLM.ZAI.APIKey,
+			Model:  cfg.LLM.ZAI.Model,
+		}, log)
+		log.Info("✅ Z.ai LLM provider initialized")
+	default:
+		log.Error("Unsupported LLM provider", nil,
+			logger.Field{Key: "provider", Value: cfg.LLM.Provider})
+		os.Exit(1)
+	}
 
-	// Initialize agent loop (placeholder)
+	// Initialize workspace
+	ws := workspace.New(cfg.Workspace)
+	if err := ws.EnsureDir(); err != nil {
+		log.Error("Failed to create workspace directory", err)
+		os.Exit(1)
+	}
+
+	if err := ws.EnsureSubpath("sessions"); err != nil {
+		log.Error("Failed to create sessions directory", err)
+		os.Exit(1)
+	}
+
+	// Initialize agent loop
 	log.Info("🤖 Initializing agent loop")
-	// TODO: Initialize agent loop
+	agentLoop, err := loop.NewLoop(loop.Config{
+		Workspace:   cfg.Workspace.Path,
+		SessionDir:  ws.Subpath("sessions"),
+		LLMProvider: llmProvider,
+		Logger:      log,
+		Model:       cfg.Agent.Model,
+		MaxTokens:   cfg.Agent.MaxTokens,
+		Temperature: cfg.Agent.Temperature,
+	})
+	if err != nil {
+		log.Error("Failed to initialize agent loop", err)
+		os.Exit(1)
+	}
 
-	// Initialize Telegram connector if enabled (placeholder)
+	// Register tools
+	if cfg.Tools.Shell.Enabled {
+		shellTool := tools.NewShellExecTool(cfg, log)
+		agentLoop.RegisterTool(shellTool)
+		log.Info("✅ Shell tool registered")
+	}
+
+	if cfg.Tools.File.Enabled {
+		readFileTool := tools.NewReadFileTool(ws)
+		writeFileTool := tools.NewWriteFileTool(ws)
+		listDirTool := tools.NewListDirTool(ws)
+		agentLoop.RegisterTool(readFileTool)
+		agentLoop.RegisterTool(writeFileTool)
+		agentLoop.RegisterTool(listDirTool)
+		log.Info("✅ File tools registered")
+	}
+
+	// Initialize Telegram connector if enabled
+	var telegramConnector *telegram.Connector
 	if cfg.Channels.Telegram.Enabled {
 		log.Info("📱 Initializing Telegram connector")
-		// TODO: Initialize Telegram connector
+		telegramConnector = telegram.New(cfg.Channels.Telegram, log, messageBus)
+		if err := telegramConnector.Start(ctx); err != nil {
+			log.Error("Failed to start Telegram connector", err)
+			os.Exit(1)
+		}
 	} else {
 		log.Warn("Telegram connector is disabled")
 	}
+
+	// Subscribe to inbound messages and process them
+	inboundCh := messageBus.SubscribeInbound(ctx)
+	go func() {
+		for msg := range inboundCh {
+			log.InfoCtx(ctx, "Processing inbound message",
+				logger.Field{Key: "user_id", Value: msg.UserID},
+				logger.Field{Key: "session_id", Value: msg.SessionID})
+
+			response, err := agentLoop.Process(ctx, msg.SessionID, msg.Content)
+			if err != nil {
+				log.ErrorCtx(ctx, "Failed to process message", err,
+					logger.Field{Key: "session_id", Value: msg.SessionID})
+				response = fmt.Sprintf("Error: %v", err)
+			}
+
+			if response != "" {
+				outboundMsg := bus.NewOutboundMessage(
+					msg.ChannelType,
+					msg.UserID,
+					msg.SessionID,
+					response,
+					nil,
+				)
+				if err := messageBus.PublishOutbound(*outboundMsg); err != nil {
+					log.ErrorCtx(ctx, "Failed to publish outbound message", err)
+				}
+			}
+		}
+	}()
 
 	log.Info("✅ Nexbot is running")
 
@@ -125,14 +239,18 @@ func serveHandler(cmd *cobra.Command, args []string) {
 	log.Info("🛑 Shutting down Nexbot...")
 	cancel()
 
+	// Stop Telegram connector if enabled
+	if telegramConnector != nil {
+		if err := telegramConnector.Stop(); err != nil {
+			log.Error("Failed to stop Telegram connector", err)
+		}
+	}
+
 	// Stop message bus
 	if err := messageBus.Stop(); err != nil {
 		log.Error("Failed to stop message bus", err)
 		os.Exit(1)
 	}
-
-	// TODO: Stop agent loop
-	// TODO: Stop Telegram connector
 
 	log.Info("👋 Nexbot stopped gracefully")
 	os.Exit(0)

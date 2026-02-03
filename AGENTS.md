@@ -1,40 +1,108 @@
-# Agent Instructions
+# Nexbot Project Rules
 
-This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
+**Project:** Self-hosted AI agent on Go for task management via Telegram with Z.ai LLM provider and skills system.
 
-## Quick Reference
+## Stack
+- Go 1.25.5+
+- LLM Provider: Z.ai (GLM-4.7 Flash)
+- Telegram: telego library
+- Config: TOML
+- Architecture: Simple loop + message bus
 
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --status in_progress  # Claim work
-bd close <id>         # Complete work
-bd sync               # Sync with git
+## Directory Structure
+```
+cmd/nexbot/          — Entry point
+internal/
+  agent/             — Core agent logic (loop, context, session, memory, tools)
+  bus/               — Message bus (queue, events)
+  channels/          — Connectors (telegram)
+  config/            — Configuration
+  llm/               — LLM providers (zai, mock)
+  logger/            — Logging
+  skills/            — Skills system
+  tools/             — Tools (file, shell)
+  workspace/         — Workspace management
+pkg/                  — Exported packages
+skills/               — External skills (OpenClaw compatible)
+workspace/            — Bootstrap files (~/.nexbot/)
 ```
 
-## Landing the Plane (Session Completion)
+## Lazy Loading Rules
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+**READ FIRST (MANDATORY):**
+- `docs/rules/security.md` — CRITICAL. Mandatory for ALL changes
+- `docs/rules/projectrules.md` — General project rules
 
-**MANDATORY WORKFLOW:**
+**READ BY TASK:**
+- `docs/rules/architecture.md` — Architecture tasks (layers, dependencies)
+- `docs/rules/codequality.md` — Code style and quality
+- `docs/rules/apidesign.md` — API/Web tasks
+- `docs/rules/testing.md` — Testing rules
 
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+## Key Concepts
+
+**Workspace:**
+- Location: `~/.nexbot/`
+- Bootstrap files: IDENTITY.md, AGENTS.md, SOUL.md, USER.md, TOOLS.md, MEMORY.md
+- Context builder order: IDENTITY → AGENTS → SOUL → USER → TOOLS → memory
+
+**Tool Calling:**
+- Tools registered via `tools.Registry`
+- Tool schemas converted to `llm.ToolDefinition`
+- Agent processes tool calls recursively (max 10 iterations)
+
+**Skills:**
+- Location: `skills/` directory
+- Format: Directory with `SKILL.md`
+- Structure: YAML frontmatter + markdown body
+- OpenClaw compatible
+
+## Commands
+
+```bash
+make build            # Build project
+make test             # Run tests
+make lint             # Run linter
+make fmt              # Format code
+make ci               # Run all CI checks
+```
+
+## Workflow for Ending Session
+
+**MANDATORY STEPS before stopping:**
+
+1. Create issues for remaining work
+2. Run quality gates (if code changed): `make ci`
+3. Update task statuses (close completed, update in-progress)
+4. **PUSH TO REMOTE (CRITICAL):**
    ```bash
    git pull --rebase
-   bd sync
    git push
    git status  # MUST show "up to date with origin"
    ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
+5. Cleanup: Remove stashes, clean remote branches
+6. Verify: All changes committed AND pushed
+7. Provide context for next session
 
 **CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+- Work NOT completed until successful `git push`
+- NEVER stop before push — leaves work stranded locally
+- NEVER say "ready to push when you are" — YOU must push
+- If push fails, resolve and retry until successful
 
+## Priority
+
+1. Security (`docs/rules/security.md`) — CRITICAL
+2. Architecture (`docs/rules/architecture.md`) — Follow layers and dependencies
+3. Code quality (`docs/rules/codequality.md`) — Follow conventions
+4. Testing (`docs/rules/testing.md`) — Write tests
+
+## Language Rules
+
+- Answer ONLY in Russian
+- Technical terms stay in English (API, endpoint, commit)
+- No report/notes files (REFACTORING_NOTES.md, etc.) unless explicitly requested
+- Delete files only with explicit permission
+- Specify confidence (0-100%) after answers
+- At 50% context fill: provide brief summary
+- Minimize tokens, be concise (<4 lines unless details requested)

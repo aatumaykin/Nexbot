@@ -127,14 +127,6 @@ func validateAPIKey(key, fieldName string) error {
 		return fmt.Errorf("%s is too short (minimum 10 characters, got %d)", fieldName, len(key))
 	}
 
-	if strings.HasPrefix(fieldName, "llm.zai") && !strings.HasPrefix(key, "zai-") && !strings.HasPrefix(key, "sk-") {
-		return fmt.Errorf("%s has invalid format (expected to start with 'zai-' or 'sk-', got: %s)", fieldName, maskAPIKey(key))
-	}
-
-	if strings.HasPrefix(fieldName, "llm.openai") && !strings.HasPrefix(key, "sk-") && !strings.HasPrefix(key, "org-") {
-		return fmt.Errorf("%s has invalid format (expected to start with 'sk-' or 'org-', got: %s)", fieldName, maskAPIKey(key))
-	}
-
 	return nil
 }
 

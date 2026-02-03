@@ -41,6 +41,7 @@ tmp/
 workspace/sessions/
 workspace/memory/*.md
 !workspace/memory/.gitkeep
+.nexbot
 
 # Config
 config.toml
