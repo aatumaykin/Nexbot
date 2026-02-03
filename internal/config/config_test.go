@@ -47,7 +47,7 @@ func TestConfigValidation(t *testing.T) {
 				Workspace: WorkspaceConfig{Path: "~/.nexbot"},
 				LLM: LLMConfig{
 					Provider: "zai",
-					ZAI:      ZAIConfig{APIKey: "test-key"},
+					ZAI:      ZAIConfig{APIKey: "zai-test-key-valid"},
 				},
 				Logging: LoggingConfig{
 					Level:  "info",
@@ -500,5 +500,268 @@ output = "stdout"
 
 	if cfg.Workspace.Path != absPath {
 		t.Errorf("Workspace.Path = %q, want %q", cfg.Workspace.Path, absPath)
+	}
+}
+
+// Tests for validateAPIKey
+func TestValidateAPIKey(t *testing.T) {
+	tests := []struct {
+		name      string
+		key       string
+		fieldName string
+		wantErr   bool
+		errMsg    string
+	}{
+		{
+			name:      "valid zai api key with zai- prefix",
+			key:       "zai-test-key-valid",
+			fieldName: "llm.zai.api_key",
+			wantErr:   false,
+		},
+		{
+			name:      "valid zai api key with sk- prefix",
+			key:       "sk-test-key-valid",
+			fieldName: "llm.zai.api_key",
+			wantErr:   false,
+		},
+		{
+			name:      "valid openai api key with sk- prefix",
+			key:       "sk-test-key-valid",
+			fieldName: "llm.openai.api_key",
+			wantErr:   false,
+		},
+		{
+			name:      "valid openai api key with org- prefix",
+			key:       "org-test-key-valid",
+			fieldName: "llm.openai.api_key",
+			wantErr:   false,
+		},
+		{
+			name:      "empty api key",
+			key:       "",
+			fieldName: "llm.zai.api_key",
+			wantErr:   true,
+			errMsg:    "cannot be empty",
+		},
+		{
+			name:      "api key too short (9 chars)",
+			key:       "zai-short",
+			fieldName: "llm.zai.api_key",
+			wantErr:   true,
+			errMsg:    "too short",
+		},
+		{
+			name:      "api key exactly 10 chars",
+			key:       "zai-123456",
+			fieldName: "llm.zai.api_key",
+			wantErr:   false,
+		},
+		{
+			name:      "zai api key with invalid prefix",
+			key:       "invalid-test-key",
+			fieldName: "llm.zai.api_key",
+			wantErr:   true,
+			errMsg:    "invalid format",
+		},
+		{
+			name:      "openai api key with invalid prefix",
+			key:       "invalid-test-key",
+			fieldName: "llm.openai.api_key",
+			wantErr:   true,
+			errMsg:    "invalid format",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateAPIKey(tt.key, tt.fieldName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateAPIKey() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && tt.errMsg != "" && err != nil {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("validateAPIKey() error = %v, want error message to contain %q", err, tt.errMsg)
+				}
+			}
+		})
+	}
+}
+
+// Tests for validateTelegramToken
+func TestValidateTelegramToken(t *testing.T) {
+	tests := []struct {
+		name    string
+		token   string
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name:    "valid telegram token",
+			token:   "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz",
+			wantErr: false,
+		},
+		{
+			name:    "valid telegram token with minimum bot ID (3 digits)",
+			token:   "123:ABCDEFGHIJKLMNO",
+			wantErr: false,
+		},
+		{
+			name:    "valid telegram token with minimum token length (10 chars)",
+			token:   "1234567890:ABCDEFGHIJ",
+			wantErr: false,
+		},
+		{
+			name:    "valid telegram token with maximum bot ID (15 digits)",
+			token:   "123456789012345:ABCDEFGHIJKLMNO",
+			wantErr: false,
+		},
+		{
+			name:    "valid telegram token with maximum token length (50 chars)",
+			token:   "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrst",
+			wantErr: false,
+		},
+		{
+			name:    "empty telegram token",
+			token:   "",
+			wantErr: true,
+			errMsg:  "cannot be empty",
+		},
+		{
+			name:    "missing colon separator",
+			token:   "1234567890-ABCdefGHIjklMNOpqrsTUVwxyz",
+			wantErr: true,
+			errMsg:  "invalid format",
+		},
+		{
+			name:    "bot ID too short (2 digits)",
+			token:   "12:ABCdefGHIjklMNOpqrsTUVwxyz",
+			wantErr: true,
+			errMsg:  "bot ID",
+		},
+		{
+			name:    "bot ID too long (16 digits)",
+			token:   "1234567890123456:ABCdefGHIjklMNOpqrsTUVwxyz",
+			wantErr: true,
+			errMsg:  "bot ID",
+		},
+		{
+			name:    "token too short (9 chars)",
+			token:   "1234567890:ABCDEFGHI",
+			wantErr: true,
+			errMsg:  "token",
+		},
+		{
+			name:    "token too long (51 chars)",
+			token:   "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxy", // Token part has 51 chars
+			wantErr: true,
+			errMsg:  "token",
+		},
+		{
+			name:    "bot ID contains non-digits",
+			token:   "abc1234567:ABCdefGHIjklMNOpqrsTUVwxyz",
+			wantErr: true,
+			errMsg:  "bot ID",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateTelegramToken(tt.token)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateTelegramToken() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && tt.errMsg != "" && err != nil {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("validateTelegramToken() error = %v, want error message to contain %q", err, tt.errMsg)
+				}
+			}
+		})
+	}
+}
+
+// Tests for validatePath
+func TestValidatePath(t *testing.T) {
+	tests := []struct {
+		name      string
+		path      string
+		fieldName string
+		wantErr   bool
+		errMsg    string
+	}{
+		{
+			name:      "absolute path",
+			path:      "/tmp/nexbot",
+			fieldName: "workspace.path",
+			wantErr:   false,
+		},
+		{
+			name:      "relative path",
+			path:      "./nexbot",
+			fieldName: "workspace.path",
+			wantErr:   false,
+		},
+		{
+			name:      "path with tilde",
+			path:      "~/.nexbot",
+			fieldName: "workspace.path",
+			wantErr:   false,
+		},
+		{
+			name:      "path with tilde and subdirectory",
+			path:      "~/projects/nexbot",
+			fieldName: "workspace.path",
+			wantErr:   false,
+		},
+		{
+			name:      "simple path",
+			path:      "nexbot",
+			fieldName: "workspace.path",
+			wantErr:   false,
+		},
+		{
+			name:      "empty path",
+			path:      "",
+			fieldName: "workspace.path",
+			wantErr:   true,
+			errMsg:    "cannot be empty",
+		},
+		{
+			name:      "path with double dot (path traversal)",
+			path:      "/tmp/../etc",
+			fieldName: "workspace.path",
+			wantErr:   true,
+			errMsg:    "path traversal",
+		},
+		{
+			name:      "relative path with double dot",
+			path:      "../etc",
+			fieldName: "workspace.path",
+			wantErr:   true,
+			errMsg:    "path traversal",
+		},
+		{
+			name:      "path with triple dot (contains ..)",
+			path:      "/tmp/.../file",
+			fieldName: "workspace.path",
+			wantErr:   true,
+			errMsg:    "path traversal",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validatePath(tt.path, tt.fieldName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validatePath() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && tt.errMsg != "" && err != nil {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("validatePath() error = %v, want error message to contain %q", err, tt.errMsg)
+				}
+			}
+		})
 	}
 }
