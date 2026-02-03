@@ -201,13 +201,10 @@ Example usage:
 }
 
 func init() {
-	// Add test command to root
-	rootCmd.AddCommand(testCmd)
-
 	// Add test llm subcommand to test command
 	testCmd.AddCommand(testLLMCmd)
 
 	// Add flags
 	testLLMCmd.Flags().StringVarP(&testConfigPath, "config", "c", "", "Path to configuration file (default: ./config.toml)")
-	testLLMCmd.Flags().StringP("model", "m", "", "Override the model to use (e.g., glm-4.7)")
+	testLLMCmd.Flags().StringP("model", "m", "", "Override model to use (e.g., glm-4.7)")
 }

@@ -56,7 +56,7 @@ make run
 
 ## Configuration
 
-See [CONFIG.md](CONFIG.md) for detailed configuration options.
+See `config.example.toml` for all available configuration options.
 
 ```toml
 [agent]
@@ -83,7 +83,7 @@ skills/
     └── SKILL.md
 ```
 
-See [SKILL_FORMAT.md](docs/SKILL_FORMAT.md) for creating custom skills.
+Skills use YAML frontmatter with markdown body for defining agent capabilities.
 
 ## Bootstrap Files
 
@@ -99,10 +99,11 @@ Nexbot uses bootstrap files in your workspace (`~/.nexbot/`):
 ## CLI Commands
 
 ```bash
-nexbot start              # Start agent (default)
-nexbot status             # Show status
-nexbot health             # Health check
-nexbot validate           # Validate config
+nexbot serve              # Start Nexbot agent (main command)
+nexbot run                # Start Nexbot agent
+nexbot config validate    # Validate configuration file
+nexbot test               # Test Nexbot components
+nexbot version            # Print version information
 nexbot --help             # Show help
 nexbot --version          # Show version
 ```
@@ -167,11 +168,42 @@ Telegram ──► Inbound Queue ──► Agent ──► Outbound Queue ──
             (bus)                          (bus)
 ```
 
-See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
+Key components:
+- **Message Bus** - Async queue for inbound/outbound messages
+- **Agent Loop** - Processes messages with LLM and tool calling
+- **Channels** - Connectors for Telegram (extensible to other platforms)
+- **Tools** - Built-in tools (read_file, write_file, list_dir, shell_exec)
+- **Skills** - Extensible markdown-based skills system
+- **Workspace** - Directory structure for agent context (IDENTITY.md, AGENTS.md, SOUL.md, etc.)
 
 ## Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions are welcome! Please follow these guidelines:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development
+
+```bash
+# Run tests
+make test
+
+# Run with coverage
+make test-cover
+
+# Format code
+make fmt
+
+# Run linter
+make lint
+
+# Run all CI checks
+make ci
+```
 
 ## License
 
