@@ -14,7 +14,7 @@ MAIN_PATH ?= ./cmd/nexbot
 OUTPUT_DIR ?= ./bin
 
 # Cross-compilation targets
-TARGET_OS ?= darwin linux
+TARGET_OS ?= darwin linux windows
 TARGET_ARCH ?= amd64 arm64
 
 # Build flags
