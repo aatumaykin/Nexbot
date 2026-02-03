@@ -2,7 +2,7 @@
 
 ## Current Status (Last Updated: 2026-02-03)
 
-### v0.1.0 Progress: **65% Complete**
+### v0.1.0 Progress: **80% Complete**
 
 **Completed Components:**
 - ✅ Go module initialization and directory structure
@@ -18,14 +18,17 @@
 - ✅ Template files for bootstrap (workspace/*.md)
 - ✅ Comprehensive unit and integration tests for Workspace & Bootstrap (60+ tests, 82-88% coverage)
 - ✅ Config integration for workspace path expansion (env vars + ~ expansion)
+- ✅ Memory store (markdown/JSONL files) (internal/agent/memory.go)
+- ✅ Context builder (system prompt assembly) (internal/agent/context.go)
+- ✅ Session manager (JSONL, append/read operations) (internal/agent/session.go)
 
-**Next Steps (Day 5):**
-- ⏳ Memory store (markdown/JSONL files) (internal/agent/memory.go)
-- ⏳ Context builder (system prompt assembly) (internal/agent/context.go)
-- ⏳ Session manager (JSONL, append/read operations) (internal/agent/session.go)
+**Next Steps (Day 6):**
+- ⏳ Simple loop: inbound → build context → LLM → outbound (internal/agent/loop.go)
+- ⏳ Integration with session manager (get_or_create, add_message, save)
+- ⏳ Mock Provider for graceful degradation
+- ⏳ Tests: integration test of loop with mock-provider
 
 **Remaining Work:**
-- Day 5: Memory + Context (3b)
 - Day 6: Agent Loop (без tools)
 - Day 7: Telegram Connector (plain chat, без tools)
 - Day 8: Tool Calling Infrastructure + First Tool
@@ -260,12 +263,17 @@ timeout_seconds = 30
      - Config integration: 11 tests for path expansion (env vars + ~)
 
 
-#### Day 5: Memory + Context (3b)
+#### Day 5: Memory + Context (3b) ✅ COMPLETED
 
-- [ ] Memory store (markdown/JSONL files) (internal/agent/memory.go)
-- [ ] Context builder (system prompt assembly, порядок: IDENTITY → AGENTS → SOUL → USER → TOOLS → memory) (internal/agent/context.go)
-- [ ] Session manager (JSONL, простые операции append/read) (internal/agent/session.go)
-- [ ] Tests: базовые тесты memory/context.
+- [x] Memory store (markdown/JSONL files) (internal/agent/memory.go)
+- [x] Context builder (system prompt assembly, порядок: IDENTITY → AGENTS → SOUL → USER → TOOLS → memory) (internal/agent/context.go)
+- [x] Session manager (JSONL, простые операции append/read) (internal/agent/session.go)
+- [x] Tests: базовые тесты memory/context.
+    - Session tests: 10/10 passed
+    - Memory tests: 11/11 passed
+    - Context unit tests: 9/9 passed
+    - Integration tests: 6/6 passed
+    - **Total: 36 tests, all passed**
 
 
 ### Week 2: Agent Loop, Telegram, Tools, Skills
@@ -366,8 +374,11 @@ timeout_seconds = 30
 | Workspace | **82.1%** | **37** | ✅ Complete |
 | Bootstrap | **88.0%** | **12** | ✅ Complete |
 | Integration | **N/A** | **7** | ✅ Complete |
+| Session | TBD | **10** | ✅ Complete |
+| Memory | TBD | **11** | ✅ Complete |
+| Context | TBD | **15** | ✅ Complete |
 
-**Total Tests:** 75+ tests across all modules
+**Total Tests:** 111+ tests across all modules
 
 ### File Status
 - ✅ workspace/workspace.go (200+ lines, complete)
@@ -377,6 +388,13 @@ timeout_seconds = 30
 - ✅ workspace/integration_test.go (400+ lines, integration tests)
 - ✅ config/config.go (updated with env var support)
 - ✅ config/config_test.go (11 new tests)
+- ✅ internal/agent/session/session.go (280 lines, Session manager)
+- ✅ internal/agent/session/session_test.go (470 lines, 10 tests)
+- ✅ internal/agent/memory/memory.go (430 lines, Memory store)
+- ✅ internal/agent/memory/memory_test.go (580 lines, 11 tests)
+- ✅ internal/agent/context/context.go (210 lines, Context builder)
+- ✅ internal/agent/context/context_test.go (340 lines, 9 tests)
+- ✅ internal/agent/context/integration_test.go (460 lines, 6 tests)
 
 ---
 
