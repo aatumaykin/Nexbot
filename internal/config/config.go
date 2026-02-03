@@ -124,15 +124,15 @@ func validateAPIKey(key, fieldName string) error {
 	}
 
 	if len(key) < 10 {
-		return fmt.Errorf("%s is too short (minimum 10 characters)", fieldName)
+		return fmt.Errorf("%s is too short (minimum 10 characters, got %d)", fieldName, len(key))
 	}
 
 	if strings.HasPrefix(fieldName, "llm.zai") && !strings.HasPrefix(key, "zai-") && !strings.HasPrefix(key, "sk-") {
-		return fmt.Errorf("%s has invalid format (expected to start with 'zai-' or 'sk-')", fieldName)
+		return fmt.Errorf("%s has invalid format (expected to start with 'zai-' or 'sk-', got: %s)", fieldName, maskAPIKey(key))
 	}
 
 	if strings.HasPrefix(fieldName, "llm.openai") && !strings.HasPrefix(key, "sk-") && !strings.HasPrefix(key, "org-") {
-		return fmt.Errorf("%s has invalid format (expected to start with 'sk-' or 'org-')", fieldName)
+		return fmt.Errorf("%s has invalid format (expected to start with 'sk-' or 'org-', got: %s)", fieldName, maskAPIKey(key))
 	}
 
 	return nil
@@ -145,25 +145,25 @@ func validateTelegramToken(token string) error {
 
 	parts := strings.Split(token, ":")
 	if len(parts) != 2 {
-		return fmt.Errorf("telegram token has invalid format (expected format: <bot_id>:<token>)")
+		return fmt.Errorf("telegram token has invalid format (expected format: <bot_id>:<token>, got: %s)", maskSecret(token))
 	}
 
 	botID := parts[0]
 	botToken := parts[1]
 
 	if len(botID) < 3 || len(botID) > 15 {
-		return fmt.Errorf("telegram token has invalid bot ID (expected 3-15 digits)")
+		return fmt.Errorf("telegram token has invalid bot ID length (expected 3-15 digits, got %d digits)", len(botID))
 	}
 
 	// Check that bot ID contains only digits
 	for _, r := range botID {
 		if r < '0' || r > '9' {
-			return fmt.Errorf("telegram token has invalid bot ID (expected 3-15 digits)")
+			return fmt.Errorf("telegram token has invalid bot ID (expected digits only, got: %s)", botID)
 		}
 	}
 
 	if len(botToken) < 10 || len(botToken) > 50 {
-		return fmt.Errorf("telegram token has invalid token (expected 10-50 characters)")
+		return fmt.Errorf("telegram token has invalid token length (expected 10-50 characters, got %d)", len(botToken))
 	}
 
 	return nil

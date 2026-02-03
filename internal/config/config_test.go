@@ -765,3 +765,169 @@ func TestValidatePath(t *testing.T) {
 		})
 	}
 }
+
+// Tests for masking functions
+func TestMaskSecret(t *testing.T) {
+	tests := []struct {
+		name     string
+		secret   string
+		expected string
+	}{
+		{
+			name:     "empty secret",
+			secret:   "",
+			expected: "",
+		},
+		{
+			name:     "short secret (less than 8 chars)",
+			secret:   "abc",
+			expected: "***",
+		},
+		{
+			name:     "secret with 8 chars",
+			secret:   "abcdefgh",
+			expected: "abcdefgh", // 8 chars - no middle to mask
+		},
+		{
+			name:     "long secret",
+			secret:   "zai-test-api-key-12345678",
+			expected: "zai-*****************5678", // 28 chars - 20 stars
+		},
+		{
+			name:     "very long secret",
+			secret:   "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+			expected: "sk-a*******************************7890", // 47 chars - 39 stars
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := maskSecret(tt.secret)
+			if result != tt.expected {
+				t.Errorf("maskSecret(%q) = %q, want %q", tt.secret, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestMaskAPIKey(t *testing.T) {
+	tests := []struct {
+		name     string
+		apiKey   string
+		expected string
+	}{
+		{
+			name:     "empty API key",
+			apiKey:   "",
+			expected: "",
+		},
+		{
+			name:     "zai API key",
+			apiKey:   "zai-test-api-key",
+			expected: "zai-********-key", // 16 chars - 8 stars
+		},
+		{
+			name:     "sk- prefixed API key",
+			apiKey:   "sk-proj-abc123def456",
+			expected: "sk-p************f456", // 20 chars - 12 stars
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := maskAPIKey(tt.apiKey)
+			if result != tt.expected {
+				t.Errorf("maskAPIKey(%q) = %q, want %q", tt.apiKey, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestMaskTelegramToken(t *testing.T) {
+	tests := []struct {
+		name     string
+		token    string
+		expected string
+	}{
+		{
+			name:     "empty token",
+			token:    "",
+			expected: "",
+		},
+		{
+			name:     "valid token",
+			token:    "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz",
+			expected: "1234567890:ABCd******************wxyz", // 10 + 24 chars - 16 stars
+		},
+		{
+			name:     "short token",
+			token:    "123:ABCDEFGHIJ",
+			expected: "123:ABCD**GHIJ", // 3 + 8 chars - 2 stars
+		},
+		{
+			name:     "invalid format (no colon)",
+			token:    "invalid-token",
+			expected: "inva*****oken", // 12 chars - 4 stars
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := maskTelegramToken(tt.token)
+			if result != tt.expected {
+				t.Errorf("maskTelegramToken(%q) = %q, want %q", tt.token, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestFormatValidationError(t *testing.T) {
+	tests := []struct {
+		name           string
+		field          string
+		message        string
+		secret         string
+		wantErr        bool
+		expectedSubstr string
+	}{
+		{
+			name:           "error without secret",
+			field:          "workspace.path",
+			message:        "is required",
+			wantErr:        true,
+			expectedSubstr: "workspace.path: is required",
+		},
+		{
+			name:           "error with secret",
+			field:          "llm.zai.api_key",
+			message:        "is too short",
+			secret:         "zai-short",
+			wantErr:        true,
+			expectedSubstr: "value: zai-*hort", // 9 chars - 1 star in middle
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := formatValidationError(tt.field, tt.message, tt.secret)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("formatValidationError() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.expectedSubstr != "" && err != nil {
+				if !strings.Contains(err.Error(), tt.expectedSubstr) {
+					t.Errorf("formatValidationError() error = %v, want to contain %q", err, tt.expectedSubstr)
+				}
+			}
+		})
+	}
+}
+
+func TestValidationError(t *testing.T) {
+	err := &ValidationError{Field: "test.field", Message: "test.field: is invalid"}
+
+	expected := "test.field: is invalid"
+	if err.Error() != expected {
+		t.Errorf("ValidationError.Error() = %q, want %q", err.Error(), expected)
+	}
+}
