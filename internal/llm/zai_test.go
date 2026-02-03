@@ -133,9 +133,9 @@ func TestZAIClient_SendRequest(t *testing.T) {
 	t.Log("  - 500+ Server errors: Z.ai API issues (retry with backoff)")
 }
 
-// ExampleZAIClient_SendRequest demonstrates how to use the ZAIProvider
+// ExampleZAIProvider_Chat demonstrates how to use the ZAIProvider
 // for sending chat completion requests.
-func ExampleZAIClient_SendRequest() {
+func ExampleZAIProvider_Chat() {
 	// Create a logger
 	log, err := logger.New(logger.Config{
 		Level:  "info",

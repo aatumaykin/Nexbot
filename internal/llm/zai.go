@@ -48,8 +48,9 @@ type zaiRequest struct {
 
 // zaiMessage represents a message in Z.ai API format.
 type zaiMessage struct {
-	Role    string `json:"role"`    // Role of the message sender
-	Content string `json:"content"` // Message content
+	Role       string `json:"role"`                   // Role of the message sender
+	Content    string `json:"content"`                // Message content
+	ToolCallID string `json:"tool_call_id,omitempty"` // Tool call ID for role=tool messages
 }
 
 // zaiTool represents a tool definition in Z.ai API format.
@@ -262,8 +263,9 @@ func (p *ZAIProvider) mapChatRequest(req ChatRequest) zaiRequest {
 	messages := make([]zaiMessage, len(req.Messages))
 	for i, msg := range req.Messages {
 		messages[i] = zaiMessage{
-			Role:    string(msg.Role),
-			Content: msg.Content,
+			Role:       string(msg.Role),
+			Content:    msg.Content,
+			ToolCallID: msg.ToolCallID,
 		}
 	}
 

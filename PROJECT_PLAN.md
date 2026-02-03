@@ -2,7 +2,7 @@
 
 ## Current Status (Last Updated: 2026-02-03)
 
-### v0.1.0 Progress: **80% Complete**
+### v0.1.0 Progress: **95% Complete**
 
 **Completed Components:**
 - ✅ Go module initialization and directory structure
@@ -21,16 +21,26 @@
 - ✅ Memory store (markdown/JSONL files) (internal/agent/memory.go)
 - ✅ Context builder (system prompt assembly) (internal/agent/context.go)
 - ✅ Session manager (JSONL, append/read operations) (internal/agent/session.go)
+- ✅ Simple loop: inbound → build context → LLM → outbound (internal/agent/loop.go)
+- ✅ Integration with session manager (get_or_create, add_message, save)
+- ✅ Mock Provider for graceful degradation
+- ✅ Tests: integration test of loop with mock-provider
+- ✅ Telegram connector (telego) with whitelist and long polling
+- ✅ Inbound/Outbound message handling via message bus
+- ✅ Tool calling infrastructure (SupportsToolCalling, schema formats)
+- ✅ OpenAI-compatible tool calling (tools + tool_calls)
+- ✅ Tool interface & registry (internal/tools/registry.go)
+- ✅ First built-in tool: read_file with schema generation
+- ✅ Tool calling integration into agent loop with recursive handling
 
-**Next Steps (Day 6):**
-- ⏳ Simple loop: inbound → build context → LLM → outbound (internal/agent/loop.go)
-- ⏳ Integration with session manager (get_or_create, add_message, save)
-- ⏳ Mock Provider for graceful degradation
-- ⏳ Tests: integration test of loop with mock-provider
-
-**Remaining Work:**
-- Day 6: Agent Loop (без tools)
-- Day 7: Telegram Connector (plain chat, без tools)
+**Next Steps (Day 9):**
+- ⏳ write_file tool
+- ⏳ list_dir tool
+- ⏳ shell_exec tool with whitelist
+- ⏳ Tool execution with timeout and working_dir
+- ⏳ SKILL.md parser (YAML frontmatter + markdown)
+- ⏳ Skills loader (workspace/skills/ + builtin/skills/)
+- ⏳ Skills: summary block in system prompt
 - Day 8: Tool Calling Infrastructure + First Tool
 - Day 9: Other Tools + Simplified Skills
 - Day 10: Integration & Polish (E2E с tools)
@@ -278,38 +288,38 @@ timeout_seconds = 30
 
 ### Week 2: Agent Loop, Telegram, Tools, Skills
 
-#### Day 6: Agent Loop (без tools)
+#### Day 6: Agent Loop (без tools) ✅ COMPLETED
 
-- [ ] Simple loop: inbound → build context → LLM → outbound (internal/agent/loop.go)
-- [ ] Интеграция с session manager (get_or_create, add_message, save).
-- [ ] Mock Provider для graceful degradation:
+- [x] Simple loop: inbound → build context → LLM → outbound (internal/agent/loop.go)
+- [x] Интеграция с session manager (get_or_create, add_message, save).
+- [x] Mock Provider для graceful degradation:
     - эхо‑ответ, фиксированный ответ или fixtures.
-- [ ] Tests: интеграционный тест loop’а с mock‑provider.
+- [x] Tests: интеграционный тест loop’а с mock‑provider (8 tests passed)
 
 
-#### Day 7: Telegram Connector (plain chat, без tools)
+#### Day 7: Telegram Connector (plain chat, без tools) ✅ COMPLETED
 
-- [ ] Telego integration (`github.com/mymmrac/telego`).
-- [ ] Bot initialization with token from config (internal/channels/telegram/connector.go).
-- [ ] Inbound: parse Telegram update → InboundMessage → bus.PublishInbound.
-- [ ] Outbound: bus.SubscribeOutbound → Telegram `sendMessage`.
-- [ ] Middleware: whitelist users (allowed_users from config).
-- [ ] Long polling setup (`updatesViaLongPolling`).
-- [ ] Graceful shutdown handling.
-- [ ] Tests: mock Telegram bot, message parsing.
+- [x] Telego integration (`github.com/mymmrac/telego`).
+- [x] Bot initialization with token from config (internal/channels/telegram/connector.go).
+- [x] Inbound: parse Telegram update → InboundMessage → bus.PublishInbound.
+- [x] Outbound: bus.SubscribeOutbound → Telegram `sendMessage`.
+- [x] Middleware: whitelist users (allowed_users from config).
+- [x] Long polling setup (`updatesViaLongPolling`).
+- [x] Graceful shutdown handling.
+- [x] Tests: mock Telegram bot, message parsing (11 tests passed)
 
 Результат: рабочий Telegram‑бот, использующий Z.ai Coding API без tools.
 
-#### Day 8: Tool Calling Infrastructure + First Tool
+#### Day 8: Tool Calling Infrastructure + First Tool ✅ COMPLETED
 
-- [ ] Расширение Provider под tool calling (SupportsToolCalling, schema форматы).
-- [ ] Поддержка OpenAI-compatible tool calling (минимальный subset `tools` + `tool_calls`).
-- [ ] Tool interface \& registry (internal/tools/registry.go).
-- [ ] Первый built-in tool:
+- [x] Расширение Provider под tool calling (SupportsToolCalling, schema форматы).
+- [x] Поддержка OpenAI-compatible tool calling (минимальный subset `tools` + `tool_calls`).
+- [x] Tool interface \& registry (internal/tools/registry.go).
+- [x] Первый built-in tool:
     - `read_file` — read file content (internal/tools/file.go).
-- [ ] Tool schema generation для `read_file`.
-- [ ] Интеграция в agent loop: распознавать tool_calls и вызывать `read_file`.
-- [ ] Tests: tool schema + выполнение `read_file` в loop’е (можно с mock‑provider).
+- [x] Tool schema generation для `read_file`.
+- [x] Интеграция в agent loop: распознавать tool_calls и вызывать `read_file`.
+- [x] Tests: tool schema + выполнение `read_file` в loop’е (можно с mock‑provider) (52+ tests passed).
 
 
 #### Day 9: Остальные Tools + Simplified Skills

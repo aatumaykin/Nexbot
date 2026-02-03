@@ -22,4 +22,5 @@ require (
 	github.com/valyala/fastjson v1.6.7 // indirect
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
 	golang.org/x/sys v0.39.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
