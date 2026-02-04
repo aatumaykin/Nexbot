@@ -77,6 +77,109 @@ func TestConfigValidation(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "valid workers config",
+			cfg: &Config{
+				Workspace: WorkspaceConfig{Path: "~/.nexbot"},
+				Agent: AgentConfig{
+					Provider: "zai",
+				},
+				LLM: LLMConfig{
+					ZAI: ZAIConfig{APIKey: "test-key"},
+				},
+				Logging: LoggingConfig{
+					Level:  "info",
+					Format: "json",
+					Output: "stdout",
+				},
+				Channels: ChannelsConfig{
+					Telegram: TelegramConfig{
+						Enabled: false,
+					},
+				},
+				Workers: WorkersConfig{
+					PoolSize:  5,
+					QueueSize: 100,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid subagent config",
+			cfg: &Config{
+				Workspace: WorkspaceConfig{Path: "~/.nexbot"},
+				Agent: AgentConfig{
+					Provider: "zai",
+				},
+				LLM: LLMConfig{
+					ZAI: ZAIConfig{APIKey: "test-key"},
+				},
+				Logging: LoggingConfig{
+					Level:  "info",
+					Format: "json",
+					Output: "stdout",
+				},
+				Channels: ChannelsConfig{
+					Telegram: TelegramConfig{
+						Enabled: false,
+					},
+				},
+				Subagent: SubagentConfig{
+					Enabled:        true,
+					MaxConcurrent:  10,
+					TimeoutSeconds: 300,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid workers pool size (negative)",
+			cfg: &Config{
+				Workspace: WorkspaceConfig{Path: "~/.nexbot"},
+				Agent: AgentConfig{
+					Provider: "zai",
+				},
+				LLM: LLMConfig{
+					ZAI: ZAIConfig{APIKey: "test-key"},
+				},
+				Logging: LoggingConfig{
+					Level:  "info",
+					Format: "json",
+					Output: "stdout",
+				},
+				Workers: WorkersConfig{
+					PoolSize: -1,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid subagent max concurrent (zero)",
+			cfg: &Config{
+				Workspace: WorkspaceConfig{Path: "~/.nexbot"},
+				Agent: AgentConfig{
+					Provider: "zai",
+				},
+				LLM: LLMConfig{
+					ZAI: ZAIConfig{APIKey: "test-key"},
+				},
+				Logging: LoggingConfig{
+					Level:  "info",
+					Format: "json",
+					Output: "stdout",
+				},
+				Channels: ChannelsConfig{
+					Telegram: TelegramConfig{
+						Enabled: false,
+					},
+				},
+				Subagent: SubagentConfig{
+					Enabled:       true,
+					MaxConcurrent: 0,
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "missing llm provider",
 			cfg: &Config{
 				Workspace: WorkspaceConfig{Path: "~/.nexbot"},

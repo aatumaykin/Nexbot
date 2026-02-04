@@ -28,6 +28,8 @@ type Config struct {
 	Channels   ChannelsConfig   `toml:"channels"`
 	Tools      ToolsConfig      `toml:"tools"`
 	Cron       CronConfig       `toml:"cron"`
+	Workers    WorkersConfig    `toml:"workers"`
+	Subagent   SubagentConfig   `toml:"subagent"`
 	MessageBus MessageBusConfig `toml:"message_bus"`
 }
 
@@ -118,11 +120,26 @@ const (
 type CronConfig struct {
 	Enabled  bool   `toml:"enabled"`
 	Timezone string `toml:"timezone"`
+	JobsFile string `toml:"jobs_file"`
 }
 
 // JobsDir возвращает путь к директории для хранения cron jobs
 func (c *CronConfig) JobsDir(workspacePath string) string {
 	return filepath.Join(workspacePath, CronSubdirectory)
+}
+
+// WorkersConfig представляет конфигурацию worker pool (v0.2)
+type WorkersConfig struct {
+	PoolSize  int `toml:"pool_size"`
+	QueueSize int `toml:"queue_size"`
+}
+
+// SubagentConfig представляет конфигурацию subagent manager (v0.2)
+type SubagentConfig struct {
+	Enabled        bool   `toml:"enabled"`
+	MaxConcurrent  int    `toml:"max_concurrent"`
+	TimeoutSeconds int    `toml:"timeout_seconds"`
+	SessionPrefix  string `toml:"session_prefix"`
 }
 
 // MessageBusConfig представляет конфигурацию message bus

@@ -112,6 +112,22 @@ func (c *Config) Validate() []error {
 		}
 	}
 
+	// Проверка workers configuration
+	if c.Workers.PoolSize < 0 {
+		errors = append(errors, fmt.Errorf("workers.pool_size must be positive (got: %d)", c.Workers.PoolSize))
+	}
+	if c.Workers.QueueSize < 0 {
+		errors = append(errors, fmt.Errorf("workers.queue_size must be positive (got: %d)", c.Workers.QueueSize))
+	}
+
+	// Проверка subagent configuration
+	if c.Subagent.Enabled && c.Subagent.MaxConcurrent < 1 {
+		errors = append(errors, fmt.Errorf("subagent.max_concurrent must be at least 1 when enabled (got: %d)", c.Subagent.MaxConcurrent))
+	}
+	if c.Subagent.Enabled && c.Subagent.TimeoutSeconds < 1 {
+		errors = append(errors, fmt.Errorf("subagent.timeout_seconds must be at least 1 when enabled (got: %d)", c.Subagent.TimeoutSeconds))
+	}
+
 	return errors
 }
 
@@ -228,8 +244,31 @@ func applyDefaults(c *Config) {
 		c.MessageBus.Capacity = 1000
 	}
 
+	// Cron defaults
 	if c.Cron.Timezone == "" {
 		c.Cron.Timezone = "UTC"
+	}
+	if c.Cron.JobsFile == "" {
+		c.Cron.JobsFile = "jobs.json"
+	}
+
+	// Workers defaults
+	if c.Workers.PoolSize == 0 {
+		c.Workers.PoolSize = 5
+	}
+	if c.Workers.QueueSize == 0 {
+		c.Workers.QueueSize = 100
+	}
+
+	// Subagent defaults
+	if c.Subagent.MaxConcurrent == 0 {
+		c.Subagent.MaxConcurrent = 10
+	}
+	if c.Subagent.TimeoutSeconds == 0 {
+		c.Subagent.TimeoutSeconds = 300
+	}
+	if c.Subagent.SessionPrefix == "" {
+		c.Subagent.SessionPrefix = "subagent-"
 	}
 }
 

@@ -42,6 +42,20 @@ timeout_seconds = 30
 # Cron configuration (v0.2)
 [cron]
 enabled = false
+timezone = "UTC"
+jobs_file = "jobs.json"
+
+# Worker pool configuration (v0.2)
+[workers]
+pool_size = 5
+queue_size = 100
+
+# Subagent manager configuration (v0.2)
+[subagent]
+enabled = true
+max_concurrent = 10
+timeout_seconds = 300
+session_prefix = "subagent-"
 
 # Logging configuration
 [logging]

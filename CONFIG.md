@@ -70,7 +70,7 @@ Configuration for agent behavior and model parameters.
 | `max_tokens` | int | `8192` | Maximum tokens in LLM response |
 | `max_iterations` | int | `20` | Maximum tool calling iterations per request |
 | `temperature` | float64 | `0.7` | Temperature for LLM sampling (0.0 - 1.0) |
-| `timeout_seconds` | int | `30` | Timeout for agent requests |
+| `timeout_seconds` | int | `30` | Timeout for agent request processing (including tool calls) |
 
 **Example:**
 
@@ -80,7 +80,7 @@ model = "glm-4.7-flash"
 max_tokens = 8192
 max_iterations = 20
 temperature = 0.7
-timeout_seconds = 30
+timeout_seconds = 60
 ```
 
 **Validation:**
@@ -120,6 +120,7 @@ Configuration for Z.ai LLM provider.
 | `api_key` | string | (required) | Z.ai API key (format: `zai-*` or `sk-*`, min 10 chars) |
 | `base_url` | string | `https://api.z.ai/api/coding/paas/v4` | Z.ai API base URL |
 | `model` | string | `glm-4.7-flash` | Default Z.ai model to use |
+| `timeout_seconds` | int | `30` | Timeout for HTTP requests to Z.ai API |
 
 **Example:**
 
@@ -127,6 +128,7 @@ Configuration for Z.ai LLM provider.
 [llm.zai]
 api_key = "${ZAI_API_KEY}"
 base_url = "https://api.z.ai/api/coding/paas/v4"
+timeout_seconds = 60
 model = "glm-4.7-flash"
 ```
 
@@ -315,22 +317,75 @@ timeout_seconds = 30
 
 ### `[cron]` - Cron Configuration (v0.2)
 
-Configuration for scheduled tasks (coming in v0.2.0).
+Configuration for scheduled task execution.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `enabled` | bool | `false` | Enable cron scheduler |
-| `jobs_dir` | string | `~/.nexbot/cron` | Directory containing cron job definitions |
+| `timezone` | string | `UTC` | Timezone for cron job scheduling |
+| `jobs_file` | string | `jobs.json` | File storing cron job definitions |
 
 **Example:**
 
 ```toml
 [cron]
-enabled = false
-jobs_dir = "~/.nexbot/cron"
+enabled = true
+timezone = "UTC"
+jobs_file = "jobs.json"
 ```
 
-**Note:** This feature is planned for v0.2.0 and is not yet implemented.
+**Validation:**
+- `timezone` must be a valid timezone (e.g., "UTC", "America/New_York")
+
+---
+
+### `[workers]` - Worker Pool Configuration (v0.2)
+
+Configuration for async task execution pool.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `pool_size` | int | `5` | Number of worker goroutines |
+| `queue_size` | int | `100` | Queue capacity for pending tasks |
+
+**Example:**
+
+```toml
+[workers]
+pool_size = 5
+queue_size = 100
+```
+
+**Validation:**
+- `pool_size` must be positive (minimum 1)
+- `queue_size` must be positive (minimum 1)
+
+---
+
+### `[subagent]` - Subagent Manager Configuration (v0.2)
+
+Configuration for subagent management.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `enabled` | bool | `true` | Enable subagent functionality |
+| `max_concurrent` | int | `10` | Maximum concurrent subagents |
+| `timeout_seconds` | int | `300` | Default timeout for subagent tasks |
+| `session_prefix` | string | `subagent-` | Prefix for subagent session IDs |
+
+**Example:**
+
+```toml
+[subagent]
+enabled = true
+max_concurrent = 10
+timeout_seconds = 300
+session_prefix = "subagent-"
+```
+
+**Validation:**
+- `max_concurrent` must be at least 1 when enabled
+- `timeout_seconds` must be at least 1 when enabled
 
 ---
 
@@ -373,7 +428,7 @@ model = "glm-4.7-flash"
 max_tokens = 8192
 max_iterations = 20
 temperature = 0.7
-timeout_seconds = 30
+timeout_seconds = 60
 
 # LLM provider configuration
 [llm]
@@ -382,6 +437,7 @@ provider = "zai"
 [llm.zai]
 api_key = "${ZAI_API_KEY}"
 base_url = "https://api.z.ai/api/coding/paas/v4"
+timeout_seconds = 60
 model = "glm-4.7-flash"
 
 # Telegram channel configuration
