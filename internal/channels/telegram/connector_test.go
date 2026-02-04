@@ -1060,3 +1060,24 @@ func TestConnector_handleUpdate_ModelsCommand_Unauthorized(t *testing.T) {
 
 	msgBus.Stop()
 }
+
+// TestConnector_registerCommands tests command registration with Telegram
+func TestConnector_registerCommands(t *testing.T) {
+	log, _ := logger.New(logger.Config{
+		Level:  "debug",
+		Format: "text",
+		Output: "stdout",
+	})
+
+	msgBus := bus.New(100, log)
+
+	cfg := config.TelegramConfig{}
+	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn.ctx = context.Background()
+
+	// Test with nil bot - should return error without panic
+	err := conn.registerCommands()
+	if err == nil {
+		t.Error("Expected error when bot is nil")
+	}
+}

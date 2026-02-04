@@ -79,6 +79,10 @@ func (c *Connector) Start(ctx context.Context) error {
 		logger.Field{Key: "bot_id", Value: botUser.ID},
 		logger.Field{Key: "username", Value: botUser.Username})
 
+	if err := c.registerCommands(); err != nil {
+		c.logger.ErrorCtx(c.ctx, "failed to register bot commands", err)
+	}
+
 	// Subscribe to outbound messages
 	c.outboundCh = c.bus.SubscribeOutbound(c.ctx)
 	go c.handleOutbound()
@@ -118,6 +122,30 @@ func (c *Connector) validateConfig() error {
 	if c.cfg.Token == "" {
 		return fmt.Errorf("telegram token is required")
 	}
+
+	return nil
+}
+
+// registerCommands registers bot commands with Telegram
+func (c *Connector) registerCommands() error {
+	if c.bot == nil {
+		return fmt.Errorf("bot is not initialized")
+	}
+
+	commands := &telego.SetMyCommandsParams{
+		Commands: []telego.BotCommand{
+			{Command: "new", Description: "Start a new session (clear history)"},
+			{Command: "status", Description: "Show session and bot status"},
+			{Command: "models", Description: "List available LLM models"},
+		},
+	}
+
+	err := c.bot.SetMyCommands(c.ctx, commands)
+	if err != nil {
+		return fmt.Errorf("failed to register commands: %w", err)
+	}
+
+	c.logger.Info("bot commands registered successfully")
 
 	return nil
 }
