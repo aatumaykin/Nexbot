@@ -322,8 +322,8 @@ func TestMultipleSessionsWithSameContext(t *testing.T) {
 		}
 
 		for _, msg := range msgs1 {
-			sess1.Append(msg)
-			memStore.Write(sessionID1, msg)
+			if err := if err := sess1.Append(msg); err != nil { t.Fatal(err) }; err != nil { t.Fatal(err) }
+			if err := memStore.Write(sessionID1, msg); err != nil { t.Fatal(err) }
 		}
 
 		// Session 2: JavaScript discussion
@@ -339,7 +339,7 @@ func TestMultipleSessionsWithSameContext(t *testing.T) {
 		}
 
 		for _, msg := range msgs2 {
-			sess2.Append(msg)
+			if err := sess2.Append(msg); err != nil { t.Fatal(err) }
 			memStore.Write(sessionID2, msg)
 		}
 
@@ -423,7 +423,7 @@ func TestMemoryFormatsIntegration(t *testing.T) {
 
 		sessionID := "format-test"
 		msg := llm.Message{Role: llm.RoleUser, Content: "Test message"}
-		jsonlStore.Write(sessionID, msg)
+		if err := jsonlStore.Write(sessionID, msg); err != nil { t.Fatal(err) }
 
 		jsonlMemory, _ := jsonlStore.Read(sessionID)
 		contextJSONL, _ := ctxBuilder.BuildWithMemory(jsonlMemory)
@@ -442,7 +442,7 @@ func TestMemoryFormatsIntegration(t *testing.T) {
 			t.Fatalf("Failed to create Markdown store: %v", err)
 		}
 
-		markdownStore.Write(sessionID, msg)
+		if err := markdownStore.Write(sessionID, msg); err != nil { t.Fatal(err) }
 
 		markdownMemory, _ := markdownStore.Read(sessionID)
 		contextMD, _ := ctxBuilder.BuildWithMemory(markdownMemory)
@@ -477,8 +477,8 @@ func TestPersistenceAcrossRestart(t *testing.T) {
 		sess1, _, _ := sessionMgr1.GetOrCreate(sessionID)
 
 		msg := llm.Message{Role: llm.RoleUser, Content: "Persistent message"}
-		sess1.Append(msg)
-		memStore1.Write(sessionID, msg)
+		if err := if err := sess1.Append(msg); err != nil { t.Fatal(err) }; err != nil { t.Fatal(err) }
+		if err := memStore1.Write(sessionID, msg); err != nil { t.Fatal(err) }
 
 		// Phase 2: Recreate components (simulate restart)
 		sessionMgr2, _ := session.NewManager(sessionDir)

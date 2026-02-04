@@ -87,6 +87,10 @@ func (c *Connector) Start(ctx context.Context) error {
 		c.logger.ErrorCtx(c.ctx, "failed to register bot commands", err)
 	}
 
+	if err := c.sendStartupMessage(); err != nil {
+		c.logger.ErrorCtx(c.ctx, "failed to send startup message", err)
+	}
+
 	// Subscribe to outbound messages
 	c.outboundCh = c.bus.SubscribeOutbound(c.ctx)
 	go c.handleOutbound()
@@ -170,6 +174,43 @@ func (c *Connector) isAllowedUser(userID string) bool {
 
 	// Check if user ID is in the whitelist
 	return slices.Contains(c.cfg.AllowedUsers, userID)
+}
+
+// sendStartupMessage sends a startup message to all allowed users
+func (c *Connector) sendStartupMessage() error {
+	if len(c.cfg.AllowedUsers) == 0 {
+		c.logger.Info("no allowed users configured, skipping startup message")
+		return nil
+	}
+
+	message := "🚀 Бот Nexbot успешно запущен и готов к работе!"
+
+	for _, userID := range c.cfg.AllowedUsers {
+		var chatID int64
+		_, err := fmt.Sscanf(userID, "%d", &chatID)
+		if err != nil {
+			c.logger.WarnCtx(c.ctx, "invalid user ID in allowed_users",
+				logger.Field{Key: "user_id", Value: userID})
+			continue
+		}
+
+		params := telego.SendMessageParams{
+			ChatID: telego.ChatID{ID: chatID},
+			Text:   message,
+		}
+
+		_, err = c.bot.SendMessage(c.ctx, &params)
+		if err != nil {
+			c.logger.ErrorCtx(c.ctx, "failed to send startup message", err,
+				logger.Field{Key: "user_id", Value: userID})
+			continue
+		}
+
+		c.logger.InfoCtx(c.ctx, "startup message sent",
+			logger.Field{Key: "user_id", Value: userID})
+	}
+
+	return nil
 }
 
 // handleUpdate processes a Telegram update and publishes it to the message bus

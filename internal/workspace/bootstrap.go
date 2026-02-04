@@ -51,11 +51,12 @@ type BootstrapFile struct {
 
 // Bootstrap files in priority order (higher priority = loaded first)
 const (
-	BootstrapIdentity = "IDENTITY.md"
-	BootstrapAgents   = "AGENTS.md"
-	BootstrapSoul     = "SOUL.md"
-	BootstrapUser     = "USER.md"
-	BootstrapTools    = "TOOLS.md"
+	BootstrapIdentity  = "IDENTITY.md"
+	BootstrapAgents    = "AGENTS.md"
+	BootstrapSoul      = "SOUL.md"
+	BootstrapUser      = "USER.md"
+	BootstrapTools     = "TOOLS.md"
+	BootstrapHeartbeat = "HEARTBEAT.md"
 )
 
 // Default bootstrap files in priority order
@@ -65,6 +66,7 @@ var defaultBootstrapFiles = []BootstrapFile{
 	{Name: BootstrapSoul, Priority: 3},
 	{Name: BootstrapUser, Priority: 4},
 	{Name: BootstrapTools, Priority: 5},
+	{Name: BootstrapHeartbeat, Priority: 6},
 }
 
 // NewBootstrapLoader creates a new BootstrapLoader.

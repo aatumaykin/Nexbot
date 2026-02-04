@@ -66,7 +66,7 @@ func TestConfigValidation(t *testing.T) {
 					Provider: "zai",
 				},
 				LLM: LLMConfig{
-					ZAI: ZAIConfig{APIKey: "test-key"},
+					ZAI: ZAIConfig{APIKey: "zai-test-key-valid"},
 				},
 				Logging: LoggingConfig{
 					Level:  "info",
@@ -84,7 +84,7 @@ func TestConfigValidation(t *testing.T) {
 					Provider: "zai",
 				},
 				LLM: LLMConfig{
-					ZAI: ZAIConfig{APIKey: "test-key"},
+					ZAI: ZAIConfig{APIKey: "zai-test-key-valid"},
 				},
 				Logging: LoggingConfig{
 					Level:  "info",
@@ -111,7 +111,7 @@ func TestConfigValidation(t *testing.T) {
 					Provider: "zai",
 				},
 				LLM: LLMConfig{
-					ZAI: ZAIConfig{APIKey: "test-key"},
+					ZAI: ZAIConfig{APIKey: "zai-test-key-valid"},
 				},
 				Logging: LoggingConfig{
 					Level:  "info",
@@ -139,7 +139,7 @@ func TestConfigValidation(t *testing.T) {
 					Provider: "zai",
 				},
 				LLM: LLMConfig{
-					ZAI: ZAIConfig{APIKey: "test-key"},
+					ZAI: ZAIConfig{APIKey: "zai-test-key-valid"},
 				},
 				Logging: LoggingConfig{
 					Level:  "info",
@@ -160,7 +160,7 @@ func TestConfigValidation(t *testing.T) {
 					Provider: "zai",
 				},
 				LLM: LLMConfig{
-					ZAI: ZAIConfig{APIKey: "test-key"},
+					ZAI: ZAIConfig{APIKey: "zai-test-key-valid"},
 				},
 				Logging: LoggingConfig{
 					Level:  "info",
@@ -199,7 +199,7 @@ func TestConfigValidation(t *testing.T) {
 					Provider: "invalid",
 				},
 				LLM: LLMConfig{
-					ZAI: ZAIConfig{APIKey: "test-key"},
+					ZAI: ZAIConfig{APIKey: "zai-test-key-valid"},
 				},
 				Logging: LoggingConfig{
 					Level:  "info",
@@ -235,7 +235,7 @@ func TestConfigValidation(t *testing.T) {
 					Provider: "zai",
 				},
 				LLM: LLMConfig{
-					ZAI: ZAIConfig{APIKey: "test-key"},
+					ZAI: ZAIConfig{APIKey: "zai-test-key-valid"},
 				},
 				Logging: LoggingConfig{
 					Level:  "invalid",
@@ -253,7 +253,7 @@ func TestConfigValidation(t *testing.T) {
 					Provider: "zai",
 				},
 				LLM: LLMConfig{
-					ZAI: ZAIConfig{APIKey: "test-key"},
+					ZAI: ZAIConfig{APIKey: "zai-test-key-valid"},
 				},
 				Logging: LoggingConfig{
 					Level:  "info",
@@ -271,7 +271,7 @@ func TestConfigValidation(t *testing.T) {
 					Provider: "zai",
 				},
 				LLM: LLMConfig{
-					ZAI: ZAIConfig{APIKey: "test-key"},
+					ZAI: ZAIConfig{APIKey: "zai-test-key-valid"},
 				},
 				Channels: ChannelsConfig{
 					Telegram: TelegramConfig{

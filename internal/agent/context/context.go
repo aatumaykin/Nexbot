@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aatumaykin/nexbot/internal/heartbeat"
 	"github.com/aatumaykin/nexbot/internal/llm"
 )
 
@@ -46,7 +47,7 @@ func NewBuilder(config Config) (*Builder, error) {
 }
 
 // Build creates a system prompt by combining context components in priority order:
-// IDENTITY → AGENTS → SOUL → USER → TOOLS → memory
+// IDENTITY → AGENTS → SOUL → USER → TOOLS → HEARTBEAT → memory
 func (b *Builder) Build() (string, error) {
 	var builder strings.Builder
 
@@ -117,6 +118,16 @@ func (b *Builder) Build() (string, error) {
 			return "", fmt.Errorf("failed to process TOOLS.md templates: %w", err)
 		}
 		builder.WriteString(processed)
+		builder.WriteString("\n\n---\n\n")
+	}
+
+	// 6. HEARTBEAT - Active periodic tasks
+	heartbeatContent, err := b.buildHeartbeatContext()
+	if err != nil {
+		return "", fmt.Errorf("failed to build heartbeat context: %w", err)
+	}
+	if heartbeatContent != "" {
+		builder.WriteString(heartbeatContent)
 		builder.WriteString("\n\n---\n\n")
 	}
 
@@ -268,4 +279,28 @@ func (b *Builder) GetComponent(name string) (string, error) {
 	default:
 		return "", fmt.Errorf("unknown component: %s", name)
 	}
+}
+
+// buildHeartbeatContext builds heartbeat context from HEARTBEAT.md file.
+func (b *Builder) buildHeartbeatContext() (string, error) {
+	// Read HEARTBEAT.md file
+	heartbeatFile, err := b.readFile("HEARTBEAT.md")
+	if err != nil && !os.IsNotExist(err) {
+		return "", fmt.Errorf("failed to read HEARTBEAT.md: %w", err)
+	}
+
+	// If file doesn't exist, return empty string
+	if err != nil && os.IsNotExist(err) {
+		return "", nil
+	}
+
+	// Parse heartbeat file
+	parser := heartbeat.NewParser()
+	tasks, err := parser.Parse(heartbeatFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse HEARTBEAT.md: %w", err)
+	}
+
+	// Return formatted context
+	return "## Heartbeat Tasks\n\n" + heartbeat.FormatContext(tasks) + "\n", nil
 }

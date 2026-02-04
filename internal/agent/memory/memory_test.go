@@ -99,7 +99,7 @@ func TestWriteAndReadJSONL(t *testing.T) {
 		}
 
 		// Write
-		if err := store.Write(sessionID, msg); err != nil {
+		if err := if err := store.Write(sessionID, msg); err != nil { t.Fatal(err) }; err != nil {
 			t.Fatalf("Write() error = %v", err)
 		}
 
@@ -131,7 +131,7 @@ func TestWriteAndReadJSONL(t *testing.T) {
 		}
 
 		for _, msg := range messages {
-			if err := store.Write(sessionID, msg); err != nil {
+			if err := if err := store.Write(sessionID, msg); err != nil { t.Fatal(err) }; err != nil {
 				t.Fatalf("Write() error = %v", err)
 			}
 		}
@@ -164,7 +164,7 @@ func TestWriteAndReadJSONL(t *testing.T) {
 			ToolCallID: "call_123",
 		}
 
-		if err := store.Write(sessionID, msg); err != nil {
+		if err := if err := store.Write(sessionID, msg); err != nil { t.Fatal(err) }; err != nil {
 			t.Fatalf("Write() error = %v", err)
 		}
 
@@ -201,7 +201,7 @@ func TestWriteAndReadMarkdown(t *testing.T) {
 		}
 
 		// Write
-		if err := store.Write(sessionID, msg); err != nil {
+		if err := if err := store.Write(sessionID, msg); err != nil { t.Fatal(err) }; err != nil {
 			t.Fatalf("Write() error = %v", err)
 		}
 
@@ -234,7 +234,7 @@ func TestWriteAndReadMarkdown(t *testing.T) {
 		}
 
 		for _, msg := range messages {
-			if err := store.Write(sessionID, msg); err != nil {
+			if err := if err := store.Write(sessionID, msg); err != nil { t.Fatal(err) }; err != nil {
 				t.Fatalf("Write() error = %v", err)
 			}
 		}
@@ -267,7 +267,7 @@ func TestWriteAndReadMarkdown(t *testing.T) {
 			ToolCallID: "call_123",
 		}
 
-		if err := store.Write(sessionID, msg); err != nil {
+		if err := if err := store.Write(sessionID, msg); err != nil { t.Fatal(err) }; err != nil {
 			t.Fatalf("Write() error = %v", err)
 		}
 
@@ -351,7 +351,7 @@ func TestGetLastN(t *testing.T) {
 				Role:    llm.RoleUser,
 				Content: fmt.Sprintf("Message %d", i),
 			}
-			if err := store.Write(sessionID, msg); err != nil {
+			if err := if err := store.Write(sessionID, msg); err != nil { t.Fatal(err) }; err != nil {
 				t.Fatalf("Write() error = %v", err)
 			}
 		}
@@ -384,7 +384,7 @@ func TestGetLastN(t *testing.T) {
 				Role:    llm.RoleUser,
 				Content: fmt.Sprintf("Message %d", i),
 			}
-			if err := store.Write(sessionID, msg); err != nil {
+			if err := if err := store.Write(sessionID, msg); err != nil { t.Fatal(err) }; err != nil {
 				t.Fatalf("Write() error = %v", err)
 			}
 		}
@@ -425,7 +425,7 @@ func TestClear(t *testing.T) {
 
 			// Add messages
 			msg := llm.Message{Role: llm.RoleUser, Content: "Test message"}
-			if err := store.Write(sessionID, msg); err != nil {
+			if err := if err := store.Write(sessionID, msg); err != nil { t.Fatal(err) }; err != nil {
 				t.Fatalf("Write() error = %v", err)
 			}
 
@@ -469,7 +469,7 @@ func TestExists(t *testing.T) {
 		sessionID := "test-exists-1"
 		msg := llm.Message{Role: llm.RoleUser, Content: "Test"}
 
-		if err := store.Write(sessionID, msg); err != nil {
+		if err := if err := store.Write(sessionID, msg); err != nil { t.Fatal(err) }; err != nil {
 			t.Fatalf("Write() error = %v", err)
 		}
 
@@ -575,7 +575,7 @@ func TestFormatValidation(t *testing.T) {
 		}
 
 		for _, msg := range messages {
-			if err := store.Write(sessionID, msg); err != nil {
+			if err := if err := store.Write(sessionID, msg); err != nil { t.Fatal(err) }; err != nil {
 				t.Fatalf("Write() error = %v", err)
 			}
 		}
@@ -620,7 +620,7 @@ func TestFormatValidation(t *testing.T) {
 			Content: "Test message",
 		}
 
-		if err := store.Write(sessionID, msg); err != nil {
+		if err := if err := store.Write(sessionID, msg); err != nil { t.Fatal(err) }; err != nil {
 			t.Fatalf("Write() error = %v", err)
 		}
 
@@ -713,7 +713,7 @@ func TestConcurrentOperations(t *testing.T) {
 					Role:    llm.RoleUser,
 					Content: fmt.Sprintf("Message %d", idx),
 				}
-				store.Write(sessionID, msg)
+				if err := store.Write(sessionID, msg); err != nil { t.Fatal(err) }
 				done <- true
 			}(i)
 		}
