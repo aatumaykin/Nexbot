@@ -382,6 +382,40 @@ func (p *ZAIProvider) GetDefaultModel() string {
 	return "glm-4.7"
 }
 
+// ListModels returns a list of available models from Z.ai.
+// For now, this returns a hardcoded list since Z.ai API doesn't have
+// a public endpoint for listing models.
+func (p *ZAIProvider) ListModels(ctx stdcontext.Context) ([]ModelInfo, error) {
+	defaultModel := p.GetDefaultModel()
+
+	models := []ModelInfo{
+		{
+			ID:          "glm-4.7",
+			Name:        "GLM-4.7",
+			Description: "Advanced AI model with reasoning capabilities",
+			Current:     defaultModel == "glm-4.7",
+		},
+		{
+			ID:          "glm-4.7-flash",
+			Name:        "GLM-4.7 Flash",
+			Description: "Fast AI model optimized for quick responses",
+			Current:     defaultModel == "glm-4.7-flash",
+		},
+		{
+			ID:          "glm-4-flash",
+			Name:        "GLM-4 Flash",
+			Description: "Lightweight fast model for quick responses",
+			Current:     defaultModel == "glm-4-flash",
+		},
+	}
+
+	p.logger.DebugCtx(ctx, "Listed available models",
+		logger.Field{Key: "count", Value: len(models)},
+		logger.Field{Key: "default_model", Value: defaultModel})
+
+	return models, nil
+}
+
 // zaiHTTPError represents an HTTP error from the API.
 type zaiHTTPError struct {
 	StatusCode int    // HTTP status code

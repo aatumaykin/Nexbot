@@ -4,6 +4,14 @@ import (
 	"context"
 )
 
+// ModelInfo contains information about a specific LLM model.
+type ModelInfo struct {
+	ID          string `json:"id"`          // Unique model identifier
+	Name        string `json:"name"`        // Human-readable model name
+	Description string `json:"description"` // Description of model capabilities
+	Current     bool   `json:"current"`     // True if this is the currently configured model
+}
+
 // Provider defines the interface for LLM (Large Language Model) providers.
 // Different LLM providers (OpenAI, Anthropic, Z.ai, etc.) must implement this interface.
 type Provider interface {
@@ -19,6 +27,10 @@ type Provider interface {
 	// GetDefaultModel returns the default model identifier for this provider.
 	// Used when no specific model is requested by the user.
 	GetDefaultModel() string
+
+	// ListModels returns a list of available models for this provider.
+	// It takes a context for cancellation and returns information about available models.
+	ListModels(ctx context.Context) ([]ModelInfo, error)
 }
 
 // Role represents the role of a message sender in the conversation.

@@ -152,6 +152,17 @@ func (m *mockToolCallProvider) GetDefaultModel() string {
 	return "mock-model"
 }
 
+func (m *mockToolCallProvider) ListModels(ctx context.Context) ([]llm.ModelInfo, error) {
+	return []llm.ModelInfo{
+		{
+			ID:          "mock-model",
+			Name:        "Mock Model",
+			Description: "A mock model for testing",
+			Current:     true,
+		},
+	}, nil
+}
+
 func (m *mockToolCallProvider) GetCallCount() int {
 	return m.callIndex
 }

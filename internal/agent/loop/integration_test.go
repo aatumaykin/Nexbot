@@ -458,3 +458,75 @@ func TestLoop_GetContextBuilder(t *testing.T) {
 		t.Error("Expected LLM provider to be non-nil")
 	}
 }
+
+// TestLoop_GetSessionStatus tests the GetSessionStatus method
+func TestLoop_GetSessionStatus(t *testing.T) {
+	ctx := context.Background()
+	log, _ := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
+
+	tempDir := t.TempDir()
+	workspaceDir := filepath.Join(tempDir, "workspace")
+	sessionDir := filepath.Join(tempDir, "sessions")
+	os.MkdirAll(workspaceDir, 0755)
+	os.MkdirAll(sessionDir, 0755)
+
+	looper, _ := NewLoop(Config{
+		Workspace:   workspaceDir,
+		SessionDir:  sessionDir,
+		LLMProvider: llm.NewFixedProvider("test"),
+		Logger:      log,
+		Model:       "test-model-123",
+		MaxTokens:   2048,
+		Temperature: 0.8,
+	})
+
+	sessionID := "test-session-status"
+
+	// Get status for empty session
+	status, err := looper.GetSessionStatus(ctx, sessionID)
+	if err != nil {
+		t.Fatalf("GetSessionStatus failed for empty session: %v", err)
+	}
+
+	// Verify status fields
+	if status["session_id"] != sessionID {
+		t.Errorf("Expected session_id '%s', got '%v'", sessionID, status["session_id"])
+	}
+
+	if status["message_count"] != 0 {
+		t.Errorf("Expected message_count 0 for empty session, got %v", status["message_count"])
+	}
+
+	if status["model"] != "test-model-123" {
+		t.Errorf("Expected model 'test-model-123', got %v", status["model"])
+	}
+
+	if status["temperature"] != 0.8 {
+		t.Errorf("Expected temperature 0.8, got %v", status["temperature"])
+	}
+
+	if status["max_tokens"] != 2048 {
+		t.Errorf("Expected max_tokens 2048, got %v", status["max_tokens"])
+	}
+
+	// Add some messages to session
+	_, _ = looper.Process(ctx, sessionID, "First message")
+	_, _ = looper.Process(ctx, sessionID, "Second message")
+
+	// Get status again
+	status, err = looper.GetSessionStatus(ctx, sessionID)
+	if err != nil {
+		t.Fatalf("GetSessionStatus failed after adding messages: %v", err)
+	}
+
+	// Should have 4 messages now (2 user + 2 assistant)
+	if status["message_count"] != 4 {
+		t.Errorf("Expected message_count 4, got %v", status["message_count"])
+	}
+
+	// File size should be non-zero
+	fileSize, _ := status["file_size"].(int64)
+	if fileSize <= 0 {
+		t.Errorf("Expected positive file_size, got %v", fileSize)
+	}
+}

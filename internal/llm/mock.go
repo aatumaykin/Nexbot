@@ -156,6 +156,18 @@ func (m *MockProvider) GetDefaultModel() string {
 	return "mock-model"
 }
 
+// ListModels implements the Provider interface.
+func (m *MockProvider) ListModels(ctx context.Context) ([]ModelInfo, error) {
+	return []ModelInfo{
+		{
+			ID:          "mock-model",
+			Name:        "Mock Model",
+			Description: "Mock model for testing",
+			Current:     true,
+		},
+	}, nil
+}
+
 // GetCallCount returns the number of Chat() calls made to this provider.
 // Useful for testing.
 func (m *MockProvider) GetCallCount() int {
