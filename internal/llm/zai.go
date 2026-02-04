@@ -2,7 +2,7 @@ package llm
 
 import (
 	"bytes"
-	"context"
+	stdcontext "context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -44,13 +44,16 @@ type zaiRequest struct {
 	Temperature float64      `json:"temperature,omitempty"` // Sampling temperature
 	MaxTokens   int          `json:"max_tokens,omitempty"`  // Maximum tokens to generate
 	Tools       []zaiTool    `json:"tools,omitempty"`       // Available tools/functions
+	ToolChoice  string       `json:"tool_choice,omitempty"` // Tool selection mode (auto)
 }
 
 // zaiMessage represents a message in Z.ai API format.
 type zaiMessage struct {
-	Role       string `json:"role"`                   // Role of the message sender
-	Content    string `json:"content"`                // Message content
-	ToolCallID string `json:"tool_call_id,omitempty"` // Tool call ID for role=tool messages
+	Role             string        `json:"role"`                        // Role of the message sender
+	Content          string        `json:"content"`                     // Message content
+	ToolCallID       string        `json:"tool_call_id,omitempty"`      // Tool call ID for role=tool messages
+	ReasoningContent string        `json:"reasoning_content,omitempty"` // Reasoning content (GLM-4.5+)
+	ToolCalls        []zaiToolCall `json:"tool_calls,omitempty"`        // Tool calls requested
 }
 
 // zaiTool represents a tool definition in Z.ai API format.
@@ -72,16 +75,16 @@ type zaiResponse struct {
 
 // zaiChoice represents a choice in the response.
 type zaiChoice struct {
-	Index        int           `json:"index"`                   // Choice index
-	Message      zaiMessage    `json:"message"`                 // The generated message
-	FinishReason string        `json:"finish_reason,omitempty"` // Reason generation stopped
-	ToolCalls    []zaiToolCall `json:"tool_calls,omitempty"`    // Tool calls requested
+	Index        int        `json:"index"`                   // Choice index
+	Message      zaiMessage `json:"message"`                 // The generated message
+	FinishReason string     `json:"finish_reason,omitempty"` // Reason generation stopped
 }
 
 // zaiToolCall represents a tool call in the response.
 type zaiToolCall struct {
-	ID       string `json:"id"`   // Tool call identifier
-	Type     string `json:"type"` // Always "function"
+	ID       string `json:"id"`              // Tool call identifier
+	Type     string `json:"type"`            // Always "function"
+	Index    int    `json:"index,omitempty"` // Tool call index
 	Function struct {
 		Name      string `json:"name"`      // Function name
 		Arguments string `json:"arguments"` // Function arguments as JSON string
@@ -120,7 +123,9 @@ func NewZAIProvider(cfg ZAIConfig, log *logger.Logger) *ZAIProvider {
 }
 
 // Chat sends a chat completion request to Z.ai API.
-func (p *ZAIProvider) Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error) {
+func (p *ZAIProvider) Chat(ctx stdcontext.Context, req ChatRequest) (*ChatResponse, error) {
+	startTime := time.Now()
+
 	// Map internal request to Z.ai API format
 	zaiReq := p.mapChatRequest(req)
 
@@ -132,10 +137,12 @@ func (p *ZAIProvider) Chat(ctx context.Context, req ChatRequest) (*ChatResponse,
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	// Log request (without sensitive data)
-	p.logger.DebugCtx(ctx, "Sending request to Z.ai API",
+	// Log full request payload (for debugging tool registration)
+	p.logger.DebugCtx(ctx, "Full Z.ai request payload",
 		logger.Field{Key: "model", Value: req.Model},
-		logger.Field{Key: "messages_count", Value: len(req.Messages)})
+		logger.Field{Key: "messages_count", Value: len(req.Messages)},
+		logger.Field{Key: "tools_count", Value: len(zaiReq.Tools)},
+		logger.Field{Key: "request_body", Value: string(reqBody)})
 
 	// Execute request with retries
 	zaiResp, err := p.doRequestWithRetry(ctx, reqBody)
@@ -146,16 +153,19 @@ func (p *ZAIProvider) Chat(ctx context.Context, req ChatRequest) (*ChatResponse,
 	// Map Z.ai response to internal format
 	resp := p.mapChatResponse(zaiResp)
 
+	latency := time.Since(startTime).Milliseconds()
+
 	p.logger.InfoCtx(ctx, "Received response from Z.ai API",
 		logger.Field{Key: "model", Value: resp.Model},
 		logger.Field{Key: "finish_reason", Value: resp.FinishReason},
-		logger.Field{Key: "total_tokens", Value: resp.Usage.TotalTokens})
+		logger.Field{Key: "total_tokens", Value: resp.Usage.TotalTokens},
+		logger.Field{Key: "latency_ms", Value: latency})
 
 	return resp, nil
 }
 
 // doRequestWithRetry executes HTTP request with retry logic.
-func (p *ZAIProvider) doRequestWithRetry(ctx context.Context, reqBody []byte) (*zaiResponse, error) {
+func (p *ZAIProvider) doRequestWithRetry(ctx stdcontext.Context, reqBody []byte) (*zaiResponse, error) {
 	var lastErr error
 
 	for attempt := 0; attempt < ZAIMaxRetries; attempt++ {
@@ -199,7 +209,7 @@ func (p *ZAIProvider) doRequestWithRetry(ctx context.Context, reqBody []byte) (*
 }
 
 // doRequest executes a single HTTP request to Z.ai API.
-func (p *ZAIProvider) doRequest(ctx context.Context, reqBody []byte) (*zaiResponse, error) {
+func (p *ZAIProvider) doRequest(ctx stdcontext.Context, reqBody []byte) (*zaiResponse, error) {
 	// Create HTTP request
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, p.apiURL, bytes.NewReader(reqBody))
 	if err != nil {
@@ -237,12 +247,26 @@ func (p *ZAIProvider) doRequest(ctx context.Context, reqBody []byte) (*zaiRespon
 		}
 	}
 
+	// Debug: log raw response body
+	p.logger.DebugCtx(ctx, "Raw Z.ai response body",
+		logger.Field{Key: "response_body", Value: string(respBody)})
+
 	// Parse JSON response
 	var zaiResp zaiResponse
 	if err := json.Unmarshal(respBody, &zaiResp); err != nil {
 		p.logger.ErrorCtx(ctx, "Failed to unmarshal Z.ai response", err,
 			logger.Field{Key: "response_body", Value: string(respBody)})
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	// Debug: log parsed response
+	if len(zaiResp.Choices) > 0 {
+		choice := zaiResp.Choices[0]
+		p.logger.DebugCtx(ctx, "Parsed Z.ai response",
+			logger.Field{Key: "finish_reason", Value: choice.FinishReason},
+			logger.Field{Key: "tool_calls_count", Value: len(choice.Message.ToolCalls)},
+			logger.Field{Key: "content_length", Value: len(choice.Message.Content)},
+			logger.Field{Key: "raw_tool_calls", Value: fmt.Sprintf("%+v", choice.Message.ToolCalls)})
 	}
 
 	// Check for API error in response
@@ -289,6 +313,7 @@ func (p *ZAIProvider) mapChatRequest(req ChatRequest) zaiRequest {
 				},
 			}
 		}
+		zaiReq.ToolChoice = "auto"
 	}
 
 	return zaiReq
@@ -297,6 +322,8 @@ func (p *ZAIProvider) mapChatRequest(req ChatRequest) zaiRequest {
 // mapChatResponse maps Z.ai API response to internal ChatResponse format.
 func (p *ZAIProvider) mapChatResponse(zaiResp *zaiResponse) *ChatResponse {
 	if len(zaiResp.Choices) == 0 {
+		p.logger.DebugCtx(stdcontext.Background(), "LLM response: no choices",
+			logger.Field{Key: "model", Value: zaiResp.Model})
 		return &ChatResponse{
 			Content:      "",
 			FinishReason: FinishReasonError,
@@ -313,14 +340,21 @@ func (p *ZAIProvider) mapChatResponse(zaiResp *zaiResponse) *ChatResponse {
 	choice := zaiResp.Choices[0]
 
 	// Map tool calls if present
-	toolCalls := make([]ToolCall, len(choice.ToolCalls))
-	for i, tc := range choice.ToolCalls {
+	toolCalls := make([]ToolCall, len(choice.Message.ToolCalls))
+	for i, tc := range choice.Message.ToolCalls {
 		toolCalls[i] = ToolCall{
 			ID:        tc.ID,
 			Name:      tc.Function.Name,
 			Arguments: tc.Function.Arguments,
 		}
 	}
+
+	// Log full LLM response
+	p.logger.DebugCtx(stdcontext.Background(), "LLM response",
+		logger.Field{Key: "model", Value: zaiResp.Model},
+		logger.Field{Key: "finish_reason", Value: choice.FinishReason},
+		logger.Field{Key: "content", Value: choice.Message.Content},
+		logger.Field{Key: "tool_calls", Value: fmt.Sprintf("%+v", choice.Message.ToolCalls)})
 
 	return &ChatResponse{
 		Content:      choice.Message.Content,

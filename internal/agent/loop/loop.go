@@ -172,7 +172,8 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 			}
 			req.Tools = llmTools
 			l.logger.DebugCtx(ctx, "Added tool definitions to request",
-				logger.Field{Key: "tool_count", Value: len(llmTools)})
+				logger.Field{Key: "tool_count", Value: len(llmTools)},
+				logger.Field{Key: "tools", Value: fmt.Sprintf("%+v", llmTools)})
 		}
 	}
 
@@ -181,6 +182,13 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 	if err != nil {
 		return "", fmt.Errorf("LLM call failed: %w", err)
 	}
+
+	// Debug: response received
+	l.logger.DebugCtx(ctx, "LLM response received",
+		logger.Field{Key: "finish_reason", Value: resp.FinishReason},
+		logger.Field{Key: "content_length", Value: len(resp.Content)},
+		logger.Field{Key: "tool_calls_count", Value: len(resp.ToolCalls)},
+		logger.Field{Key: "iteration", Value: iteration})
 
 	// Handle tool calls
 	if resp.FinishReason == llm.FinishReasonToolCalls && len(resp.ToolCalls) > 0 {
@@ -192,7 +200,8 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 		for _, tc := range resp.ToolCalls {
 			l.logger.DebugCtx(ctx, "Executing tool",
 				logger.Field{Key: "tool_name", Value: tc.Name},
-				logger.Field{Key: "tool_call_id", Value: tc.ID})
+				logger.Field{Key: "tool_call_id", Value: tc.ID},
+				logger.Field{Key: "arguments", Value: tc.Arguments})
 
 			// Convert LLM ToolCall to tools.ToolCall
 			toolCall := tools.ToolCall{
@@ -210,6 +219,12 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 					Error:      fmt.Sprintf("Tool execution error: %v", err),
 				}
 			}
+
+			l.logger.DebugCtx(ctx, "Tool execution result",
+				logger.Field{Key: "tool_name", Value: tc.Name},
+				logger.Field{Key: "success", Value: result.Error == ""},
+				logger.Field{Key: "result_length", Value: len(result.Content)},
+				logger.Field{Key: "error", Value: result.Error})
 
 			// Add assistant message with tool calls to session
 			if err := l.AddMessageToSession(ctx, sessionID, llm.Message{
@@ -234,10 +249,15 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 		}
 
 		// Recursively process again with tool results
+		l.logger.DebugCtx(ctx, "Recursively processing with tool results",
+			logger.Field{Key: "next_iteration", Value: iteration + 1})
 		return l.processWithToolCalling(ctx, sessionID, iteration+1)
 	}
 
 	// Normal response without tool calls
+	l.logger.DebugCtx(ctx, "Returning final response",
+		logger.Field{Key: "response_length", Value: len(resp.Content)},
+		logger.Field{Key: "iteration", Value: iteration})
 	if err := l.AddMessageToSession(ctx, sessionID, llm.Message{
 		Role:    llm.RoleAssistant,
 		Content: resp.Content,
