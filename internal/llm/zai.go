@@ -402,10 +402,52 @@ func (p *ZAIProvider) ListModels(ctx stdcontext.Context) ([]ModelInfo, error) {
 			Current:     defaultModel == "glm-4.7-flash",
 		},
 		{
-			ID:          "glm-4-flash",
-			Name:        "GLM-4 Flash",
-			Description: "Lightweight fast model for quick responses",
-			Current:     defaultModel == "glm-4-flash",
+			ID:          "glm-4.7-flashx",
+			Name:        "GLM-4.7 FlashX",
+			Description: "Ultra-fast model with extended context",
+			Current:     defaultModel == "glm-4.7-flashx",
+		},
+		{
+			ID:          "glm-4.6",
+			Name:        "GLM-4.6",
+			Description: "High-performance model with strong capabilities",
+			Current:     defaultModel == "glm-4.6",
+		},
+		{
+			ID:          "glm-4.5",
+			Name:        "GLM-4.5",
+			Description: "Powerful AI model for complex tasks",
+			Current:     defaultModel == "glm-4.5",
+		},
+		{
+			ID:          "glm-4.5-air",
+			Name:        "GLM-4.5 Air",
+			Description: "Lightweight efficient model",
+			Current:     defaultModel == "glm-4.5-air",
+		},
+		{
+			ID:          "glm-4.5-x",
+			Name:        "GLM-4.5 X",
+			Description: "Enhanced model with extended capabilities",
+			Current:     defaultModel == "glm-4.5-x",
+		},
+		{
+			ID:          "glm-4.5-airx",
+			Name:        "GLM-4.5 AirX",
+			Description: "Optimized efficient model with extended features",
+			Current:     defaultModel == "glm-4.5-airx",
+		},
+		{
+			ID:          "glm-4.5-flash",
+			Name:        "GLM-4.5 Flash",
+			Description: "Fast model optimized for speed",
+			Current:     defaultModel == "glm-4.5-flash",
+		},
+		{
+			ID:          "glm-4-32b-0414-128k",
+			Name:        "GLM-4 32B",
+			Description: "32B parameter model with 128k context window",
+			Current:     defaultModel == "glm-4-32b-0414-128k",
 		},
 	}
 
