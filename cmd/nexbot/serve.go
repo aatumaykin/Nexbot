@@ -189,7 +189,7 @@ func serveHandler(cmd *cobra.Command, args []string) {
 	var telegramConnector *telegram.Connector
 	if cfg.Channels.Telegram.Enabled {
 		log.Info("📱 Initializing Telegram connector")
-		telegramConnector = telegram.New(cfg.Channels.Telegram, log, messageBus)
+		telegramConnector = telegram.New(cfg.Channels.Telegram, log, messageBus, llmProvider)
 		if err := telegramConnector.Start(ctx); err != nil {
 			log.Error("Failed to start Telegram connector", err)
 			os.Exit(1)
@@ -206,6 +206,76 @@ func serveHandler(cmd *cobra.Command, args []string) {
 				logger.Field{Key: "user_id", Value: msg.UserID},
 				logger.Field{Key: "session_id", Value: msg.SessionID})
 
+			// Check for special commands in metadata
+			if msg.Metadata != nil {
+				if cmd, ok := msg.Metadata["command"].(string); ok && cmd == "new_session" {
+					// Handle /new command - clear session
+					log.InfoCtx(ctx, "Clearing session due to /new command",
+						logger.Field{Key: "session_id", Value: msg.SessionID})
+
+					if err := agentLoop.ClearSession(ctx, msg.SessionID); err != nil {
+						log.ErrorCtx(ctx, "Failed to clear session", err,
+							logger.Field{Key: "session_id", Value: msg.SessionID})
+					} else {
+						log.InfoCtx(ctx, "Session cleared successfully",
+							logger.Field{Key: "session_id", Value: msg.SessionID})
+
+						// Send confirmation message
+						confirmationMsg := bus.NewOutboundMessage(
+							msg.ChannelType,
+							msg.UserID,
+							msg.SessionID,
+							"✅ Session cleared. Starting a fresh conversation!",
+							nil,
+						)
+						if err := messageBus.PublishOutbound(*confirmationMsg); err != nil {
+							log.ErrorCtx(ctx, "Failed to publish confirmation message", err)
+						}
+					}
+					continue
+				}
+
+				if cmd, ok := msg.Metadata["command"].(string); ok && cmd == "status" {
+					// Handle /status command - show session and bot status
+					log.InfoCtx(ctx, "Getting status for session",
+						logger.Field{Key: "session_id", Value: msg.SessionID})
+
+					status, err := agentLoop.GetSessionStatus(ctx, msg.SessionID)
+					if err != nil {
+						log.ErrorCtx(ctx, "Failed to get session status", err,
+							logger.Field{Key: "session_id", Value: msg.SessionID})
+
+						errorMsg := bus.NewOutboundMessage(
+							msg.ChannelType,
+							msg.UserID,
+							msg.SessionID,
+							"❌ Failed to get status information. Please try again later.",
+							nil,
+						)
+						if err := messageBus.PublishOutbound(*errorMsg); err != nil {
+							log.ErrorCtx(ctx, "Failed to publish error message", err)
+						}
+					} else {
+						// Format status message
+						statusMsg := formatStatusMessage(status)
+
+						// Send status message
+						responseMsg := bus.NewOutboundMessage(
+							msg.ChannelType,
+							msg.UserID,
+							msg.SessionID,
+							statusMsg,
+							nil,
+						)
+						if err := messageBus.PublishOutbound(*responseMsg); err != nil {
+							log.ErrorCtx(ctx, "Failed to publish status message", err)
+						}
+					}
+					continue
+				}
+			}
+
+			// Process regular message
 			response, err := agentLoop.Process(ctx, msg.SessionID, msg.Content)
 			if err != nil {
 				log.ErrorCtx(ctx, "Failed to process message", err,
@@ -254,6 +324,44 @@ func serveHandler(cmd *cobra.Command, args []string) {
 
 	log.Info("👋 Nexbot stopped gracefully")
 	os.Exit(0)
+}
+
+func formatStatusMessage(status map[string]any) string {
+	var builder strings.Builder
+
+	builder.WriteString("📊 **Session Status**\n\n")
+
+	// Session info
+	sessionID, _ := status["session_id"].(string)
+	builder.WriteString(fmt.Sprintf("**Session ID:** `%s`\n", sessionID))
+
+	// Message count
+	msgCount, _ := status["message_count"].(int)
+	builder.WriteString(fmt.Sprintf("**Messages:** %d\n", msgCount))
+
+	// File size
+	fileSizeHuman, _ := status["file_size_human"].(string)
+	builder.WriteString(fmt.Sprintf("**Session Size:** %s\n", fileSizeHuman))
+
+	builder.WriteString("\n**LLM Configuration:**\n")
+
+	// Model
+	model, _ := status["model"].(string)
+	builder.WriteString(fmt.Sprintf("**Model:** %s\n", model))
+
+	// Temperature
+	temperature, _ := status["temperature"].(float64)
+	builder.WriteString(fmt.Sprintf("**Temperature:** %.2f\n", temperature))
+
+	// Max tokens
+	maxTokens, _ := status["max_tokens"].(int)
+	builder.WriteString(fmt.Sprintf("**Max Tokens:** %d\n", maxTokens))
+
+	// Provider
+	provider, _ := status["provider"].(string)
+	builder.WriteString(fmt.Sprintf("**Provider:** %s\n", provider))
+
+	return builder.String()
 }
 
 func init() {

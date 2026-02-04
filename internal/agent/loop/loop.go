@@ -3,6 +3,7 @@ package loop
 import (
 	stdcontext "context"
 	"fmt"
+	"os"
 
 	agentcontext "github.com/aatumaykin/nexbot/internal/agent/context"
 	"github.com/aatumaykin/nexbot/internal/agent/session"
@@ -334,4 +335,52 @@ func (l *Loop) RegisterTool(tool tools.Tool) {
 // GetTools returns the tool registry.
 func (l *Loop) GetTools() *tools.Registry {
 	return l.tools
+}
+
+// GetSessionStatus returns status information about a session.
+func (l *Loop) GetSessionStatus(ctx stdcontext.Context, sessionID string) (map[string]any, error) {
+	sess, _, err := l.sessionMgr.GetOrCreate(sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get session: %w", err)
+	}
+
+	// Get message count
+	msgCount, err := sess.MessageCount()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get message count: %w", err)
+	}
+
+	// Get session file size
+	fileSize := int64(0)
+	if fileInfo, err := getFileInfo(sess.File); err == nil {
+		fileSize = fileInfo.Size()
+	}
+
+	return map[string]any{
+		"session_id":      sessionID,
+		"message_count":   msgCount,
+		"file_size":       fileSize,
+		"file_size_human": formatBytes(fileSize),
+		"model":           l.config.Model,
+		"temperature":     l.config.Temperature,
+		"max_tokens":      l.config.MaxTokens,
+		"provider":        l.provider.GetDefaultModel(),
+	}, nil
+}
+
+func getFileInfo(path string) (os.FileInfo, error) {
+	return os.Stat(path)
+}
+
+func formatBytes(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
