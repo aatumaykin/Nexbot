@@ -99,11 +99,8 @@ func (t *ShellExecTool) Execute(args string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	// Get working directory
-	workingDir := t.cfg.Tools.Shell.WorkingDir
-
-	// Execute command
-	output, err := t.executeCommand(ctx, shellArgs.Command, workingDir)
+	// Execute command in workspace
+	output, err := t.executeCommand(ctx, shellArgs.Command, t.cfg.Workspace.Path)
 
 	// Log result
 	if t.logger != nil {
@@ -170,10 +167,8 @@ func (t *ShellExecTool) executeCommand(ctx context.Context, command, workingDir 
 	// Execute shell command (using sh -c for shell expansion)
 	cmd := exec.CommandContext(ctx, "sh", "-c", command)
 
-	// Set working directory if configured
-	if workingDir != "" {
-		cmd.Dir = workingDir
-	}
+	// Set working directory to workspace
+	cmd.Dir = workingDir
 
 	// Capture stdout and stderr combined
 	var stdout, stderr bytes.Buffer

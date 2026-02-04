@@ -8,6 +8,11 @@ import (
 	"strings"
 )
 
+const (
+	DefaultAgentTimeoutSeconds  = 30
+	DefaultLLMAPITimeoutSeconds = 30
+)
+
 // Load загружает конфигурацию из TOML файла
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
@@ -105,13 +110,6 @@ func (c *Config) Validate() []error {
 				}
 			}
 		}
-
-		// Проверка working directory
-		if c.Tools.Shell.WorkingDir != "" {
-			if err := validatePath(c.Tools.Shell.WorkingDir, "tools.shell.working_dir"); err != nil {
-				errors = append(errors, err)
-			}
-		}
 	}
 
 	return errors
@@ -202,11 +200,14 @@ func applyDefaults(c *Config) {
 		c.Agent.Temperature = 0.7
 	}
 	if c.Agent.TimeoutSeconds == 0 {
-		c.Agent.TimeoutSeconds = 30
+		c.Agent.TimeoutSeconds = DefaultAgentTimeoutSeconds
 	}
 
 	if c.LLM.ZAI.BaseURL == "" {
 		c.LLM.ZAI.BaseURL = "https://api.z.ai/api/coding/paas/v4"
+	}
+	if c.LLM.ZAI.TimeoutSeconds == 0 {
+		c.LLM.ZAI.TimeoutSeconds = DefaultLLMAPITimeoutSeconds
 	}
 
 	if c.Logging.Level == "" {
@@ -245,12 +246,6 @@ func expandEnvVars(c *Config) error {
 		c.Workspace.Path = expandEnv(c.Workspace.Path)
 	}
 	c.Workspace.Path = expandHome(c.Workspace.Path)
-
-	// Shell working dir
-	if strings.HasPrefix(c.Tools.Shell.WorkingDir, "${") {
-		c.Tools.Shell.WorkingDir = expandEnv(c.Tools.Shell.WorkingDir)
-	}
-	c.Tools.Shell.WorkingDir = expandHome(c.Tools.Shell.WorkingDir)
 
 	// File tool directories
 	for i, dir := range c.Tools.File.WhitelistDirs {

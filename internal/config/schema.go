@@ -56,8 +56,9 @@ type LLMConfig struct {
 
 // ZAIConfig представляет конфигурацию Z.ai провайдера
 type ZAIConfig struct {
-	APIKey  string `toml:"api_key"`
-	BaseURL string `toml:"base_url"`
+	APIKey         string `toml:"api_key"`
+	BaseURL        string `toml:"base_url"`
+	TimeoutSeconds int    `toml:"timeout_seconds"`
 }
 
 // LoggingConfig представляет конфигурацию логирования
@@ -103,14 +104,12 @@ type FileToolConfig struct {
 type ShellToolConfig struct {
 	Enabled         bool     `toml:"enabled"`
 	AllowedCommands []string `toml:"allowed_commands"`
-	WorkingDir      string   `toml:"working_dir"`
 	TimeoutSeconds  int      `toml:"timeout_seconds"`
 }
 
 // CronConfig представляет конфигурацию cron (v0.2)
 type CronConfig struct {
-	Enabled bool   `toml:"enabled"`
-	JobsDir string `toml:"jobs_dir"`
+	Enabled bool `toml:"enabled"`
 }
 
 // MessageBusConfig представляет конфигурацию message bus
