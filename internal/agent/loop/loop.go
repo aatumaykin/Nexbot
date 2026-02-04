@@ -27,13 +27,14 @@ type Loop struct {
 
 // Config holds configuration for the loop.
 type Config struct {
-	Workspace   string
-	SessionDir  string
-	LLMProvider llm.Provider
-	Logger      *logger.Logger
-	Model       string
-	MaxTokens   int
-	Temperature float64
+	Workspace         string
+	SessionDir        string
+	LLMProvider       llm.Provider
+	Logger            *logger.Logger
+	Model             string
+	MaxTokens         int
+	Temperature       float64
+	MaxToolIterations int
 }
 
 // NewLoop creates a new execution loop.
@@ -57,6 +58,9 @@ func NewLoop(cfg Config) (*Loop, error) {
 	}
 	if cfg.Temperature == 0 {
 		cfg.Temperature = 0.7
+	}
+	if cfg.MaxToolIterations == 0 {
+		cfg.MaxToolIterations = 10
 	}
 
 	// Create session manager
@@ -118,7 +122,7 @@ func (l *Loop) Process(ctx stdcontext.Context, sessionID, userMessage string) (s
 // processWithToolCalling processes a message, handling tool calls recursively.
 func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, iteration int) (string, error) {
 	// Prevent infinite loops
-	const maxIterations = 5
+	maxIterations := l.config.MaxToolIterations
 	if iteration >= maxIterations {
 		l.logger.ErrorCtx(ctx, "Maximum tool call iterations reached", nil,
 			logger.Field{Key: "iterations", Value: iteration})

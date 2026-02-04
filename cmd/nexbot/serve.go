@@ -155,13 +155,14 @@ func serveHandler(cmd *cobra.Command, args []string) {
 	// Initialize agent loop
 	log.Info("🤖 Initializing agent loop")
 	agentLoop, err := loop.NewLoop(loop.Config{
-		Workspace:   cfg.Workspace.Path,
-		SessionDir:  ws.Subpath("sessions"),
-		LLMProvider: llmProvider,
-		Logger:      log,
-		Model:       cfg.Agent.Model,
-		MaxTokens:   cfg.Agent.MaxTokens,
-		Temperature: cfg.Agent.Temperature,
+		Workspace:         cfg.Workspace.Path,
+		SessionDir:        ws.Subpath("sessions"),
+		LLMProvider:       llmProvider,
+		Logger:            log,
+		Model:             cfg.Agent.Model,
+		MaxTokens:         cfg.Agent.MaxTokens,
+		Temperature:       cfg.Agent.Temperature,
+		MaxToolIterations: cfg.Agent.MaxIterations,
 	})
 	if err != nil {
 		log.Error("Failed to initialize agent loop", err)
