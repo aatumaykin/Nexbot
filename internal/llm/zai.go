@@ -25,8 +25,9 @@ const (
 
 // ZAIConfig contains configuration for the Z.ai provider.
 type ZAIConfig struct {
-	APIKey string `json:"api_key"` // API key for authentication
-	Model  string `json:"model"`   // Default model to use (optional, defaults to glm-4.7)
+	APIKey         string `json:"api_key"`         // API key for authentication
+	Model          string `json:"model"`           // Default model to use (optional, defaults to glm-4.7)
+	TimeoutSeconds int    `json:"timeout_seconds"` // Timeout for HTTP requests in seconds
 }
 
 // ZAIProvider implements the Provider interface for Z.ai Coding API.
@@ -112,9 +113,15 @@ func NewZAIProvider(cfg ZAIConfig, log *logger.Logger) *ZAIProvider {
 		cfg.Model = "glm-4.7"
 	}
 
+	// Set timeout from config or use default
+	timeout := time.Duration(cfg.TimeoutSeconds) * time.Second
+	if timeout == 0 {
+		timeout = ZAIRequestTimeout
+	}
+
 	return &ZAIProvider{
 		client: &http.Client{
-			Timeout: ZAIRequestTimeout,
+			Timeout: timeout,
 		},
 		config: cfg,
 		apiURL: ZAIEndpoint,

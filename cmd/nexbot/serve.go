@@ -131,7 +131,8 @@ func serveHandler(cmd *cobra.Command, args []string) {
 	switch cfg.Agent.Provider {
 	case "zai":
 		llmProvider = llm.NewZAIProvider(llm.ZAIConfig{
-			APIKey: cfg.LLM.ZAI.APIKey,
+			APIKey:         cfg.LLM.ZAI.APIKey,
+			TimeoutSeconds: cfg.LLM.ZAI.TimeoutSeconds,
 		}, log)
 		log.Info("✅ Z.ai LLM provider initialized")
 	default:
@@ -288,7 +289,11 @@ func serveHandler(cmd *cobra.Command, args []string) {
 				log.ErrorCtx(ctx, "Failed to publish processing start event", err)
 			}
 
-			response, err := agentLoop.Process(ctx, msg.SessionID, msg.Content)
+			// Create context with agent timeout
+			agentCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.Agent.TimeoutSeconds)*time.Second)
+
+			response, err := agentLoop.Process(agentCtx, msg.SessionID, msg.Content)
+			cancel()
 			if err != nil {
 				log.ErrorCtx(ctx, "Failed to process message", err,
 					logger.Field{Key: "session_id", Value: msg.SessionID})
