@@ -116,7 +116,8 @@ const (
 
 // CronConfig представляет конфигурацию cron (v0.2)
 type CronConfig struct {
-	Enabled bool `toml:"enabled"`
+	Enabled  bool   `toml:"enabled"`
+	Timezone string `toml:"timezone"`
 }
 
 // JobsDir возвращает путь к директории для хранения cron jobs

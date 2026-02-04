@@ -227,6 +227,10 @@ func applyDefaults(c *Config) {
 	if c.MessageBus.Capacity == 0 {
 		c.MessageBus.Capacity = 1000
 	}
+
+	if c.Cron.Timezone == "" {
+		c.Cron.Timezone = "UTC"
+	}
 }
 
 // expandEnvVars расширяет переменные окружения в конфигурации
