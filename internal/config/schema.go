@@ -17,6 +17,8 @@
 // For example: api_key = "${ZAI_API_KEY:default_key}"
 package config
 
+import "path/filepath"
+
 // Config represents the main application configuration.
 type Config struct {
 	Workspace  WorkspaceConfig  `toml:"workspace"`
@@ -107,9 +109,19 @@ type ShellToolConfig struct {
 	TimeoutSeconds  int      `toml:"timeout_seconds"`
 }
 
+const (
+	// CronSubdirectory is the subdirectory name for cron jobs within workspace
+	CronSubdirectory = "cron"
+)
+
 // CronConfig представляет конфигурацию cron (v0.2)
 type CronConfig struct {
 	Enabled bool `toml:"enabled"`
+}
+
+// JobsDir возвращает путь к директории для хранения cron jobs
+func (c *CronConfig) JobsDir(workspacePath string) string {
+	return filepath.Join(workspacePath, CronSubdirectory)
 }
 
 // MessageBusConfig представляет конфигурацию message bus
