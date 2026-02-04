@@ -127,22 +127,6 @@ func (m *ToolCallingMockProvider) SupportsToolCalling() bool {
 	return true
 }
 
-// GetDefaultModel returns the default model
-func (m *ToolCallingMockProvider) GetDefaultModel() string {
-	return "mock-tool-model"
-}
-
-func (m *ToolCallingMockProvider) ListModels(ctx context.Context) ([]llm.ModelInfo, error) {
-	return []llm.ModelInfo{
-		{
-			ID:          "mock-tool-model",
-			Name:        "Mock Tool Model",
-			Description: "A mock model for tool calling tests",
-			Current:     true,
-		},
-	}, nil
-}
-
 // GetCallCount returns number of Chat() calls
 func (m *ToolCallingMockProvider) GetCallCount() int {
 	m.mu.Lock()

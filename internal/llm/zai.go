@@ -122,94 +122,19 @@ func NewZAIProvider(cfg ZAIConfig, log *logger.Logger) *ZAIProvider {
 	}
 }
 
-// Chat sends a chat completion request to Z.ai API.
-func (p *ZAIProvider) Chat(ctx stdcontext.Context, req ChatRequest) (*ChatResponse, error) {
-	startTime := time.Now()
-
-	// Map internal request to Z.ai API format
-	zaiReq := p.mapChatRequest(req)
-
-	// Convert to JSON
-	reqBody, err := json.Marshal(zaiReq)
-	if err != nil {
-		p.logger.ErrorCtx(ctx, "Failed to marshal Z.ai request", err,
-			logger.Field{Key: "model", Value: req.Model})
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	// Log full request payload (for debugging tool registration)
-	p.logger.DebugCtx(ctx, "Full Z.ai request payload",
-		logger.Field{Key: "model", Value: req.Model},
-		logger.Field{Key: "messages_count", Value: len(req.Messages)},
-		logger.Field{Key: "tools_count", Value: len(zaiReq.Tools)},
-		logger.Field{Key: "request_body", Value: string(reqBody)})
-
-	// Execute request with retries
-	zaiResp, err := p.doRequestWithRetry(ctx, reqBody)
-	if err != nil {
-		return nil, err
-	}
-
-	// Map Z.ai response to internal format
-	resp := p.mapChatResponse(zaiResp)
-
-	latency := time.Since(startTime).Milliseconds()
-
-	p.logger.InfoCtx(ctx, "Received response from Z.ai API",
-		logger.Field{Key: "model", Value: resp.Model},
-		logger.Field{Key: "finish_reason", Value: resp.FinishReason},
-		logger.Field{Key: "total_tokens", Value: resp.Usage.TotalTokens},
-		logger.Field{Key: "latency_ms", Value: latency})
-
-	return resp, nil
+// zaiHTTPError represents an HTTP error from the API.
+type zaiHTTPError struct {
+	StatusCode int    // HTTP status code
+	Body       string // Response body
 }
 
-// doRequestWithRetry executes HTTP request with retry logic.
-func (p *ZAIProvider) doRequestWithRetry(ctx stdcontext.Context, reqBody []byte) (*zaiResponse, error) {
-	var lastErr error
-
-	for attempt := 0; attempt < ZAIMaxRetries; attempt++ {
-		if attempt > 0 {
-			p.logger.DebugCtx(ctx, "Retrying request to Z.ai API",
-				logger.Field{Key: "attempt", Value: attempt + 1},
-				logger.Field{Key: "max_retries", Value: ZAIMaxRetries})
-
-			// Wait before retrying
-			select {
-			case <-time.After(ZAIRetryDelay):
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			}
-		}
-
-		zaiResp, err := p.doRequest(ctx, reqBody)
-		if err == nil {
-			return zaiResp, nil
-		}
-
-		lastErr = err
-
-		// Don't retry on context cancellation
-		if ctx.Err() != nil {
-			return nil, lastErr
-		}
-
-		// Don't retry on certain HTTP status codes
-		if httpErr, ok := err.(*zaiHTTPError); ok {
-			if httpErr.StatusCode == 401 || httpErr.StatusCode == 403 {
-				// Authentication errors - don't retry
-				p.logger.ErrorCtx(ctx, "Authentication error with Z.ai API", httpErr,
-					logger.Field{Key: "status_code", Value: httpErr.StatusCode})
-				return nil, lastErr
-			}
-		}
-	}
-
-	return nil, fmt.Errorf("failed after %d attempts: %w", ZAIMaxRetries, lastErr)
+func (e *zaiHTTPError) Error() string {
+	return fmt.Sprintf("HTTP error: status=%d, body=%s", e.StatusCode, e.Body)
 }
 
 // doRequest executes a single HTTP request to Z.ai API.
 func (p *ZAIProvider) doRequest(ctx stdcontext.Context, reqBody []byte) (*zaiResponse, error) {
+
 	// Create HTTP request
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, p.apiURL, bytes.NewReader(reqBody))
 	if err != nil {
@@ -349,15 +274,22 @@ func (p *ZAIProvider) mapChatResponse(zaiResp *zaiResponse) *ChatResponse {
 		}
 	}
 
+	// Use reasoning_content if content is empty (GLM-4.7+ feature)
+	content := choice.Message.Content
+	if content == "" && choice.Message.ReasoningContent != "" {
+		content = choice.Message.ReasoningContent
+	}
+
 	// Log full LLM response
 	p.logger.DebugCtx(stdcontext.Background(), "LLM response",
 		logger.Field{Key: "model", Value: zaiResp.Model},
 		logger.Field{Key: "finish_reason", Value: choice.FinishReason},
-		logger.Field{Key: "content", Value: choice.Message.Content},
+		logger.Field{Key: "content", Value: content},
+		logger.Field{Key: "reasoning_content", Value: choice.Message.ReasoningContent},
 		logger.Field{Key: "tool_calls", Value: fmt.Sprintf("%+v", choice.Message.ToolCalls)})
 
 	return &ChatResponse{
-		Content:      choice.Message.Content,
+		Content:      content,
 		FinishReason: FinishReason(choice.FinishReason),
 		ToolCalls:    toolCalls,
 		Usage: Usage{
@@ -369,101 +301,28 @@ func (p *ZAIProvider) mapChatResponse(zaiResp *zaiResponse) *ChatResponse {
 	}
 }
 
+// Chat sends a chat completion request to Z.ai API.
+func (p *ZAIProvider) Chat(ctx stdcontext.Context, req ChatRequest) (*ChatResponse, error) {
+	p.logger.DebugCtx(ctx, "Sending chat request to Z.ai API",
+		logger.Field{Key: "model", Value: req.Model},
+		logger.Field{Key: "messages_count", Value: len(req.Messages)})
+
+	reqBody := p.mapChatRequest(req)
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		p.logger.ErrorCtx(ctx, "Failed to marshal request", err)
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	zaiResp, err := p.doRequest(ctx, jsonBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.mapChatResponse(zaiResp), nil
+}
+
 // SupportsToolCalling returns true as Z.ai GLM-4.7 supports tool calling.
 func (p *ZAIProvider) SupportsToolCalling() bool {
 	return true
-}
-
-// GetDefaultModel returns the default model identifier.
-func (p *ZAIProvider) GetDefaultModel() string {
-	if p.config.Model != "" {
-		return p.config.Model
-	}
-	return "glm-4.7"
-}
-
-// ListModels returns a list of available models from Z.ai.
-// For now, this returns a hardcoded list since Z.ai API doesn't have
-// a public endpoint for listing models.
-func (p *ZAIProvider) ListModels(ctx stdcontext.Context) ([]ModelInfo, error) {
-	defaultModel := p.GetDefaultModel()
-
-	models := []ModelInfo{
-		{
-			ID:          "glm-4.7",
-			Name:        "GLM-4.7",
-			Description: "Advanced AI model with reasoning capabilities",
-			Current:     defaultModel == "glm-4.7",
-		},
-		{
-			ID:          "glm-4.7-flash",
-			Name:        "GLM-4.7 Flash",
-			Description: "Fast AI model optimized for quick responses",
-			Current:     defaultModel == "glm-4.7-flash",
-		},
-		{
-			ID:          "glm-4.7-flashx",
-			Name:        "GLM-4.7 FlashX",
-			Description: "Ultra-fast model with extended context",
-			Current:     defaultModel == "glm-4.7-flashx",
-		},
-		{
-			ID:          "glm-4.6",
-			Name:        "GLM-4.6",
-			Description: "High-performance model with strong capabilities",
-			Current:     defaultModel == "glm-4.6",
-		},
-		{
-			ID:          "glm-4.5",
-			Name:        "GLM-4.5",
-			Description: "Powerful AI model for complex tasks",
-			Current:     defaultModel == "glm-4.5",
-		},
-		{
-			ID:          "glm-4.5-air",
-			Name:        "GLM-4.5 Air",
-			Description: "Lightweight efficient model",
-			Current:     defaultModel == "glm-4.5-air",
-		},
-		{
-			ID:          "glm-4.5-x",
-			Name:        "GLM-4.5 X",
-			Description: "Enhanced model with extended capabilities",
-			Current:     defaultModel == "glm-4.5-x",
-		},
-		{
-			ID:          "glm-4.5-airx",
-			Name:        "GLM-4.5 AirX",
-			Description: "Optimized efficient model with extended features",
-			Current:     defaultModel == "glm-4.5-airx",
-		},
-		{
-			ID:          "glm-4.5-flash",
-			Name:        "GLM-4.5 Flash",
-			Description: "Fast model optimized for speed",
-			Current:     defaultModel == "glm-4.5-flash",
-		},
-		{
-			ID:          "glm-4-32b-0414-128k",
-			Name:        "GLM-4 32B",
-			Description: "32B parameter model with 128k context window",
-			Current:     defaultModel == "glm-4-32b-0414-128k",
-		},
-	}
-
-	p.logger.DebugCtx(ctx, "Listed available models",
-		logger.Field{Key: "count", Value: len(models)},
-		logger.Field{Key: "default_model", Value: defaultModel})
-
-	return models, nil
-}
-
-// zaiHTTPError represents an HTTP error from the API.
-type zaiHTTPError struct {
-	StatusCode int    // HTTP status code
-	Body       string // Response body
-}
-
-func (e *zaiHTTPError) Error() string {
-	return fmt.Sprintf("HTTP error: status=%d, body=%s", e.StatusCode, e.Body)
 }

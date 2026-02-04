@@ -6,12 +6,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aatumaykin/nexbot/internal/agent/loop"
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/mymmrac/telego"
 )
+
+// Suppress unused import warning for loop (used for nil argument type)
+var _ *loop.Loop
 
 // TestConnector_New tests connector creation
 func TestConnector_New(t *testing.T) {
@@ -938,127 +942,6 @@ func TestConnector_validateConfig(t *testing.T) {
 			}
 		})
 	}
-}
-
-// TestConnector_handleUpdate_ModelsCommand tests /models command handling
-func TestConnector_handleUpdate_ModelsCommand(t *testing.T) {
-	log, _ := logger.New(logger.Config{
-		Level:  "debug",
-		Format: "text",
-		Output: "stdout",
-	})
-
-	msgBus := bus.New(100, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Start message bus
-	if err := msgBus.Start(ctx); err != nil {
-		t.Fatalf("Failed to start message bus: %v", err)
-	}
-
-	cfg := config.TelegramConfig{
-		AllowedUsers: []string{"123456789"},
-	}
-
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
-	conn.ctx = ctx
-
-	// Subscribe to inbound messages
-	inboundCh := msgBus.SubscribeInbound(ctx)
-
-	// Create a test update with /models command
-	update := telego.Update{
-		Message: &telego.Message{
-			MessageID: 1,
-			From: &telego.User{
-				ID:        123456789,
-				FirstName: "TestUser",
-				Username:  "test_user",
-			},
-			Chat: telego.Chat{
-				ID:   987654321,
-				Type: "private",
-			},
-			Text: "/models",
-		},
-	}
-
-	// Handle the update
-	err := conn.handleUpdate(update)
-	if err != nil {
-		t.Fatalf("handleUpdate() failed: %v", err)
-	}
-
-	// Should NOT receive any inbound message (/models doesn't go to session)
-	select {
-	case msg := <-inboundCh:
-		t.Errorf("Received unexpected message on inbound bus: %+v", msg)
-	case <-time.After(100 * time.Millisecond):
-		// Expected: no message received on inbound bus
-	}
-
-	msgBus.Stop()
-}
-
-// TestConnector_handleUpdate_ModelsCommand_Unauthorized tests that /models command is blocked for unauthorized users
-func TestConnector_handleUpdate_ModelsCommand_Unauthorized(t *testing.T) {
-	log, _ := logger.New(logger.Config{
-		Level:  "debug",
-		Format: "text",
-		Output: "stdout",
-	})
-
-	msgBus := bus.New(100, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Start message bus
-	if err := msgBus.Start(ctx); err != nil {
-		t.Fatalf("Failed to start message bus: %v", err)
-	}
-
-	cfg := config.TelegramConfig{
-		AllowedUsers: []string{"123"}, // User 456 is not in list
-	}
-
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
-	conn.ctx = ctx
-
-	// Subscribe to inbound messages
-	inboundCh := msgBus.SubscribeInbound(ctx)
-
-	// Create a test update with /models command from unauthorized user
-	update := telego.Update{
-		Message: &telego.Message{
-			MessageID: 1,
-			From: &telego.User{
-				ID:        456,
-				FirstName: "UnauthorizedUser",
-			},
-			Chat: telego.Chat{
-				ID:   987654321,
-				Type: "private",
-			},
-			Text: "/models",
-		},
-	}
-
-	// Handle the update
-	err := conn.handleUpdate(update)
-	if err != nil {
-		t.Fatalf("handleUpdate() failed: %v", err)
-	}
-
-	// Should not receive any inbound message
-	select {
-	case msg := <-inboundCh:
-		t.Errorf("Received unexpected message: %+v", msg)
-	case <-time.After(100 * time.Millisecond):
-		// Expected: no message received
-	}
-
-	msgBus.Stop()
 }
 
 // TestConnector_registerCommands tests command registration with Telegram

@@ -18,9 +18,8 @@ func TestConfigDefaults(t *testing.T) {
 		got   string
 	}{
 		{"workspace path", "workspace.path", "~/.nexbot", cfg.Workspace.Path},
+		{"agent provider", "agent.provider", "zai", cfg.Agent.Provider},
 		{"agent model", "agent.model", "glm-4.7-flash", cfg.Agent.Model},
-		{"llm provider", "llm.provider", "zai", cfg.LLM.Provider},
-		{"zai model", "llm.zai.model", "glm-4.7-flash", cfg.LLM.ZAI.Model},
 		{"logging level", "logging.level", "info", cfg.Logging.Level},
 		{"logging format", "logging.format", "json", cfg.Logging.Format},
 		{"logging output", "logging.output", "stdout", cfg.Logging.Output},
@@ -45,9 +44,12 @@ func TestConfigValidation(t *testing.T) {
 			name: "valid config with minimal fields",
 			cfg: &Config{
 				Workspace: WorkspaceConfig{Path: "~/.nexbot"},
-				LLM: LLMConfig{
+				Agent: AgentConfig{
 					Provider: "zai",
-					ZAI:      ZAIConfig{APIKey: "zai-test-key-valid"},
+					Model:    "glm-4.7-flash",
+				},
+				LLM: LLMConfig{
+					ZAI: ZAIConfig{APIKey: "zai-test-key-valid"},
 				},
 				Logging: LoggingConfig{
 					Level:  "info",
@@ -60,9 +62,11 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "missing workspace path",
 			cfg: &Config{
-				LLM: LLMConfig{
+				Agent: AgentConfig{
 					Provider: "zai",
-					ZAI:      ZAIConfig{APIKey: "test-key"},
+				},
+				LLM: LLMConfig{
+					ZAI: ZAIConfig{APIKey: "test-key"},
 				},
 				Logging: LoggingConfig{
 					Level:  "info",
@@ -88,9 +92,11 @@ func TestConfigValidation(t *testing.T) {
 			name: "invalid llm provider",
 			cfg: &Config{
 				Workspace: WorkspaceConfig{Path: "~/.nexbot"},
-				LLM: LLMConfig{
+				Agent: AgentConfig{
 					Provider: "invalid",
-					ZAI:      ZAIConfig{APIKey: "test-key"},
+				},
+				LLM: LLMConfig{
+					ZAI: ZAIConfig{APIKey: "test-key"},
 				},
 				Logging: LoggingConfig{
 					Level:  "info",
@@ -104,9 +110,11 @@ func TestConfigValidation(t *testing.T) {
 			name: "missing zai api key",
 			cfg: &Config{
 				Workspace: WorkspaceConfig{Path: "~/.nexbot"},
-				LLM: LLMConfig{
+				Agent: AgentConfig{
 					Provider: "zai",
-					ZAI:      ZAIConfig{APIKey: ""},
+				},
+				LLM: LLMConfig{
+					ZAI: ZAIConfig{APIKey: ""},
 				},
 				Logging: LoggingConfig{
 					Level:  "info",
@@ -120,9 +128,11 @@ func TestConfigValidation(t *testing.T) {
 			name: "invalid logging level",
 			cfg: &Config{
 				Workspace: WorkspaceConfig{Path: "~/.nexbot"},
-				LLM: LLMConfig{
+				Agent: AgentConfig{
 					Provider: "zai",
-					ZAI:      ZAIConfig{APIKey: "test-key"},
+				},
+				LLM: LLMConfig{
+					ZAI: ZAIConfig{APIKey: "test-key"},
 				},
 				Logging: LoggingConfig{
 					Level:  "invalid",
@@ -136,9 +146,11 @@ func TestConfigValidation(t *testing.T) {
 			name: "invalid logging format",
 			cfg: &Config{
 				Workspace: WorkspaceConfig{Path: "~/.nexbot"},
-				LLM: LLMConfig{
+				Agent: AgentConfig{
 					Provider: "zai",
-					ZAI:      ZAIConfig{APIKey: "test-key"},
+				},
+				LLM: LLMConfig{
+					ZAI: ZAIConfig{APIKey: "test-key"},
 				},
 				Logging: LoggingConfig{
 					Level:  "info",
@@ -149,23 +161,25 @@ func TestConfigValidation(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "telegram enabled but missing token",
+			name: "invalid logging output",
 			cfg: &Config{
 				Workspace: WorkspaceConfig{Path: "~/.nexbot"},
-				LLM: LLMConfig{
+				Agent: AgentConfig{
 					Provider: "zai",
-					ZAI:      ZAIConfig{APIKey: "test-key"},
+				},
+				LLM: LLMConfig{
+					ZAI: ZAIConfig{APIKey: "test-key"},
 				},
 				Channels: ChannelsConfig{
 					Telegram: TelegramConfig{
+						Token:   "123456789:ABCDEF",
 						Enabled: true,
-						Token:   "",
 					},
 				},
 				Logging: LoggingConfig{
 					Level:  "info",
 					Format: "json",
-					Output: "stdout",
+					Output: "invalid",
 				},
 			},
 			wantErr: true,
@@ -555,20 +569,6 @@ func TestValidateAPIKey(t *testing.T) {
 			key:       "zai-123456",
 			fieldName: "llm.zai.api_key",
 			wantErr:   false,
-		},
-		{
-			name:      "zai api key with invalid prefix",
-			key:       "invalid-test-key",
-			fieldName: "llm.zai.api_key",
-			wantErr:   true,
-			errMsg:    "invalid format",
-		},
-		{
-			name:      "openai api key with invalid prefix",
-			key:       "invalid-test-key",
-			fieldName: "llm.openai.api_key",
-			wantErr:   true,
-			errMsg:    "invalid format",
 		},
 	}
 

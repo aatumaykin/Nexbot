@@ -37,6 +37,7 @@ type WorkspaceConfig struct {
 
 // AgentConfig представляет конфигурацию agent
 type AgentConfig struct {
+	Provider       string  `toml:"provider"`
 	Model          string  `toml:"model"`
 	MaxTokens      int     `toml:"max_tokens"`
 	MaxIterations  int     `toml:"max_iterations"`
@@ -46,12 +47,10 @@ type AgentConfig struct {
 
 // LLMConfig представляет конфигурацию LLM провайдера
 type LLMConfig struct {
-	Provider string    `toml:"provider"`
-	ZAI      ZAIConfig `toml:"zai"`
-	OpenAI   struct {
+	ZAI    ZAIConfig `toml:"zai"`
+	OpenAI struct {
 		APIKey  string `toml:"api_key"`
 		BaseURL string `toml:"base_url"`
-		Model   string `toml:"model"`
 	} `toml:"openai"`
 }
 
@@ -59,7 +58,6 @@ type LLMConfig struct {
 type ZAIConfig struct {
 	APIKey  string `toml:"api_key"`
 	BaseURL string `toml:"base_url"`
-	Model   string `toml:"model"`
 }
 
 // LoggingConfig представляет конфигурацию логирования

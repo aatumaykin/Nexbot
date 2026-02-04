@@ -62,8 +62,8 @@ Example usage:
 		fmt.Println("✅ Configuration loaded")
 
 		// Validate LLM configuration
-		if cfg.LLM.Provider != "zai" {
-			fmt.Printf("❌ LLM provider '%s' is not yet supported (only 'zai' is supported)\n", cfg.LLM.Provider)
+		if cfg.Agent.Provider != "zai" {
+			fmt.Printf("❌ LLM provider '%s' is not yet supported (only 'zai' is supported)\n", cfg.Agent.Provider)
 			os.Exit(1)
 		}
 
@@ -89,10 +89,7 @@ Example usage:
 		// Determine model to use
 		model := modelOverride
 		if model == "" {
-			model = cfg.LLM.ZAI.Model
-			if model == "" {
-				model = cfg.Agent.Model
-			}
+			model = cfg.Agent.Model
 			if model == "" {
 				model = "glm-4.7"
 			}
@@ -100,10 +97,9 @@ Example usage:
 
 		provider := llm.NewZAIProvider(llm.ZAIConfig{
 			APIKey: cfg.LLM.ZAI.APIKey,
-			Model:  model,
 		}, log)
 
-		fmt.Printf("✅ Z.ai provider initialized (model: %s)\n\n", provider.GetDefaultModel())
+		fmt.Printf("✅ Z.ai provider initialized (model: %s)\n\n", model)
 
 		// Prepare test request
 		testMessage := "Hello, world! Please respond with a friendly greeting."
@@ -125,7 +121,7 @@ Example usage:
 					Content: testMessage,
 				},
 			},
-			Model:       provider.GetDefaultModel(),
+			Model:       model,
 			Temperature: 0.7,
 			MaxTokens:   200,
 		}

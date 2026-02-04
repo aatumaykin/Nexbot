@@ -104,7 +104,7 @@ func serveHandler(cmd *cobra.Command, args []string) {
 		logger.Field{Key: "git_commit", Value: GitCommit},
 		logger.Field{Key: "config", Value: configPath},
 		logger.Field{Key: "workspace", Value: cfg.Workspace.Path},
-		logger.Field{Key: "llm_provider", Value: cfg.LLM.Provider},
+		logger.Field{Key: "agent_provider", Value: cfg.Agent.Provider},
 		logger.Field{Key: "message_bus_capacity", Value: cfg.MessageBus.Capacity},
 	)
 
@@ -128,16 +128,15 @@ func serveHandler(cmd *cobra.Command, args []string) {
 
 	// Initialize LLM provider
 	var llmProvider llm.Provider
-	switch cfg.LLM.Provider {
+	switch cfg.Agent.Provider {
 	case "zai":
 		llmProvider = llm.NewZAIProvider(llm.ZAIConfig{
 			APIKey: cfg.LLM.ZAI.APIKey,
-			Model:  cfg.LLM.ZAI.Model,
 		}, log)
 		log.Info("✅ Z.ai LLM provider initialized")
 	default:
 		log.Error("Unsupported LLM provider", nil,
-			logger.Field{Key: "provider", Value: cfg.LLM.Provider})
+			logger.Field{Key: "provider", Value: cfg.Agent.Provider})
 		os.Exit(1)
 	}
 
@@ -379,10 +378,6 @@ func formatStatusMessage(status map[string]any) string {
 	// Max tokens
 	maxTokens, _ := status["max_tokens"].(int)
 	builder.WriteString(fmt.Sprintf("**Max Tokens:** %d\n", maxTokens))
-
-	// Provider
-	provider, _ := status["provider"].(string)
-	builder.WriteString(fmt.Sprintf("**Provider:** %s\n", provider))
 
 	return builder.String()
 }

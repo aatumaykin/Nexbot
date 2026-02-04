@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// MockProvider is a mock implementation of the Provider interface for testing
+// MockProvider is a mock implementation of Provider interface for testing
 // and graceful degradation scenarios.
 type MockProvider struct {
 	responses     []string // Pre-defined responses (rotates through them)
@@ -33,7 +33,7 @@ const (
 	MockModeError
 )
 
-// MockConfig holds configuration for the mock provider.
+// MockConfig holds the configuration for the mock provider.
 type MockConfig struct {
 	Mode       MockMode // Operation mode
 	Responses  []string // Pre-defined responses (for Fixed/Fixtures modes)
@@ -97,7 +97,7 @@ func (m *MockProvider) Chat(ctx context.Context, req ChatRequest) (*ChatResponse
 		return nil, fmt.Errorf("mock provider error")
 	}
 
-	// Get the user message (last message if available)
+	// Get user message (last message if available)
 	var userMessage string
 	if len(req.Messages) > 0 {
 		lastMsg := req.Messages[len(req.Messages)-1]
@@ -149,23 +149,6 @@ func (m *MockProvider) Chat(ctx context.Context, req ChatRequest) (*ChatResponse
 // Mock provider does not support tool calling.
 func (m *MockProvider) SupportsToolCalling() bool {
 	return false
-}
-
-// GetDefaultModel implements the Provider interface.
-func (m *MockProvider) GetDefaultModel() string {
-	return "mock-model"
-}
-
-// ListModels implements the Provider interface.
-func (m *MockProvider) ListModels(ctx context.Context) ([]ModelInfo, error) {
-	return []ModelInfo{
-		{
-			ID:          "mock-model",
-			Name:        "Mock Model",
-			Description: "Mock model for testing",
-			Current:     true,
-		},
-	}, nil
 }
 
 // GetCallCount returns the number of Chat() calls made to this provider.

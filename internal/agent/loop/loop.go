@@ -52,10 +52,6 @@ func NewLoop(cfg Config) (*Loop, error) {
 		return nil, fmt.Errorf("logger cannot be nil")
 	}
 
-	// Set defaults
-	if cfg.Model == "" {
-		cfg.Model = cfg.LLMProvider.GetDefaultModel()
-	}
 	if cfg.MaxTokens == 0 {
 		cfg.MaxTokens = 4096
 	}
@@ -122,7 +118,7 @@ func (l *Loop) Process(ctx stdcontext.Context, sessionID, userMessage string) (s
 // processWithToolCalling processes a message, handling tool calls recursively.
 func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, iteration int) (string, error) {
 	// Prevent infinite loops
-	const maxIterations = 10
+	const maxIterations = 5
 	if iteration >= maxIterations {
 		l.logger.ErrorCtx(ctx, "Maximum tool call iterations reached", nil,
 			logger.Field{Key: "iterations", Value: iteration})
@@ -325,6 +321,16 @@ func (l *Loop) GetLLMProvider() llm.Provider {
 	return l.provider
 }
 
+// GetSessionModel returns the model for the given session (always returns config model).
+func (l *Loop) GetSessionModel(ctx stdcontext.Context, sessionID string) string {
+	return l.config.Model
+}
+
+// GetSessionMaxTokens returns the max tokens for the given session (always returns config max tokens).
+func (l *Loop) GetSessionMaxTokens(sessionID string) int {
+	return l.config.MaxTokens
+}
+
 // RegisterTool registers a tool with the loop's tool registry.
 func (l *Loop) RegisterTool(tool tools.Tool) {
 	l.tools.Register(tool)
@@ -364,7 +370,6 @@ func (l *Loop) GetSessionStatus(ctx stdcontext.Context, sessionID string) (map[s
 		"model":           l.config.Model,
 		"temperature":     l.config.Temperature,
 		"max_tokens":      l.config.MaxTokens,
-		"provider":        l.provider.GetDefaultModel(),
 	}, nil
 }
 

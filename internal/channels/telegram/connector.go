@@ -13,7 +13,8 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
+	"sync"
+	"time"
 
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/config"
@@ -24,24 +25,27 @@ import (
 
 // Connector represents the Telegram bot connector
 type Connector struct {
-	cfg        config.TelegramConfig
-	logger     *logger.Logger
-	bus        *bus.MessageBus
-	provider   llm.Provider
-	bot        *telego.Bot
-	ctx        context.Context
-	cancel     context.CancelFunc
-	outboundCh <-chan bus.OutboundMessage
-	eventCh    <-chan bus.Event
+	cfg          config.TelegramConfig
+	logger       *logger.Logger
+	bus          *bus.MessageBus
+	provider     llm.Provider
+	bot          *telego.Bot
+	ctx          context.Context
+	cancel       context.CancelFunc
+	outboundCh   <-chan bus.OutboundMessage
+	eventCh      <-chan bus.Event
+	typingLock   sync.RWMutex
+	typingCancel map[string]context.CancelFunc
 }
 
 // New creates a new Telegram connector
 func New(cfg config.TelegramConfig, log *logger.Logger, msgBus *bus.MessageBus, provider llm.Provider) *Connector {
 	return &Connector{
-		cfg:      cfg,
-		logger:   log,
-		bus:      msgBus,
-		provider: provider,
+		cfg:          cfg,
+		logger:       log,
+		bus:          msgBus,
+		provider:     provider,
+		typingCancel: make(map[string]context.CancelFunc),
 	}
 }
 
@@ -101,6 +105,14 @@ func (c *Connector) Start(ctx context.Context) error {
 func (c *Connector) Stop() error {
 	c.logger.Info("stopping telegram connector")
 
+	// Stop all typing indicators
+	c.typingLock.Lock()
+	for sessionID, cancel := range c.typingCancel {
+		cancel()
+		delete(c.typingCancel, sessionID)
+	}
+	c.typingLock.Unlock()
+
 	// Cancel context to stop all goroutines (long polling, outbound handler)
 	if c.cancel != nil {
 		c.cancel()
@@ -136,7 +148,6 @@ func (c *Connector) registerCommands() error {
 		Commands: []telego.BotCommand{
 			{Command: "new", Description: "Start a new session (clear history)"},
 			{Command: "status", Description: "Show session and bot status"},
-			{Command: "models", Description: "List available LLM models"},
 		},
 	}
 
@@ -148,68 +159,6 @@ func (c *Connector) registerCommands() error {
 	c.logger.Info("bot commands registered successfully")
 
 	return nil
-}
-
-// handleModelsCommand handles the /models command by fetching available models
-// from the LLM provider and sending them directly to Telegram (not to the session).
-func (c *Connector) handleModelsCommand(chatID int64) {
-	c.logger.DebugCtx(c.ctx, "handling /models command",
-		logger.Field{Key: "chat_id", Value: chatID})
-
-	// Get list of models from provider
-	models, err := c.provider.ListModels(c.ctx)
-	if err != nil {
-		c.logger.ErrorCtx(c.ctx, "failed to list models", err,
-			logger.Field{Key: "chat_id", Value: chatID})
-
-		// Send error message
-		if c.bot != nil {
-			errorMsg := "❌ Failed to get available models. Please try again later."
-			params := telego.SendMessageParams{
-				ChatID: telego.ChatID{ID: chatID},
-				Text:   errorMsg,
-			}
-			_, _ = c.bot.SendMessage(c.ctx, &params)
-		}
-		return
-	}
-
-	// Build formatted message
-	var builder strings.Builder
-	builder.WriteString("🤖 **Available LLM Models:**\n\n")
-
-	for _, model := range models {
-		// Add current indicator if this is the active model
-		if model.Current {
-			builder.WriteString(fmt.Sprintf("• *%s* ✅\n", model.Name))
-		} else {
-			builder.WriteString(fmt.Sprintf("• %s\n", model.Name))
-		}
-		builder.WriteString(fmt.Sprintf("  ID: `%s`\n", model.ID))
-		if model.Description != "" {
-			builder.WriteString(fmt.Sprintf("  %s\n", model.Description))
-		}
-		builder.WriteString("\n")
-	}
-
-	// Send message to Telegram
-	if c.bot != nil {
-		params := telego.SendMessageParams{
-			ChatID:    telego.ChatID{ID: chatID},
-			Text:      builder.String(),
-			ParseMode: "Markdown",
-		}
-		_, err := c.bot.SendMessage(c.ctx, &params)
-		if err != nil {
-			c.logger.ErrorCtx(c.ctx, "failed to send models list", err,
-				logger.Field{Key: "chat_id", Value: chatID})
-			return
-		}
-
-		c.logger.DebugCtx(c.ctx, "models list sent successfully",
-			logger.Field{Key: "chat_id", Value: chatID},
-			logger.Field{Key: "models_count", Value: len(models)})
-	}
 }
 
 // isAllowedUser checks if the user is allowed based on the whitelist configuration
@@ -278,20 +227,6 @@ func (c *Connector) handleUpdate(update telego.Update) error {
 			logger.Field{Key: "user_id", Value: userID},
 			logger.Field{Key: "session_id", Value: sessionID})
 
-		return nil
-	}
-
-	// Check for /models command - lists available LLM models (doesn't go to session)
-	if msg.Text == "/models" {
-		if !c.isAllowedUser(userID) {
-			c.logger.WarnCtx(c.ctx, "command blocked - user not in whitelist",
-				logger.Field{Key: "user_id", Value: userID},
-				logger.Field{Key: "command", Value: "/models"})
-			return nil
-		}
-
-		// Handle /models command directly - don't publish to message bus
-		c.handleModelsCommand(msg.Chat.ID)
 		return nil
 	}
 
@@ -421,9 +356,8 @@ func (c *Connector) handleOutbound() {
 			}
 
 			params := telego.SendMessageParams{
-				ChatID:    telego.ChatID{ID: chatID},
-				Text:      msg.Content,
-				ParseMode: "Markdown", // Use Markdown for formatting
+				ChatID: telego.ChatID{ID: chatID},
+				Text:   msg.Content,
 			}
 
 			_, err = c.bot.SendMessage(c.ctx, &params)
@@ -495,13 +429,71 @@ func (c *Connector) handleEvents() {
 
 			switch event.Type {
 			case bus.EventTypeProcessingStart:
-				// Send typing indicator when processing starts
-				c.sendTypingIndicator(event)
+				// Start periodic typing indicator
+				c.startTypingIndicator(event)
 			case bus.EventTypeProcessingEnd:
-				// Typing indicator automatically stops when we send a message
-				// No action needed here
+				// Stop typing indicator
+				c.stopTypingIndicator(event)
 			}
 		}
+	}
+}
+
+// startTypingIndicator starts a periodic typing indicator for the specified chat
+func (c *Connector) startTypingIndicator(event bus.Event) {
+	// Extract chat ID from session ID
+	var chatID int64
+	_, err := fmt.Sscanf(event.SessionID, "%d", &chatID)
+	if err != nil {
+		c.logger.ErrorCtx(c.ctx, "invalid session ID for typing indicator", err,
+			logger.Field{Key: "session_id", Value: event.SessionID})
+		return
+	}
+
+	// Check if already typing for this session
+	c.typingLock.RLock()
+	_, exists := c.typingCancel[event.SessionID]
+	c.typingLock.RUnlock()
+
+	if exists {
+		return
+	}
+
+	// Create cancel context for this session
+	typingCtx, cancel := context.WithCancel(c.ctx)
+
+	// Store cancel function
+	c.typingLock.Lock()
+	c.typingCancel[event.SessionID] = cancel
+	c.typingLock.Unlock()
+
+	// Start goroutine to send typing indicator periodically
+	go func() {
+		ticker := time.NewTicker(3 * time.Second)
+		defer ticker.Stop()
+
+		// Send first typing indicator immediately
+		c.sendTypingIndicator(event)
+
+		for {
+			select {
+			case <-typingCtx.Done():
+				return
+			case <-ticker.C:
+				c.sendTypingIndicator(event)
+			}
+		}
+	}()
+}
+
+// stopTypingIndicator stops the typing indicator for the specified chat
+func (c *Connector) stopTypingIndicator(event bus.Event) {
+	c.typingLock.Lock()
+	defer c.typingLock.Unlock()
+
+	if cancel, exists := c.typingCancel[event.SessionID]; exists {
+		cancel()
+		delete(c.typingCancel, event.SessionID)
 	}
 }
 

@@ -144,6 +144,11 @@ func (t *ShellExecTool) validateCommand(command string) error {
 
 	// Check if the base command is in the whitelist
 	for _, allowed := range t.cfg.Tools.Shell.AllowedCommands {
+		// Wildcard: allow all commands
+		if allowed == "*" {
+			return nil
+		}
+
 		// Exact match
 		if baseCommand == allowed {
 			return nil

@@ -40,11 +40,11 @@ func (c *Config) Validate() []error {
 		errors = append(errors, err)
 	}
 
-	// Проверка LLM конфигурации
-	if c.LLM.Provider == "" {
-		errors = append(errors, fmt.Errorf("llm.provider is required"))
+	// Проверка Agent конфигурации
+	if c.Agent.Provider == "" {
+		errors = append(errors, fmt.Errorf("agent.provider is required"))
 	} else {
-		switch c.LLM.Provider {
+		switch c.Agent.Provider {
 		case "zai":
 			if c.LLM.ZAI.APIKey == "" {
 				errors = append(errors, fmt.Errorf("llm.zai.api_key is required when provider is 'zai'"))
@@ -58,7 +58,7 @@ func (c *Config) Validate() []error {
 				errors = append(errors, err)
 			}
 		default:
-			errors = append(errors, fmt.Errorf("invalid llm.provider: %s (expected: zai, openai)", c.LLM.Provider))
+			errors = append(errors, fmt.Errorf("invalid agent.provider: %s (expected: zai, openai)", c.Agent.Provider))
 		}
 	}
 
@@ -186,6 +186,9 @@ func applyDefaults(c *Config) {
 		c.Workspace.BootstrapMaxChars = 20000
 	}
 
+	if c.Agent.Provider == "" {
+		c.Agent.Provider = "zai"
+	}
 	if c.Agent.Model == "" {
 		c.Agent.Model = "glm-4.7-flash"
 	}
@@ -202,14 +205,8 @@ func applyDefaults(c *Config) {
 		c.Agent.TimeoutSeconds = 30
 	}
 
-	if c.LLM.Provider == "" {
-		c.LLM.Provider = "zai"
-	}
 	if c.LLM.ZAI.BaseURL == "" {
 		c.LLM.ZAI.BaseURL = "https://api.z.ai/api/coding/paas/v4"
-	}
-	if c.LLM.ZAI.Model == "" {
-		c.LLM.ZAI.Model = "glm-4.7-flash"
 	}
 
 	if c.Logging.Level == "" {

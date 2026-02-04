@@ -50,7 +50,7 @@ func TestZAIClient_SendRequest(t *testing.T) {
 				Content: "Hello! Please respond with just the word 'OK' and nothing else.",
 			},
 		},
-		Model:       provider.GetDefaultModel(),
+		Model:       "glm-4.7",
 		Temperature: 0.7,
 		MaxTokens:   100,
 	}
@@ -169,7 +169,7 @@ func ExampleZAIProvider_Chat() {
 				Content: "What is the capital of France?",
 			},
 		},
-		Model:       provider.GetDefaultModel(),
+		Model:       "glm-4.7",
 		Temperature: 0.7,
 		MaxTokens:   500,
 	}
@@ -236,7 +236,7 @@ func TestZAIClient_WithToolCalling(t *testing.T) {
 				Content: "What's the weather in Tokyo? Use the weather tool.",
 			},
 		},
-		Model:       provider.GetDefaultModel(),
+		Model:       "glm-4.7",
 		Temperature: 0.7,
 		MaxTokens:   200,
 		Tools: []ToolDefinition{
@@ -314,7 +314,7 @@ func BenchmarkZAIClient_Latency(b *testing.B) {
 				Content: "Say 'Hello' in one word.",
 			},
 		},
-		Model:       provider.GetDefaultModel(),
+		Model:       "glm-4.7",
 		Temperature: 0.7,
 		MaxTokens:   50,
 	}
@@ -327,80 +327,4 @@ func BenchmarkZAIClient_Latency(b *testing.B) {
 			b.Fatalf("Request failed: %v", err)
 		}
 	}
-}
-
-// TestZAIProvider_ListModels tests the ListModels method.
-func TestZAIProvider_ListModels(t *testing.T) {
-	log, err := logger.New(logger.Config{
-		Level:  "error",
-		Format: "text",
-		Output: "stdout",
-	})
-	if err != nil {
-		t.Fatalf("Failed to create logger: %v", err)
-	}
-
-	ctx := context.Background()
-
-	// Test with default model
-	t.Run("WithDefaultModel", func(t *testing.T) {
-		provider := NewZAIProvider(ZAIConfig{
-			APIKey: "test-key",
-		}, log)
-
-		models, err := provider.ListModels(ctx)
-		if err != nil {
-			t.Fatalf("ListModels failed: %v", err)
-		}
-
-		if len(models) == 0 {
-			t.Error("Expected at least one model")
-		}
-
-		// Check that all models have required fields
-		for _, model := range models {
-			if model.ID == "" {
-				t.Error("Model ID is empty")
-			}
-			if model.Name == "" {
-				t.Error("Model Name is empty")
-			}
-		}
-
-		// Check that exactly one model is marked as current
-		currentCount := 0
-		for _, model := range models {
-			if model.Current {
-				currentCount++
-			}
-		}
-		if currentCount != 1 {
-			t.Errorf("Expected exactly 1 current model, got %d", currentCount)
-		}
-	})
-
-	// Test with specific model
-	t.Run("WithSpecificModel", func(t *testing.T) {
-		provider := NewZAIProvider(ZAIConfig{
-			APIKey: "test-key",
-			Model:  "glm-4.7-flash",
-		}, log)
-
-		models, err := provider.ListModels(ctx)
-		if err != nil {
-			t.Fatalf("ListModels failed: %v", err)
-		}
-
-		// Check that glm-4.7-flash is marked as current
-		found := false
-		for _, model := range models {
-			if model.ID == "glm-4.7-flash" && model.Current {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Error("Expected glm-4.7-flash to be marked as current")
-		}
-	})
 }
