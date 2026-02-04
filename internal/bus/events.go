@@ -18,6 +18,24 @@ import (
 	"time"
 )
 
+// EventType represents the type of lifecycle event
+type EventType string
+
+const (
+	EventTypeProcessingStart EventType = "processing_start" // Event when LLM processing starts
+	EventTypeProcessingEnd   EventType = "processing_end"   // Event when LLM processing ends
+)
+
+// Event represents a lifecycle event for message processing
+type Event struct {
+	Type        EventType      `json:"type"`
+	ChannelType ChannelType    `json:"channel_type"`
+	UserID      string         `json:"user_id"`
+	SessionID   string         `json:"session_id"`
+	Timestamp   time.Time      `json:"timestamp"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
+}
+
 // ChannelType represents the type of communication channel
 type ChannelType string
 
@@ -88,6 +106,40 @@ func NewOutboundMessage(channelType ChannelType, userID, sessionID, content stri
 		UserID:      userID,
 		SessionID:   sessionID,
 		Content:     content,
+		Timestamp:   time.Now(),
+		Metadata:    metadata,
+	}
+}
+
+// ToJSON serializes the Event to JSON bytes
+func (e *Event) ToJSON() ([]byte, error) {
+	return json.Marshal(e)
+}
+
+// FromJSON deserializes the Event from JSON bytes
+func (e *Event) FromJSON(data []byte) error {
+	return json.Unmarshal(data, e)
+}
+
+// NewProcessingStartEvent creates a new processing start event
+func NewProcessingStartEvent(channelType ChannelType, userID, sessionID string, metadata map[string]any) *Event {
+	return &Event{
+		Type:        EventTypeProcessingStart,
+		ChannelType: channelType,
+		UserID:      userID,
+		SessionID:   sessionID,
+		Timestamp:   time.Now(),
+		Metadata:    metadata,
+	}
+}
+
+// NewProcessingEndEvent creates a new processing end event
+func NewProcessingEndEvent(channelType ChannelType, userID, sessionID string, metadata map[string]any) *Event {
+	return &Event{
+		Type:        EventTypeProcessingEnd,
+		ChannelType: channelType,
+		UserID:      userID,
+		SessionID:   sessionID,
 		Timestamp:   time.Now(),
 		Metadata:    metadata,
 	}

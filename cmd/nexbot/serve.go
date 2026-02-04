@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/aatumaykin/nexbot/internal/agent/loop"
 	"github.com/aatumaykin/nexbot/internal/bus"
@@ -276,11 +277,33 @@ func serveHandler(cmd *cobra.Command, args []string) {
 			}
 
 			// Process regular message
+			// Publish processing start event for typing indicator
+			if err := messageBus.PublishEvent(bus.Event{
+				Type:        bus.EventTypeProcessingStart,
+				ChannelType: msg.ChannelType,
+				UserID:      msg.UserID,
+				SessionID:   msg.SessionID,
+				Timestamp:   time.Now(),
+			}); err != nil {
+				log.ErrorCtx(ctx, "Failed to publish processing start event", err)
+			}
+
 			response, err := agentLoop.Process(ctx, msg.SessionID, msg.Content)
 			if err != nil {
 				log.ErrorCtx(ctx, "Failed to process message", err,
 					logger.Field{Key: "session_id", Value: msg.SessionID})
 				response = fmt.Sprintf("Error: %v", err)
+			}
+
+			// Publish processing end event
+			if err := messageBus.PublishEvent(bus.Event{
+				Type:        bus.EventTypeProcessingEnd,
+				ChannelType: msg.ChannelType,
+				UserID:      msg.UserID,
+				SessionID:   msg.SessionID,
+				Timestamp:   time.Now(),
+			}); err != nil {
+				log.ErrorCtx(ctx, "Failed to publish processing end event", err)
 			}
 
 			if response != "" {

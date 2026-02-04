@@ -403,3 +403,223 @@ func TestMessageBus_ContextCancellation(t *testing.T) {
 
 	_ = bus.Stop() // Clean up
 }
+
+// TestMessageBus_PublishEvent tests publishing events
+func TestMessageBus_PublishEvent(t *testing.T) {
+	log := createTestLogger(t)
+	bus := New(10, log)
+	ctx := context.Background()
+
+	err := bus.Start(ctx)
+	if err != nil {
+		t.Fatalf("Start() failed: %v", err)
+	}
+	defer bus.Stop()
+
+	event := NewProcessingStartEvent(ChannelTypeTelegram, "user123", "session456", nil)
+	err = bus.PublishEvent(*event)
+	if err != nil {
+		t.Fatalf("PublishEvent() failed: %v", err)
+	}
+
+	// Test publish when not started
+	bus2 := New(10, log)
+	err = bus2.PublishEvent(*event)
+	if err != ErrNotStarted {
+		t.Errorf("Expected ErrNotStarted, got %v", err)
+	}
+}
+
+// TestMessageBus_SubscribeEvent tests subscribing to events
+func TestMessageBus_SubscribeEvent(t *testing.T) {
+	log := createTestLogger(t)
+	bus := New(10, log)
+	ctx := context.Background()
+
+	// Test subscribe when not started
+	ch := bus.SubscribeEvent(ctx)
+	if ch != nil {
+		t.Error("SubscribeEvent() should return nil when not started")
+	}
+
+	err := bus.Start(ctx)
+	if err != nil {
+		t.Fatalf("Start() failed: %v", err)
+	}
+	defer bus.Stop()
+
+	ch = bus.SubscribeEvent(ctx)
+	if ch == nil {
+		t.Fatal("SubscribeEvent() returned nil")
+	}
+
+	// Publish an event
+	event := NewProcessingStartEvent(ChannelTypeTelegram, "user123", "session456", nil)
+	err = bus.PublishEvent(*event)
+	if err != nil {
+		t.Fatalf("PublishEvent() failed: %v", err)
+	}
+
+	// Receive event
+	select {
+	case receivedEvent := <-ch:
+		if receivedEvent.Type != event.Type {
+			t.Errorf("Expected Type %s, got %s", event.Type, receivedEvent.Type)
+		}
+		if receivedEvent.ChannelType != event.ChannelType {
+			t.Errorf("Expected ChannelType %s, got %s", event.ChannelType, receivedEvent.ChannelType)
+		}
+		if receivedEvent.UserID != event.UserID {
+			t.Errorf("Expected UserID %s, got %s", event.UserID, receivedEvent.UserID)
+		}
+		if receivedEvent.SessionID != event.SessionID {
+			t.Errorf("Expected SessionID %s, got %s", event.SessionID, receivedEvent.SessionID)
+		}
+	case <-time.After(1 * time.Second):
+		t.Error("Timeout waiting for event")
+	}
+
+	// Test multiple subscribers
+	ch2 := bus.SubscribeEvent(ctx)
+	event2 := NewProcessingEndEvent(ChannelTypeTelegram, "user123", "session456", nil)
+	err = bus.PublishEvent(*event2)
+	if err != nil {
+		t.Fatalf("PublishEvent() failed: %v", err)
+	}
+
+	receivedCount := 0
+	select {
+	case <-ch:
+		receivedCount++
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	select {
+	case <-ch2:
+		receivedCount++
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	if receivedCount != 2 {
+		t.Errorf("Expected 2 events received, got %d", receivedCount)
+	}
+}
+
+// TestMessageBus_EventQueueFull tests event queue full scenario
+func TestMessageBus_EventQueueFull(t *testing.T) {
+	log := createTestLogger(t)
+	bus := New(1, log)
+	ctx := context.Background()
+
+	err := bus.Start(ctx)
+	if err != nil {
+		t.Fatalf("Start() failed: %v", err)
+	}
+	defer bus.Stop()
+
+	// Subscribe to events (with a tiny channel that will block)
+	_ = bus.SubscribeEvent(ctx)
+
+	event1 := NewProcessingStartEvent(ChannelTypeTelegram, "user1", "session1", nil)
+	event2 := NewProcessingEndEvent(ChannelTypeTelegram, "user2", "session2", nil)
+
+	err = bus.PublishEvent(*event1)
+	if err != nil {
+		t.Fatalf("PublishEvent() failed for first event: %v", err)
+	}
+
+	err = bus.PublishEvent(*event2)
+	if err != ErrQueueFull {
+		t.Errorf("Expected ErrQueueFull, got %v", err)
+	}
+}
+
+// TestMessageBus_EventTypes tests different event types
+func TestMessageBus_EventTypes(t *testing.T) {
+	log := createTestLogger(t)
+	bus := New(10, log)
+	ctx := context.Background()
+
+	err := bus.Start(ctx)
+	if err != nil {
+		t.Fatalf("Start() failed: %v", err)
+	}
+	defer bus.Stop()
+
+	eventCh := bus.SubscribeEvent(ctx)
+
+	// Publish processing start event
+	startEvent := NewProcessingStartEvent(ChannelTypeTelegram, "user123", "session456", nil)
+	err = bus.PublishEvent(*startEvent)
+	if err != nil {
+		t.Fatalf("PublishEvent() failed for start event: %v", err)
+	}
+
+	select {
+	case received := <-eventCh:
+		if received.Type != EventTypeProcessingStart {
+			t.Errorf("Expected event type %s, got %s", EventTypeProcessingStart, received.Type)
+		}
+	case <-time.After(1 * time.Second):
+		t.Error("Timeout waiting for start event")
+	}
+
+	// Publish processing end event
+	endEvent := NewProcessingEndEvent(ChannelTypeTelegram, "user123", "session456", nil)
+	err = bus.PublishEvent(*endEvent)
+	if err != nil {
+		t.Fatalf("PublishEvent() failed for end event: %v", err)
+	}
+
+	select {
+	case received := <-eventCh:
+		if received.Type != EventTypeProcessingEnd {
+			t.Errorf("Expected event type %s, got %s", EventTypeProcessingEnd, received.Type)
+		}
+	case <-time.After(1 * time.Second):
+		t.Error("Timeout waiting for end event")
+	}
+}
+
+// TestMessageBus_EventInGracefulShutdown tests event channels are closed on graceful shutdown
+func TestMessageBus_EventInGracefulShutdown(t *testing.T) {
+	log := createTestLogger(t)
+	bus := New(10, log)
+	ctx := context.Background()
+
+	err := bus.Start(ctx)
+	if err != nil {
+		t.Fatalf("Start() failed: %v", err)
+	}
+
+	eventCh := bus.SubscribeEvent(ctx)
+
+	// Publish an event
+	event := NewProcessingStartEvent(ChannelTypeTelegram, "user123", "session456", nil)
+	err = bus.PublishEvent(*event)
+	if err != nil {
+		t.Fatalf("PublishEvent() failed: %v", err)
+	}
+
+	// Stop the bus
+	err = bus.Stop()
+	if err != nil {
+		t.Fatalf("Stop() failed: %v", err)
+	}
+
+	// Drain the published event
+	select {
+	case <-eventCh:
+		// Drain event
+	default:
+	}
+
+	// Verify channel is closed
+	select {
+	case _, ok := <-eventCh:
+		if ok {
+			t.Error("Event channel should be closed")
+		}
+	case <-time.After(100 * time.Millisecond):
+	}
+}

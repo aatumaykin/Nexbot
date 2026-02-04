@@ -752,6 +752,151 @@ func TestConnector_handleUpdate_NewCommand_ThenRegularMessage(t *testing.T) {
 	msgBus.Stop()
 }
 
+// TestConnector_handleEvents tests event handling for typing indicator
+func TestConnector_handleEvents(t *testing.T) {
+	log, _ := logger.New(logger.Config{
+		Level:  "debug",
+		Format: "text",
+		Output: "stdout",
+	})
+
+	msgBus := bus.New(100, log)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cfg := config.TelegramConfig{}
+	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn.ctx = ctx
+
+	// Create event channel
+	eventCh := make(chan bus.Event, 10)
+	conn.eventCh = eventCh
+
+	// Start event handler in goroutine
+	go conn.handleEvents()
+
+	// Send processing start event
+	startEvent := bus.NewProcessingStartEvent(
+		bus.ChannelTypeTelegram,
+		"123456789",
+		"987654321",
+		map[string]any{"chat_id": int64(987654321)},
+	)
+
+	eventCh <- *startEvent
+
+	// Wait a bit for processing
+	time.Sleep(100 * time.Millisecond)
+
+	// Send processing end event
+	endEvent := bus.NewProcessingEndEvent(
+		bus.ChannelTypeTelegram,
+		"123456789",
+		"987654321",
+		nil,
+	)
+
+	eventCh <- *endEvent
+
+	// Stop handler
+	cancel()
+	time.Sleep(100 * time.Millisecond)
+}
+
+// TestConnector_handleEvents_NonTelegram tests that non-Telegram events are ignored
+func TestConnector_handleEvents_NonTelegram(t *testing.T) {
+	log, _ := logger.New(logger.Config{
+		Level:  "debug",
+		Format: "text",
+		Output: "stdout",
+	})
+
+	msgBus := bus.New(100, log)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cfg := config.TelegramConfig{}
+	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn.ctx = ctx
+
+	// Create event channel
+	eventCh := make(chan bus.Event, 10)
+	conn.eventCh = eventCh
+
+	// Start event handler in goroutine
+	go conn.handleEvents()
+
+	// Send non-Telegram processing start event (Discord)
+	startEvent := bus.NewProcessingStartEvent(
+		bus.ChannelTypeDiscord, // Wrong channel type
+		"123456789",
+		"987654321",
+		nil,
+	)
+
+	eventCh <- *startEvent
+
+	// Wait for processing
+	time.Sleep(100 * time.Millisecond)
+
+	// Stop handler
+	cancel()
+	time.Sleep(100 * time.Millisecond)
+}
+
+// TestConnector_sendTypingIndicator_NilBot tests typing indicator with nil bot
+func TestConnector_sendTypingIndicator_NilBot(t *testing.T) {
+	log, _ := logger.New(logger.Config{
+		Level:  "debug",
+		Format: "text",
+		Output: "stdout",
+	})
+
+	msgBus := bus.New(100, log)
+
+	cfg := config.TelegramConfig{}
+	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn.ctx = context.Background()
+	conn.bot = nil // Set bot to nil
+
+	// Send typing indicator event
+	event := bus.NewProcessingStartEvent(
+		bus.ChannelTypeTelegram,
+		"123456789",
+		"987654321",
+		nil,
+	)
+
+	// Should not panic, just log warning
+	conn.sendTypingIndicator(*event)
+}
+
+// TestConnector_sendTypingIndicator_InvalidSessionID tests typing indicator with invalid session ID
+func TestConnector_sendTypingIndicator_InvalidSessionID(t *testing.T) {
+	log, _ := logger.New(logger.Config{
+		Level:  "debug",
+		Format: "text",
+		Output: "stdout",
+	})
+
+	msgBus := bus.New(100, log)
+
+	cfg := config.TelegramConfig{}
+	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn.ctx = context.Background()
+
+	// Send typing indicator event with invalid session ID
+	event := bus.NewProcessingStartEvent(
+		bus.ChannelTypeTelegram,
+		"123456789",
+		"invalid-session-id", // Invalid - not a number
+		nil,
+	)
+
+	// Should not panic, just log error
+	conn.sendTypingIndicator(*event)
+}
+
 // TestConnector_validateConfig tests configuration validation
 func TestConnector_validateConfig(t *testing.T) {
 	log, _ := logger.New(logger.Config{

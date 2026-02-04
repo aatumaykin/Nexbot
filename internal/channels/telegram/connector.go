@@ -32,6 +32,7 @@ type Connector struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 	outboundCh <-chan bus.OutboundMessage
+	eventCh    <-chan bus.Event
 }
 
 // New creates a new Telegram connector
@@ -81,6 +82,10 @@ func (c *Connector) Start(ctx context.Context) error {
 	// Subscribe to outbound messages
 	c.outboundCh = c.bus.SubscribeOutbound(c.ctx)
 	go c.handleOutbound()
+
+	// Subscribe to events for typing indicator
+	c.eventCh = c.bus.SubscribeEvent(c.ctx)
+	go c.handleEvents()
 
 	// Start long polling for updates
 	go c.startLongPolling()
@@ -438,4 +443,70 @@ func (c *Connector) startLongPolling() {
 			}
 		}
 	}
+}
+
+// handleEvents processes lifecycle events from the message bus
+func (c *Connector) handleEvents() {
+	c.logger.Info("event handler started")
+
+	for {
+		select {
+		case <-c.ctx.Done():
+			c.logger.Info("event handler stopped")
+			return
+		case event, ok := <-c.eventCh:
+			if !ok {
+				c.logger.Info("event channel closed")
+				return
+			}
+
+			// Only process Telegram events
+			if event.ChannelType != bus.ChannelTypeTelegram {
+				continue
+			}
+
+			switch event.Type {
+			case bus.EventTypeProcessingStart:
+				// Send typing indicator when processing starts
+				c.sendTypingIndicator(event)
+			case bus.EventTypeProcessingEnd:
+				// Typing indicator automatically stops when we send a message
+				// No action needed here
+			}
+		}
+	}
+}
+
+// sendTypingIndicator sends a typing indicator to the specified chat
+func (c *Connector) sendTypingIndicator(event bus.Event) {
+	// Extract chat ID from session ID
+	var chatID int64
+	_, err := fmt.Sscanf(event.SessionID, "%d", &chatID)
+	if err != nil {
+		c.logger.ErrorCtx(c.ctx, "invalid session ID for typing indicator", err,
+			logger.Field{Key: "session_id", Value: event.SessionID})
+		return
+	}
+
+	// Send typing indicator
+	if c.bot == nil {
+		c.logger.WarnCtx(c.ctx, "bot is nil, skipping typing indicator")
+		return
+	}
+
+	params := &telego.SendChatActionParams{
+		ChatID: telego.ChatID{ID: chatID},
+		Action: telego.ChatActionTyping,
+	}
+
+	err = c.bot.SendChatAction(c.ctx, params)
+	if err != nil {
+		c.logger.ErrorCtx(c.ctx, "failed to send typing indicator", err,
+			logger.Field{Key: "chat_id", Value: chatID})
+		return
+	}
+
+	c.logger.DebugCtx(c.ctx, "typing indicator sent",
+		logger.Field{Key: "chat_id", Value: chatID},
+		logger.Field{Key: "user_id", Value: event.UserID})
 }

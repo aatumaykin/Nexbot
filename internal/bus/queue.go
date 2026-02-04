@@ -61,9 +61,11 @@ type MessageBus struct {
 
 	inboundCh  chan InboundMessage
 	outboundCh chan OutboundMessage
+	eventCh    chan Event
 
 	inboundSubscribers  map[int64]chan InboundMessage
 	outboundSubscribers map[int64]chan OutboundMessage
+	eventSubscribers    map[int64]chan Event
 	subscriberID        int64
 }
 
@@ -73,8 +75,10 @@ func New(capacity int, logger *logger.Logger) *MessageBus {
 		logger:              logger,
 		inboundCh:           make(chan InboundMessage, capacity),
 		outboundCh:          make(chan OutboundMessage, capacity),
+		eventCh:             make(chan Event, capacity),
 		inboundSubscribers:  make(map[int64]chan InboundMessage),
 		outboundSubscribers: make(map[int64]chan OutboundMessage),
+		eventSubscribers:    make(map[int64]chan Event),
 	}
 }
 
@@ -93,6 +97,7 @@ func (mb *MessageBus) Start(ctx context.Context) error {
 	// Start goroutines to distribute messages to subscribers
 	go mb.distributeInbound()
 	go mb.distributeOutbound()
+	go mb.distributeEvents()
 
 	mb.logger.Info("message bus started", logger.Field{Key: "capacity", Value: cap(mb.inboundCh)})
 	return nil
@@ -125,9 +130,15 @@ func (mb *MessageBus) Stop() error {
 		delete(mb.outboundSubscribers, id)
 	}
 
+	for id, ch := range mb.eventSubscribers {
+		close(ch)
+		delete(mb.eventSubscribers, id)
+	}
+
 	// Close main channels
 	close(mb.inboundCh)
 	close(mb.outboundCh)
+	close(mb.eventCh)
 
 	mb.started = false
 
@@ -272,4 +283,71 @@ func (mb *MessageBus) IsStarted() bool {
 	mb.mu.RLock()
 	defer mb.mu.RUnlock()
 	return mb.started
+}
+
+// PublishEvent publishes a lifecycle event to the queue
+func (mb *MessageBus) PublishEvent(event Event) error {
+	mb.mu.RLock()
+	defer mb.mu.RUnlock()
+
+	if !mb.started {
+		return ErrNotStarted
+	}
+
+	select {
+	case mb.eventCh <- event:
+		mb.logger.DebugCtx(mb.ctx, "event published",
+			logger.Field{Key: "event_type", Value: event.Type},
+			logger.Field{Key: "session_id", Value: event.SessionID},
+			logger.Field{Key: "user_id", Value: event.UserID})
+		return nil
+	default:
+		mb.logger.WarnCtx(mb.ctx, "event queue full",
+			logger.Field{Key: "capacity", Value: cap(mb.eventCh)})
+		return ErrQueueFull
+	}
+}
+
+// SubscribeEvent subscribes to lifecycle events
+func (mb *MessageBus) SubscribeEvent(ctx context.Context) <-chan Event {
+	mb.mu.Lock()
+	defer mb.mu.Unlock()
+
+	if !mb.started {
+		return nil
+	}
+
+	ch := make(chan Event, 10)
+	mb.subscriberID++
+	id := mb.subscriberID
+	mb.eventSubscribers[id] = ch
+
+	mb.logger.DebugCtx(ctx, "event subscriber added",
+		logger.Field{Key: "subscriber_id", Value: id})
+
+	return ch
+}
+
+// distributeEvents distributes events to all subscribers
+func (mb *MessageBus) distributeEvents() {
+	for {
+		select {
+		case <-mb.ctx.Done():
+			return
+		case event, ok := <-mb.eventCh:
+			if !ok {
+				return
+			}
+			mb.mu.RLock()
+			for _, ch := range mb.eventSubscribers {
+				select {
+				case ch <- event:
+				default:
+					// Subscriber channel is full, skip
+					mb.logger.WarnCtx(mb.ctx, "event subscriber channel full, skipping event")
+				}
+			}
+			mb.mu.RUnlock()
+		}
+	}
 }
