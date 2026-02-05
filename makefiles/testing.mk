@@ -8,7 +8,8 @@ test: ## Run all tests
 	go test -v ./...
 
 test-cover: ## Run tests with coverage
-	go test -v -coverprofile=coverage.out -covermode=atomic ./...
+	@echo "Running tests with coverage (excluding tests package)..."
+	go test -v -coverprofile=coverage.out -covermode=atomic ./cmd/... ./internal/...
 
 coverage-html: ## Generate HTML coverage report
 	go test -coverprofile=coverage.out -covermode=atomic ./... && \

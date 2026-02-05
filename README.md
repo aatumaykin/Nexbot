@@ -38,6 +38,56 @@ cp config.example.toml config.toml
 
 Подробная инструкция: [docs/README.md](docs/README.md)
 
+## Subagents (дочерние агенты)
+
+Nexbot поддерживает создание дочерних агентов для параллельного выполнения задач. LLM может использовать инструмент `spawn` для создания изолированных subagent-сессий.
+
+**Возможности:**
+- Создание subagents с уникальными ID
+- Отслеживание и координация нескольких concurrent subagents
+- Graceful shutdown всех subagents
+- Возврат результатов в родительский агент
+
+**Пример:**
+```
+# LLM может выполнить команду:
+spawn("Анализ качества кода для проекта")
+# Это создаст изолированного subagent, который выполнит задачу
+# и вернёт результат в родительскую сессию
+```
+
+## HEARTBEAT (система health check)
+
+HEARTBEAT.md позволяет задать proactive задачи, которые будут выполняться автоматически. Задачи могут быть запланированы через cron-выражения.
+
+**Файл:** `~/.nexbot/HEARTBEAT.md`
+
+**Пример HEARTBEAT.md:**
+```markdown
+# Daily Health Checks
+
+- Task: "Check system status"
+  Schedule: "0 9 * * *"
+  Description: "Perform daily health check"
+
+- Task: "Generate daily report"
+  Schedule: "0 18 * * *"
+  Description: "Generate and send daily report"
+
+- Task: "Cleanup logs"
+  Schedule: "0 2 * * 0"
+  Description: "Clean up old log files"
+```
+
+**Формат:**
+- Каждая задача начинается с `- Task: "<описание>"`
+- `Schedule` — cron-выражение (мин, час, день месяца, месяц, день недели)
+- `Description` — описание задачи
+
+**Примечание:** Для выполнения HEARTBEAT задач необходимо запустить `nexbot serve`.
+
+
+
 ## Конфигурация
 
 См. `config.example.toml` для всех опций конфигурации.
@@ -60,10 +110,35 @@ allowed_users = []
 ## CLI команды
 
 ```bash
+# Основные команды
 nexbot serve              # Запустить Nexbot агент (основная команда)
 nexbot config validate    # Проверить конфигурацию
 nexbot test               # Проверить компоненты Nexbot
 nexbot --help             # Показать справку
+
+# Cron команды (планирование задач)
+nexbot cron add <schedule> <command>  # Добавить запланированную задачу
+nexbot cron list                       # Список всех запланированных задач
+nexbot cron remove <job_id>           # Удалить запланированную задачу
+```
+
+### Примеры использования Cron
+
+```bash
+# Добавить задачу, выполняющуюся каждый час
+nexbot cron add "0 * * * *" "Run daily report"
+
+# Добавить задачу, выполняющуюся каждый день в 9:00
+nexbot cron add "0 9 * * *" "Morning health check"
+
+# Добавить задачу, выполняющуюся каждые 5 минут
+nexbot cron add "*/5 * * * *" "Check system status"
+
+# Список всех задач
+nexbot cron list
+
+# Удалить задачу по ID
+nexbot cron remove job_12345
 ```
 
 ## Сборка

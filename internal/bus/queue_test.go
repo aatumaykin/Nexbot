@@ -41,7 +41,7 @@ func TestMessageBus_Start(t *testing.T) {
 	bus := New(10, log)
 
 	ctx := context.Background()
-	err := if err := bus.Start(ctx); err != nil { t.Fatal(err) }
+	err := bus.Start(ctx)
 	if err != nil {
 		t.Fatalf("Start() failed: %v", err)
 	}
@@ -51,7 +51,7 @@ func TestMessageBus_Start(t *testing.T) {
 	}
 
 	// Test double start
-	err = if err := bus.Start(ctx); err != nil { t.Fatal(err) }
+	err = bus.Start(ctx)
 	if err != ErrAlreadyStarted {
 		t.Errorf("Expected ErrAlreadyStarted, got %v", err)
 	}
@@ -72,7 +72,7 @@ func TestMessageBus_Stop(t *testing.T) {
 		t.Errorf("Expected ErrNotStarted, got %v", err)
 	}
 
-	err = if err := bus.Start(ctx); err != nil { t.Fatal(err) }
+	err = bus.Start(ctx)
 	if err != nil {
 		t.Fatalf("Start() failed: %v", err)
 	}
@@ -92,14 +92,13 @@ func TestMessageBus_PublishInbound(t *testing.T) {
 	bus := New(2, log)
 	ctx := context.Background()
 
-	err := if err := bus.Start(ctx); err != nil { t.Fatal(err) }
+	err := bus.Start(ctx)
 	if err != nil {
 		t.Fatalf("Start() failed: %v", err)
 	}
-	if err := bus.Stop(); err != nil { t.Fatal(err) }
 
 	msg := NewInboundMessage(ChannelTypeTelegram, "user123", "session456", "Hello", nil)
-	err = if err := bus.PublishInbound(*msg); err != nil { t.Fatal(err) }
+	err = bus.PublishInbound(*msg)
 	if err != nil {
 		t.Fatalf("PublishInbound() failed: %v", err)
 	}
@@ -117,11 +116,10 @@ func TestMessageBus_PublishOutbound(t *testing.T) {
 	bus := New(2, log)
 	ctx := context.Background()
 
-	err := if err := bus.Start(ctx); err != nil { t.Fatal(err) }
+	err := bus.Start(ctx)
 	if err != nil {
 		t.Fatalf("Start() failed: %v", err)
 	}
-	if err := bus.Stop(); err != nil { t.Fatal(err) }
 
 	msg := NewOutboundMessage(ChannelTypeTelegram, "user123", "session456", "Hello", nil)
 	err = bus.PublishOutbound(*msg)
@@ -131,8 +129,9 @@ func TestMessageBus_PublishOutbound(t *testing.T) {
 
 	// Test queue full
 	bus = New(1, log)
-	if err := bus.Start(ctx); err != nil { t.Fatal(err) }
-	if err := bus.Stop(); err != nil { t.Fatal(err) }
+	if err := bus.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
 
 	msg1 := NewOutboundMessage(ChannelTypeTelegram, "user1", "session1", "Hello1", nil)
 	msg2 := NewOutboundMessage(ChannelTypeTelegram, "user2", "session2", "Hello2", nil)
@@ -166,11 +165,10 @@ func TestMessageBus_SubscribeInbound(t *testing.T) {
 		t.Error("SubscribeInbound() should return nil when not started")
 	}
 
-	err := if err := bus.Start(ctx); err != nil { t.Fatal(err) }
+	err := bus.Start(ctx)
 	if err != nil {
 		t.Fatalf("Start() failed: %v", err)
 	}
-	if err := bus.Stop(); err != nil { t.Fatal(err) }
 
 	ch = bus.SubscribeInbound(ctx)
 	if ch == nil {
@@ -179,7 +177,7 @@ func TestMessageBus_SubscribeInbound(t *testing.T) {
 
 	// Publish a message
 	msg := NewInboundMessage(ChannelTypeTelegram, "user123", "session456", "Hello", nil)
-	err = if err := bus.PublishInbound(*msg); err != nil { t.Fatal(err) }
+	err = bus.PublishInbound(*msg)
 	if err != nil {
 		t.Fatalf("PublishInbound() failed: %v", err)
 	}
@@ -202,7 +200,7 @@ func TestMessageBus_SubscribeInbound(t *testing.T) {
 
 	// Test multiple subscribers
 	ch2 := bus.SubscribeInbound(ctx)
-	err = if err := bus.PublishInbound(*msg); err != nil { t.Fatal(err) }
+	err = bus.PublishInbound(*msg)
 	if err != nil {
 		t.Fatalf("PublishInbound() failed: %v", err)
 	}
@@ -236,11 +234,10 @@ func TestMessageBus_SubscribeOutbound(t *testing.T) {
 		t.Error("SubscribeOutbound() should return nil when not started")
 	}
 
-	err := if err := bus.Start(ctx); err != nil { t.Fatal(err) }
+	err := bus.Start(ctx)
 	if err != nil {
 		t.Fatalf("Start() failed: %v", err)
 	}
-	if err := bus.Stop(); err != nil { t.Fatal(err) }
 
 	ch = bus.SubscribeOutbound(ctx)
 	if ch == nil {
@@ -300,7 +297,7 @@ func TestMessageBus_GracefulShutdown(t *testing.T) {
 	bus := New(10, log)
 	ctx := context.Background()
 
-	err := if err := bus.Start(ctx); err != nil { t.Fatal(err) }
+	err := bus.Start(ctx)
 	if err != nil {
 		t.Fatalf("Start() failed: %v", err)
 	}
@@ -311,10 +308,14 @@ func TestMessageBus_GracefulShutdown(t *testing.T) {
 
 	// Publish some messages
 	msg := NewInboundMessage(ChannelTypeTelegram, "user123", "session456", "Hello", nil)
-	if err := bus.PublishInbound(*msg); err != nil { t.Fatal(err) }
+	if err := bus.PublishInbound(*msg); err != nil {
+		t.Fatal(err)
+	}
 
 	outMsg := NewOutboundMessage(ChannelTypeTelegram, "user123", "session456", "Response", nil)
-	if err := bus.PublishOutbound(*outMsg); err != nil { t.Fatal(err) }
+	if err := bus.PublishOutbound(*outMsg); err != nil {
+		t.Fatal(err)
+	}
 
 	// Stop the bus
 	err = bus.Stop()
@@ -354,7 +355,7 @@ func TestMessageBus_GracefulShutdown(t *testing.T) {
 	}
 
 	// Verify we can't publish after stop
-	err = if err := bus.PublishInbound(*msg); err != nil { t.Fatal(err) }
+	err = bus.PublishInbound(*msg)
 	if err != ErrNotStarted {
 		t.Errorf("Expected ErrNotStarted, got %v", err)
 	}
@@ -365,7 +366,7 @@ func TestMessageBus_ContextCancellation(t *testing.T) {
 	bus := New(10, log)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	err := if err := bus.Start(ctx); err != nil { t.Fatal(err) }
+	err := bus.Start(ctx)
 	if err != nil {
 		t.Fatalf("Start() failed: %v", err)
 	}
@@ -410,11 +411,10 @@ func TestMessageBus_PublishEvent(t *testing.T) {
 	bus := New(10, log)
 	ctx := context.Background()
 
-	err := if err := bus.Start(ctx); err != nil { t.Fatal(err) }
+	err := bus.Start(ctx)
 	if err != nil {
 		t.Fatalf("Start() failed: %v", err)
 	}
-	if err := bus.Stop(); err != nil { t.Fatal(err) }
 
 	event := NewProcessingStartEvent(ChannelTypeTelegram, "user123", "session456", nil)
 	err = bus.PublishEvent(*event)
@@ -442,11 +442,10 @@ func TestMessageBus_SubscribeEvent(t *testing.T) {
 		t.Error("SubscribeEvent() should return nil when not started")
 	}
 
-	err := if err := bus.Start(ctx); err != nil { t.Fatal(err) }
+	err := bus.Start(ctx)
 	if err != nil {
 		t.Fatalf("Start() failed: %v", err)
 	}
-	if err := bus.Stop(); err != nil { t.Fatal(err) }
 
 	ch = bus.SubscribeEvent(ctx)
 	if ch == nil {
@@ -511,11 +510,10 @@ func TestMessageBus_EventQueueFull(t *testing.T) {
 	bus := New(1, log)
 	ctx := context.Background()
 
-	err := if err := bus.Start(ctx); err != nil { t.Fatal(err) }
+	err := bus.Start(ctx)
 	if err != nil {
 		t.Fatalf("Start() failed: %v", err)
 	}
-	if err := bus.Stop(); err != nil { t.Fatal(err) }
 
 	// Subscribe to events (with a tiny channel that will block)
 	_ = bus.SubscribeEvent(ctx)
@@ -540,11 +538,10 @@ func TestMessageBus_EventTypes(t *testing.T) {
 	bus := New(10, log)
 	ctx := context.Background()
 
-	err := if err := bus.Start(ctx); err != nil { t.Fatal(err) }
+	err := bus.Start(ctx)
 	if err != nil {
 		t.Fatalf("Start() failed: %v", err)
 	}
-	if err := bus.Stop(); err != nil { t.Fatal(err) }
 
 	eventCh := bus.SubscribeEvent(ctx)
 
@@ -587,7 +584,7 @@ func TestMessageBus_EventInGracefulShutdown(t *testing.T) {
 	bus := New(10, log)
 	ctx := context.Background()
 
-	err := if err := bus.Start(ctx); err != nil { t.Fatal(err) }
+	err := bus.Start(ctx)
 	if err != nil {
 		t.Fatalf("Start() failed: %v", err)
 	}

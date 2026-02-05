@@ -148,7 +148,7 @@ func TestAppend(t *testing.T) {
 			Content: "Hello, world!",
 		}
 
-		if err := if err := session.Append(msg); err != nil { t.Fatal(err) }; err != nil {
+		if err := session.Append(msg); err != nil {
 			t.Fatalf("Append() error = %v", err)
 		}
 
@@ -184,7 +184,7 @@ func TestAppend(t *testing.T) {
 		}
 
 		for _, msg := range messages {
-			if err := if err := session.Append(msg); err != nil { t.Fatal(err) }; err != nil {
+			if err := session.Append(msg); err != nil {
 				t.Fatalf("Append() error = %v", err)
 			}
 		}
@@ -222,7 +222,7 @@ func TestAppend(t *testing.T) {
 			ToolCallID: "call_123",
 		}
 
-		if err := if err := session.Append(msg); err != nil { t.Fatal(err) }; err != nil {
+		if err := session.Append(msg); err != nil {
 			t.Fatalf("Append() error = %v", err)
 		}
 
@@ -297,7 +297,7 @@ func TestRead(t *testing.T) {
 		}
 
 		for _, msg := range messages {
-			if err := if err := session.Append(msg); err != nil { t.Fatal(err) }; err != nil {
+			if err := session.Append(msg); err != nil {
 				t.Fatalf("Append() error = %v", err)
 			}
 		}
@@ -351,7 +351,7 @@ func TestMessageCount(t *testing.T) {
 				Role:    llm.RoleUser,
 				Content: fmt.Sprintf("Message %d", i+1),
 			}
-			if err := if err := session.Append(msg); err != nil { t.Fatal(err) }; err != nil {
+			if err := session.Append(msg); err != nil {
 				t.Fatalf("Append() error = %v", err)
 			}
 		}
@@ -383,7 +383,7 @@ func TestClear(t *testing.T) {
 
 		// Add messages
 		msg := llm.Message{Role: llm.RoleUser, Content: "Test message"}
-		if err := if err := session.Append(msg); err != nil { t.Fatal(err) }; err != nil {
+		if err := session.Append(msg); err != nil {
 			t.Fatalf("Append() error = %v", err)
 		}
 
@@ -513,7 +513,7 @@ func TestJSONLFormat(t *testing.T) {
 		}
 
 		for _, msg := range messages {
-			if err := if err := session.Append(msg); err != nil { t.Fatal(err) }; err != nil {
+			if err := session.Append(msg); err != nil {
 				t.Fatalf("Append() error = %v", err)
 			}
 		}
@@ -564,7 +564,9 @@ func TestConcurrentOperations(t *testing.T) {
 					Role:    llm.RoleUser,
 					Content: fmt.Sprintf("Message %d", idx),
 				}
-				if err := session.Append(msg); err != nil { t.Fatal(err) }
+				if err := session.Append(msg); err != nil {
+					t.Fatal(err)
+				}
 				done <- true
 			}(i)
 		}

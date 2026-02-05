@@ -142,12 +142,10 @@ func TestE2E_TelegramToAgentWithToolCalls(t *testing.T) {
 	workspaceDir := filepath.Join(tempDir, "workspace")
 	sessionDir := filepath.Join(tempDir, "sessions")
 
-	if err := os.MkdirAll(workspaceDir, 0755) 
-				if err != nil { t.Fatal(err) }; err != nil {
+	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
 		t.Fatalf("Failed to create workspace directory: %v", err)
 	}
-	if err := os.MkdirAll(sessionDir, 0755) 
-				if err != nil { t.Fatal(err) }; err != nil {
+	if err := os.MkdirAll(sessionDir, 0755); err != nil {
 		t.Fatalf("Failed to create session directory: %v", err)
 	}
 
@@ -236,10 +234,9 @@ func TestE2E_TelegramToAgentWithToolCalls(t *testing.T) {
 	defer cancel()
 
 	// Start message bus
-	if err := if err := msgBus.Start(ctx); err != nil { t.Fatal(err) }; err != nil {
+	if err := msgBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
 	}
-	if err := msgBus.Stop(); err != nil { t.Fatal(err) }
 
 	// Subscribe to outbound messages
 	outboundCh := msgBus.SubscribeOutbound(ctx)
@@ -271,7 +268,7 @@ func TestE2E_TelegramToAgentWithToolCalls(t *testing.T) {
 	}
 
 	// Publish inbound message to bus
-	if err := if err := msgBus.PublishInbound(inboundMsg); err != nil { t.Fatal(err) }; err != nil {
+	if err := msgBus.PublishInbound(inboundMsg); err != nil {
 		t.Fatalf("Failed to publish inbound message: %v", err)
 	}
 
@@ -325,10 +322,12 @@ func TestE2E_MultipleToolCalls(t *testing.T) {
 	workspaceDir := filepath.Join(tempDir, "workspace")
 	sessionDir := filepath.Join(tempDir, "sessions")
 
-	os.MkdirAll(workspaceDir, 0755) 
-				if err != nil { t.Fatal(err) }
-	os.MkdirAll(sessionDir, 0755) 
-				if err != nil { t.Fatal(err) }
+	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(sessionDir, 0755); err != nil {
+		t.Fatal(err)
+	}
 
 	ws := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
 	createTestBootstrapFiles(t, ws)
@@ -369,14 +368,16 @@ func TestE2E_MultipleToolCalls(t *testing.T) {
 	agentLoop.RegisterTool(tools.NewListDirTool(wsForTools))
 
 	// Create test file
-	os.WriteFile(filepath.Join(workspaceDir, "test.txt"), []byte("Test content"), 0644) 
-					if err != nil { t.Fatal(err) }
+	if err := os.WriteFile(filepath.Join(workspaceDir, "test.txt"), []byte("Test content"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := msgBus.Start(ctx); err != nil { t.Fatal(err) }
-	if err := msgBus.Stop(); err != nil { t.Fatal(err) }
+	if err := msgBus.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
 
 	outboundCh := msgBus.SubscribeOutbound(ctx)
 
@@ -394,7 +395,9 @@ func TestE2E_MultipleToolCalls(t *testing.T) {
 		Timestamp:   time.Now(),
 	}
 
-	if err := msgBus.PublishInbound(inboundMsg); err != nil { t.Fatal(err) }
+	if err := msgBus.PublishInbound(inboundMsg); err != nil {
+		t.Fatal(err)
+	}
 
 	// Wait for response
 	select {
@@ -417,10 +420,12 @@ func TestE2E_ToolErrorHandling(t *testing.T) {
 	workspaceDir := filepath.Join(tempDir, "workspace")
 	sessionDir := filepath.Join(tempDir, "sessions")
 
-	os.MkdirAll(workspaceDir, 0755) 
-				if err != nil { t.Fatal(err) }
-	os.MkdirAll(sessionDir, 0755) 
-				if err != nil { t.Fatal(err) }
+	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(sessionDir, 0755); err != nil {
+		t.Fatal(err)
+	}
 
 	ws := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
 	createTestBootstrapFiles(t, ws)
@@ -451,8 +456,9 @@ func TestE2E_ToolErrorHandling(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := msgBus.Start(ctx); err != nil { t.Fatal(err) }
-	if err := msgBus.Stop(); err != nil { t.Fatal(err) }
+	if err := msgBus.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
 
 	outboundCh := msgBus.SubscribeOutbound(ctx)
 
@@ -469,7 +475,9 @@ func TestE2E_ToolErrorHandling(t *testing.T) {
 		Timestamp:   time.Now(),
 	}
 
-	if err := msgBus.PublishInbound(inboundMsg); err != nil { t.Fatal(err) }
+	if err := msgBus.PublishInbound(inboundMsg); err != nil {
+		t.Fatal(err)
+	}
 
 	select {
 	case outboundMsg := <-outboundCh:
@@ -489,10 +497,12 @@ func TestE2E_ShellExecTool(t *testing.T) {
 	workspaceDir := filepath.Join(tempDir, "workspace")
 	sessionDir := filepath.Join(tempDir, "sessions")
 
-	os.MkdirAll(workspaceDir, 0755) 
-				if err != nil { t.Fatal(err) }
-	os.MkdirAll(sessionDir, 0755) 
-				if err != nil { t.Fatal(err) }
+	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(sessionDir, 0755); err != nil {
+		t.Fatal(err)
+	}
 
 	ws := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
 	createTestBootstrapFiles(t, ws)
@@ -523,8 +533,9 @@ func TestE2E_ShellExecTool(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := msgBus.Start(ctx); err != nil { t.Fatal(err) }
-	if err := msgBus.Stop(); err != nil { t.Fatal(err) }
+	if err := msgBus.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
 
 	outboundCh := msgBus.SubscribeOutbound(ctx)
 
@@ -541,7 +552,9 @@ func TestE2E_ShellExecTool(t *testing.T) {
 		Timestamp:   time.Now(),
 	}
 
-	if err := msgBus.PublishInbound(inboundMsg); err != nil { t.Fatal(err) }
+	if err := msgBus.PublishInbound(inboundMsg); err != nil {
+		t.Fatal(err)
+	}
 
 	select {
 	case outboundMsg := <-outboundCh:

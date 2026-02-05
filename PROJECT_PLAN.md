@@ -1,8 +1,9 @@
 # Nexbot - Project Plan (Updated with Z.ai Coding API)
 
-## Current Status (Last Updated: 2026-02-03)
+## Current Status (Last Updated: 2026-02-05)
 
 ### v0.1.0 Progress: **COMPLETE** ✅
+### v0.2.0 Progress: **COMPLETE** ✅
 
 **Completed Components:**
 - ✅ Go module initialization and directory structure
@@ -48,7 +49,8 @@
 
 **Next Steps:**
 - ✅ MVP v0.1.0 COMPLETE
-- ⏳ v0.2.0: Cron + Spawn (см. Post-MVP Roadmap)
+- ✅ v0.2.0 COMPLETE (Cron + Spawn)
+- ⏳ v0.3.0: Web Search + More Tools (см. Post-MVP Roadmap)
 
 ---
 
@@ -400,6 +402,8 @@ timeout_seconds = 30
 **Total Tests:** 200+ tests across all modules
 
 ### File Status
+
+**v0.1.0 Files:**
 - ✅ workspace/workspace.go (200+ lines, complete)
 - ✅ workspace/bootstrap.go (200+ lines, complete)
 - ✅ workspace/workspace_test.go (500+ lines, 82.1% coverage)
@@ -438,9 +442,23 @@ timeout_seconds = 30
 - ✅ CONFIG.md (configuration reference)
 - ✅ Makefile (build-all, release targets)
 
+**v0.2.0 Files:**
+- ✅ internal/cron/cron.go (cron scheduler)
+- ✅ internal/cron/manager.go (cron manager)
+- ✅ internal/agent/subagent/subagent.go (subagent manager)
+- ✅ internal/workers/pool.go (worker pool)
+- ✅ internal/heartbeat/heartbeat.go (HEARTBEAT.md support)
+- ✅ cmd/nexbot/cron.go (cron CLI commands)
+- ✅ internal/commands/handler.go (command handlers)
+- ✅ Дополнительные тесты и документация
+
 ---
 
 ## Success Criteria (v0.1.0, Updated) ✅ ALL MET
+
+---
+
+## Success Criteria (v0.2.0, Updated) ✅ ALL MET
 
 - ✅ Telegram bot подключается к Z.ai Coding API (`https://api.z.ai/api/coding/paas/v4`) и ведёт диалог без tools.
 - ✅ Tool calling в OpenAI-compatible формате включён и поддерживает:
@@ -461,17 +479,30 @@ timeout_seconds = 30
 
 ---
 
+## Success Criteria (v0.2.0, Updated) ✅ ALL MET
+
+- ✅ Cron scheduler с robfig/cron/v3 работает корректно
+- ✅ Cron CLI команды (add/list/remove) работают
+- ✅ Subagent manager умеет создавать subagents через spawn tool
+- ✅ Background task execution (async workers) работает
+- ✅ HEARTBEAT.md задачи выполняются автоматически
+- ✅ Тесты для cron scheduling проходят
+- ✅ Тесты для subagent coordination проходят
+- ✅ Документация обновлена
+
+---
+
 ## Post-MVP Roadmap (без Web UI)
 
-### v0.2.0 - Cron + Spawn (2–3 недели)
+### v0.2.0 - Cron + Spawn (2–3 недели) ✅ **COMPLETE**
 
-- Cron scheduler (robfig/cron/v3).
-- Cron commands: `nexbot cron add`, `nexbot cron list`, `nexbot cron remove`.
-- Subagent manager (spawn tool implementation).
-- Background task execution (async workers).
-- Spawn tool registration.
-- HEARTBEAT.md support (proactive tasks).
-- Tests: cron scheduling, subagent coordination.
+- ✅ Cron scheduler (robfig/cron/v3).
+- ✅ Cron commands: `nexbot cron add`, `nexbot cron list`, `nexbot cron remove`.
+- ✅ Subagent manager (spawn tool implementation).
+- ✅ Background task execution (async workers).
+- ✅ Spawn tool registration.
+- ✅ HEARTBEAT.md support (proactive tasks).
+- ✅ Tests: cron scheduling, subagent coordination.
 
 
 ### v0.3.0 - Web Search + More Tools (2–3 недели)
