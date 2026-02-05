@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/aatumaykin/nexbot/internal/config"
+	"github.com/aatumaykin/nexbot/internal/constants"
+	"github.com/aatumaykin/nexbot/internal/messages"
 	"github.com/spf13/cobra"
 )
 
@@ -22,31 +24,28 @@ var configValidateCmd = &cobra.Command{
 	Long:  `Validate the configuration file and check for errors.`,
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		configPath := "config.toml"
+		configPath := constants.DefaultConfigPath
 		if len(args) > 0 {
 			configPath = args[0]
 		}
 
-		fmt.Printf("Validating configuration: %s\n", configPath)
+		fmt.Printf(constants.MsgConfigValidating, configPath)
 
 		// Load configuration
 		cfg, err := config.Load(configPath)
 		if err != nil {
-			fmt.Printf("❌ Error loading configuration: %v\n", err)
+			fmt.Println(messages.FormatConfigLoadError(err))
 			os.Exit(1)
 		}
 
 		// Validate configuration
 		errors := cfg.Validate()
 		if len(errors) > 0 {
-			fmt.Printf("❌ Configuration validation failed with %d error(s):\n", len(errors))
-			for i, e := range errors {
-				fmt.Printf("  %d. %v\n", i+1, e)
-			}
+			fmt.Println(messages.FormatValidationErrors(errors))
 			os.Exit(1)
 		}
 
-		fmt.Println("✅ Configuration is valid")
+		fmt.Println(constants.MsgConfigValid)
 	},
 }
 

@@ -46,6 +46,9 @@ const (
 
 // Config messages
 const (
+	// MsgConfigValidating is the message when configuration validation starts.
+	MsgConfigValidating = "Validating configuration: %s\n"
+
 	// MsgConfigLoadError is the error message when configuration loading fails.
 	MsgConfigLoadError = "❌ Failed to load configuration: %v\n"
 
@@ -53,7 +56,7 @@ const (
 	MsgConfigValidationError = "❌ Configuration validation failed:\n"
 
 	// MsgConfigValid is the message when configuration is successfully loaded and validated.
-	MsgConfigValid = "✅ Configuration loaded"
+	MsgConfigValid = "✅ Configuration is valid"
 
 	// MsgConfigValidatePrefix is the prefix for configuration validation errors.
 	MsgConfigValidatePrefix = "  - %v\n"
