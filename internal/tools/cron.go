@@ -198,8 +198,8 @@ func (t *CronTool) addOneshot(ctx context.Context, params map[string]interface{}
 	}
 
 	// For oneshot jobs, we use a schedule that matches the specific time
-	// Format: minute hour day month weekday
-	schedule := fmt.Sprintf("%d %d %d %d *", executeAt.Minute(), executeAt.Hour(), executeAt.Day(), executeAt.Month())
+	// Format: second minute hour day month weekday
+	schedule := fmt.Sprintf("0 %d %d %d %d *", executeAt.Minute(), executeAt.Hour(), executeAt.Day(), executeAt.Month())
 
 	// Create job
 	job := cron.Job{
