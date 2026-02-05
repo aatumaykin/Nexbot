@@ -99,17 +99,26 @@ func (c *Config) Validate() []error {
 		errors = append(errors, fmt.Errorf("logging.output is required"))
 	}
 
-	// Проверка shell tool whitelist
+	// Проверка shell tool команд
 	if c.Tools.Shell.Enabled {
-		if len(c.Tools.Shell.AllowedCommands) == 0 {
-			errors = append(errors, fmt.Errorf("tools.shell.allowed_commands cannot be empty when shell tool is enabled"))
-		} else {
-			for _, cmd := range c.Tools.Shell.AllowedCommands {
-				if cmd == "" {
-					errors = append(errors, fmt.Errorf("tools.shell.allowed_commands contains empty command"))
-				}
+		// Проверка отсутствия пустых строк во всех списках
+		for _, cmd := range c.Tools.Shell.AllowedCommands {
+			if cmd == "" {
+				errors = append(errors, fmt.Errorf("tools.shell.allowed_commands contains empty command"))
 			}
 		}
+		for _, cmd := range c.Tools.Shell.DenyCommands {
+			if cmd == "" {
+				errors = append(errors, fmt.Errorf("tools.shell.deny_commands contains empty command"))
+			}
+		}
+		for _, cmd := range c.Tools.Shell.AskCommands {
+			if cmd == "" {
+				errors = append(errors, fmt.Errorf("tools.shell.ask_commands contains empty command"))
+			}
+		}
+		// Если все три списка пустые — это допустимо (все команды разрешены)
+		// Если хотя бы один список не пустой — это допустимо (разрешено смешанное управление)
 	}
 
 	// Проверка workers configuration

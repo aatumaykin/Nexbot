@@ -109,6 +109,8 @@ type FileToolConfig struct {
 type ShellToolConfig struct {
 	Enabled         bool     `toml:"enabled"`
 	AllowedCommands []string `toml:"allowed_commands"`
+	DenyCommands    []string `toml:"deny_commands"`
+	AskCommands     []string `toml:"ask_commands"`
 	TimeoutSeconds  int      `toml:"timeout_seconds"`
 }
 
