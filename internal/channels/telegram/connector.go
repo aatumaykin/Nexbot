@@ -397,8 +397,9 @@ func (c *Connector) handleOutbound() {
 			}
 
 			params := telego.SendMessageParams{
-				ChatID: telego.ChatID{ID: chatID},
-				Text:   msg.Content,
+				ChatID:    telego.ChatID{ID: chatID},
+				Text:      msg.Content,
+				ParseMode: telego.ModeMarkdown,
 			}
 
 			_, err = c.bot.SendMessage(c.ctx, &params)
