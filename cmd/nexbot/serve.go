@@ -29,6 +29,21 @@ var (
 	serveLogLevel   string
 )
 
+// cronWorkerPoolAdapter adapts workers.WorkerPool to cron.WorkerPool interface
+type cronWorkerPoolAdapter struct {
+	pool *workers.WorkerPool
+}
+
+// Submit implements cron.WorkerPool.Submit
+func (a *cronWorkerPoolAdapter) Submit(task cron.Task) {
+	a.pool.SubmitCronTask(workers.CronTask{
+		ID:      task.ID,
+		Type:    task.Type,
+		Payload: task.Payload,
+		Context: task.Context,
+	})
+}
+
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
 	Use:   "serve",
@@ -130,11 +145,22 @@ func serveHandler(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// Initialize worker pool BEFORE cron scheduler
+	log.Info("⚙️ Initializing worker pool",
+		logger.Field{Key: "pool_size", Value: cfg.Workers.PoolSize},
+		logger.Field{Key: "queue_size", Value: cfg.Workers.QueueSize})
+	workerPool := workers.NewPool(cfg.Workers.PoolSize, cfg.Workers.QueueSize, log)
+	workerPool.Start()
+	log.Info("✅ Worker pool started")
+
 	// Initialize cron scheduler if enabled
 	var cronScheduler *cron.Scheduler
 	if cfg.Cron.Enabled {
 		log.Info("⏰ Initializing cron scheduler")
-		cronScheduler = cron.NewScheduler(log, messageBus)
+
+		// Create cron scheduler with worker pool adapter
+		workerPoolAdapter := &cronWorkerPoolAdapter{pool: workerPool}
+		cronScheduler = cron.NewScheduler(log, messageBus, workerPoolAdapter)
 		if err := cronScheduler.Start(ctx); err != nil {
 			log.Error("Failed to start cron scheduler", err)
 			os.Exit(1)
@@ -248,14 +274,6 @@ func serveHandler(cmd *cobra.Command, args []string) {
 		}
 		log.Info("✅ Subagent manager initialized")
 	}
-
-	// Initialize worker pool
-	log.Info("⚙️ Initializing worker pool",
-		logger.Field{Key: "pool_size", Value: cfg.Workers.PoolSize},
-		logger.Field{Key: "queue_size", Value: cfg.Workers.QueueSize})
-	workerPool := workers.NewPool(cfg.Workers.PoolSize, cfg.Workers.QueueSize, log)
-	workerPool.Start()
-	log.Info("✅ Worker pool started")
 
 	// Register tools
 	if cfg.Tools.Shell.Enabled {

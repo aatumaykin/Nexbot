@@ -20,6 +20,26 @@ const (
 	ChannelTypeCron bus.ChannelType = "cron"
 )
 
+// Task represents a cron task to be submitted to worker pool
+type Task struct {
+	ID      string          // Unique task identifier
+	Type    string          // Task type: "cron"
+	Payload interface{}     // Task payload (command, user_id, metadata, etc.)
+	Context context.Context // Task-specific context for cancellation/timeout
+}
+
+// WorkerPool is an interface for worker pool operations
+type WorkerPool interface {
+	Submit(task Task)
+}
+
+// CronTaskPayload represents the payload for a cron task
+type CronTaskPayload struct {
+	Command  string            // Command to execute
+	UserID   string            // User ID
+	Metadata map[string]string // Job metadata
+}
+
 // Job represents a scheduled cron job
 type Job struct {
 	ID       string            `json:"id"`                 // Unique job identifier
@@ -31,13 +51,14 @@ type Job struct {
 
 // Scheduler manages cron job scheduling and execution
 type Scheduler struct {
-	cron    *cron.Cron
-	logger  *logger.Logger
-	bus     *bus.MessageBus
-	ctx     context.Context
-	cancel  context.CancelFunc
-	started bool
-	mu      sync.RWMutex
+	cron       *cron.Cron
+	logger     *logger.Logger
+	bus        *bus.MessageBus
+	workerPool WorkerPool // Worker pool for async task execution
+	ctx        context.Context
+	cancel     context.CancelFunc
+	started    bool
+	mu         sync.RWMutex
 
 	// Job registry for tracking jobs by ID
 	jobs        map[string]Job
@@ -46,11 +67,12 @@ type Scheduler struct {
 }
 
 // NewScheduler creates a new cron scheduler instance
-func NewScheduler(logger *logger.Logger, messageBus *bus.MessageBus) *Scheduler {
+func NewScheduler(logger *logger.Logger, messageBus *bus.MessageBus, workerPool WorkerPool) *Scheduler {
 	return &Scheduler{
 		cron:        cron.New(cron.WithSeconds()),
 		logger:      logger,
 		bus:         messageBus,
+		workerPool:  workerPool,
 		jobs:        make(map[string]Job),
 		jobIDs:      make(map[cron.EntryID]string),
 		jobEntryIDs: make(map[string]cron.EntryID),
@@ -178,7 +200,7 @@ func (s *Scheduler) GetJob(jobID string) (Job, error) {
 	return job, nil
 }
 
-// executeJob executes a cron job by sending a message to the message bus
+// executeJob executes a cron job by submitting it to the worker pool
 func (s *Scheduler) executeJob(job Job) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -187,6 +209,40 @@ func (s *Scheduler) executeJob(job Job) {
 		}
 	}()
 
+	// Submit to worker pool if available
+	if s.workerPool != nil {
+		// Prepare task payload
+		taskPayload := CronTaskPayload{
+			Command:  job.Command,
+			UserID:   job.UserID,
+			Metadata: job.Metadata,
+		}
+
+		// Create task ID
+		taskID := fmt.Sprintf("cron_%s_%d", job.ID, time.Now().UnixNano())
+
+		// Create and submit task
+		task := Task{
+			ID:      taskID,
+			Type:    "cron",
+			Payload: taskPayload,
+			Context: s.ctx,
+		}
+
+		s.workerPool.Submit(task)
+
+		s.logger.Info("cron job submitted to worker pool",
+			logger.Field{Key: "job_id", Value: job.ID},
+			logger.Field{Key: "task_id", Value: taskID},
+			logger.Field{Key: "command", Value: job.Command})
+	} else {
+		// Fallback to message bus if no worker pool
+		s.fallbackToMessageBus(job)
+	}
+}
+
+// fallbackToMessageBus sends the job to the message bus as before
+func (s *Scheduler) fallbackToMessageBus(job Job) {
 	// Prepare metadata for the message
 	metadata := make(map[string]any)
 	metadata["cron_job_id"] = job.ID
@@ -211,7 +267,7 @@ func (s *Scheduler) executeJob(job Job) {
 		return
 	}
 
-	s.logger.Info("cron job executed",
+	s.logger.Info("cron job executed via message bus",
 		logger.Field{Key: "job_id", Value: job.ID},
 		logger.Field{Key: "command", Value: job.Command})
 }

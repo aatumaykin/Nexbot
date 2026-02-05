@@ -344,6 +344,33 @@ func (p *WorkerPool) Stop() {
 	p.logger.Info("worker pool stopped")
 }
 
+// CronTask is a type alias for compatibility with cron package
+type CronTask = struct {
+	ID      string
+	Type    string
+	Payload interface{}
+	Context context.Context
+}
+
+// SubmitCronTask submits a cron task to the worker pool
+func (p *WorkerPool) SubmitCronTask(task CronTask) {
+	p.wg.Lock()
+	p.metrics.TasksSubmitted++
+	p.wg.Unlock()
+
+	p.logger.DebugCtx(p.ctx, "cron task submitted",
+		logger.Field{Key: "task_id", Value: task.ID},
+		logger.Field{Key: "task_type", Value: task.Type})
+
+	p.taskQueue <- Task{
+		ID:      task.ID,
+		Type:    task.Type,
+		Payload: task.Payload,
+		Context: task.Context,
+		Metrics: make(map[string]interface{}),
+	}
+}
+
 // Metrics returns the current pool metrics.
 func (p *WorkerPool) Metrics() PoolMetrics {
 	p.wg.RLock()

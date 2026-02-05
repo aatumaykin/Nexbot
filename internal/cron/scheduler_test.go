@@ -15,7 +15,7 @@ import (
 func TestNewScheduler(t *testing.T) {
 	log := testLogger()
 	msgBus := bus.New(100, log)
-	scheduler := NewScheduler(log, msgBus)
+	scheduler := NewScheduler(log, msgBus, nil)
 
 	assert.NotNil(t, scheduler)
 	assert.NotNil(t, scheduler.cron)
@@ -33,7 +33,7 @@ func TestScheduler_StartStop(t *testing.T) {
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
 
-	scheduler := NewScheduler(log, msgBus)
+	scheduler := NewScheduler(log, msgBus, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -68,7 +68,7 @@ func TestScheduler_AddJob(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus)
+	scheduler := NewScheduler(log, msgBus, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -104,7 +104,7 @@ func TestScheduler_AddJobAutoID(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus)
+	scheduler := NewScheduler(log, msgBus, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -138,7 +138,7 @@ func TestScheduler_AddJobInvalidSchedule(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus)
+	scheduler := NewScheduler(log, msgBus, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -167,7 +167,7 @@ func TestScheduler_RemoveJob(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus)
+	scheduler := NewScheduler(log, msgBus, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -210,7 +210,7 @@ func TestScheduler_ListJobs(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus)
+	scheduler := NewScheduler(log, msgBus, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -262,7 +262,7 @@ func TestScheduler_JobExecution(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus)
+	scheduler := NewScheduler(log, msgBus, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -315,7 +315,7 @@ func TestScheduler_JobExecutionWithMetadata(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus)
+	scheduler := NewScheduler(log, msgBus, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -361,7 +361,7 @@ func TestScheduler_GetJob(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus)
+	scheduler := NewScheduler(log, msgBus, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -400,7 +400,7 @@ func TestScheduler_GracefulShutdown(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus)
+	scheduler := NewScheduler(log, msgBus, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -547,7 +547,7 @@ func TestCronExpressionValidation(t *testing.T) {
 			require.NoError(t, err)
 			defer stopMessageBus(msgBus)
 
-			scheduler := NewScheduler(log, msgBus)
+			scheduler := NewScheduler(log, msgBus, nil)
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -589,7 +589,7 @@ func TestSchedulerDuplicateJobID(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus)
+	scheduler := NewScheduler(log, msgBus, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -642,7 +642,7 @@ func TestSchedulerRemoveNonExistentJob(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus)
+	scheduler := NewScheduler(log, msgBus, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -666,7 +666,7 @@ func TestSchedulerListWithNoJobs(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus)
+	scheduler := NewScheduler(log, msgBus, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -690,7 +690,7 @@ func TestSchedulerConcurrentAddRemove(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus)
+	scheduler := NewScheduler(log, msgBus, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
