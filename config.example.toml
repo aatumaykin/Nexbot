@@ -138,18 +138,24 @@ timezone = "UTC"
 jobs_file = "jobs.json"
 
 # -----------------------------------------------------------------------------
-# HEARTBEAT Loader Settings
+# HEARTBEAT Configuration
 # -----------------------------------------------------------------------------
 # Конфигурация автоматического выполнения proactive задач (v0.2+).
 [heartbeat]
-# Включить HEARTBEAT loader
-enabled = false
+# Включить выполнение HEARTBEAT задач
+enabled = true
 
-# Имя файла с HEARTBEAT задачами (относительный путь от workspace)
+# Имя файла с задачами (относительный путь от workspace)
 heartbeat_file = "HEARTBEAT.md"
 
-# Как часто проверять изменения в HEARTBEAT.md (cron expression)
-check_interval = "*/5 * * * *"
+# Как часто проверять HEARTBEAT.md на изменения (cron expression)
+# * * * * * - каждую минуту
+# 0 * * * * - каждый час
+# 0 0 * * * - каждые сутки
+check_interval = "* * * * *"
+
+# Путь к workspace для HEARTBEAT.md (по умолчанию: ~/.nexbot)
+workspace_path = "~/.nexbot"
 
 # -----------------------------------------------------------------------------
 # Worker Pool Settings
