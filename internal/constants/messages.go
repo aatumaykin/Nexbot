@@ -10,6 +10,9 @@ const (
 	// MsgStatusError is the error message when status information cannot be retrieved.
 	MsgStatusError = "❌ Failed to get status information. Please try again later."
 
+	// MsgRestarting is the notification message when a restart command is received.
+	MsgRestarting = "🔄 Restarting..."
+
 	// MsgErrorFormat is the prefix for formatting error messages.
 	MsgErrorFormat = "Error: %v"
 )
