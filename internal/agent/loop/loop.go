@@ -347,6 +347,37 @@ func (l *Loop) GetTools() *tools.Registry {
 	return l.tools
 }
 
+// ProcessHeartbeatCheck processes a heartbeat check request by consulting HEARTBEAT.md.
+// This is used by cron to periodically check if there are any tasks that need attention.
+func (l *Loop) ProcessHeartbeatCheck(ctx stdcontext.Context) (string, error) {
+	l.logger.InfoCtx(ctx, "Processing heartbeat check")
+
+	// Build prompt for heartbeat check
+	prompt := "Read HEARTBEAT.md from workspace. Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK."
+
+	// Create chat request for LLM
+	req := llm.ChatRequest{
+		Messages:    []llm.Message{{Role: llm.RoleUser, Content: prompt}},
+		Model:       l.config.Model,
+		Temperature: l.config.Temperature,
+		MaxTokens:   l.config.MaxTokens,
+	}
+
+	// Call LLM provider
+	resp, err := l.provider.Chat(ctx, req)
+	if err != nil {
+		l.logger.ErrorCtx(ctx, "Failed to get heartbeat check response from LLM", err)
+		return "", fmt.Errorf("failed to get heartbeat check response: %w", err)
+	}
+
+	// Log the response
+	l.logger.InfoCtx(ctx, "Heartbeat check response",
+		logger.Field{Key: "response", Value: resp.Content})
+
+	// Return the LLM response
+	return resp.Content, nil
+}
+
 // GetSessionStatus returns status information about a session.
 func (l *Loop) GetSessionStatus(ctx stdcontext.Context, sessionID string) (map[string]any, error) {
 	sess, _, err := l.sessionMgr.GetOrCreate(sessionID)
