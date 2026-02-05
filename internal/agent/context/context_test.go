@@ -59,9 +59,6 @@ func TestBuild(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(tmpDir, "AGENTS.md"), []byte("# Agents\nTest agents"), 0644); err != nil {
 			t.Fatalf("Failed to create AGENTS.md: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(tmpDir, "SOUL.md"), []byte("# Soul\nTest soul"), 0644); err != nil {
-			t.Fatalf("Failed to create SOUL.md: %v", err)
-		}
 		if err := os.WriteFile(filepath.Join(tmpDir, "USER.md"), []byte("# User\nTest user"), 0644); err != nil {
 			t.Fatalf("Failed to create USER.md: %v", err)
 		}
@@ -88,9 +85,6 @@ func TestBuild(t *testing.T) {
 		if !strings.Contains(prompt, "Test agents") {
 			t.Error("Build() should contain agents")
 		}
-		if !strings.Contains(prompt, "Test soul") {
-			t.Error("Build() should contain soul")
-		}
 		if !strings.Contains(prompt, "Test user") {
 			t.Error("Build() should contain user")
 		}
@@ -98,23 +92,23 @@ func TestBuild(t *testing.T) {
 			t.Error("Build() should contain tools")
 		}
 
-		// Verify order: IDENTITY should come before AGENTS
-		identityPos := strings.Index(prompt, "Test identity")
+		// Verify order: AGENTS should come before IDENTITY
 		agentsPos := strings.Index(prompt, "Test agents")
-		if identityPos == -1 || agentsPos == -1 {
+		identityPos := strings.Index(prompt, "Test identity")
+		if agentsPos == -1 || identityPos == -1 {
 			t.Fatal("Components not found")
 		}
-		if identityPos > agentsPos {
-			t.Error("IDENTITY should come before AGENTS")
+		if agentsPos > identityPos {
+			t.Error("AGENTS should come before IDENTITY")
 		}
 	})
 
 	t.Run("build with partial components", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
-		// Only create IDENTITY and USER
-		if err := os.WriteFile(filepath.Join(tmpDir, "IDENTITY.md"), []byte("# Identity\nTest identity"), 0644); err != nil {
-			t.Fatalf("Failed to create IDENTITY.md: %v", err)
+		// Only create AGENTS and USER
+		if err := os.WriteFile(filepath.Join(tmpDir, "AGENTS.md"), []byte("# Agents\nTest agents"), 0644); err != nil {
+			t.Fatalf("Failed to create AGENTS.md: %v", err)
 		}
 		if err := os.WriteFile(filepath.Join(tmpDir, "USER.md"), []byte("# User\nTest user"), 0644); err != nil {
 			t.Fatalf("Failed to create USER.md: %v", err)
@@ -133,8 +127,8 @@ func TestBuild(t *testing.T) {
 		}
 
 		// Verify present components
-		if !strings.Contains(prompt, "Test identity") {
-			t.Error("Build() should contain identity")
+		if !strings.Contains(prompt, "Test agents") {
+			t.Error("Build() should contain agents")
 		}
 		if !strings.Contains(prompt, "Test user") {
 			t.Error("Build() should contain user")
@@ -536,11 +530,10 @@ func TestPriorityOrder(t *testing.T) {
 
 		// Create all components with unique markers
 		components := map[string]string{
-			"IDENTITY": "MARKER_IDENTITY_1",
-			"AGENTS":   "MARKER_AGENTS_2",
-			"SOUL":     "MARKER_SOUL_3",
-			"USER":     "MARKER_USER_4",
-			"TOOLS":    "MARKER_TOOLS_5",
+			"IDENTITY": "MARKER_IDENTITY_2",
+			"AGENTS":   "MARKER_AGENTS_1",
+			"USER":     "MARKER_USER_3",
+			"TOOLS":    "MARKER_TOOLS_4",
 		}
 
 		for name, content := range components {
@@ -561,7 +554,7 @@ func TestPriorityOrder(t *testing.T) {
 			t.Fatalf("Build() error = %v", err)
 		}
 
-		// Verify order: IDENTITY → AGENTS → SOUL → USER → TOOLS
+		// Verify order: AGENTS → IDENTITY → USER → TOOLS
 		positions := make(map[string]int)
 		for name, marker := range components {
 			pos := strings.Index(prompt, marker)
@@ -572,14 +565,11 @@ func TestPriorityOrder(t *testing.T) {
 		}
 
 		// Check priority order
-		if positions["IDENTITY"] > positions["AGENTS"] {
-			t.Error("IDENTITY should come before AGENTS")
+		if positions["AGENTS"] > positions["IDENTITY"] {
+			t.Error("AGENTS should come before IDENTITY")
 		}
-		if positions["AGENTS"] > positions["SOUL"] {
-			t.Error("AGENTS should come before SOUL")
-		}
-		if positions["SOUL"] > positions["USER"] {
-			t.Error("SOUL should come before USER")
+		if positions["IDENTITY"] > positions["USER"] {
+			t.Error("IDENTITY should come before USER")
 		}
 		if positions["USER"] > positions["TOOLS"] {
 			t.Error("USER should come before TOOLS")

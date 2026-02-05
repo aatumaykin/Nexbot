@@ -46,25 +46,11 @@ func NewBuilder(config Config) (*Builder, error) {
 }
 
 // Build creates a system prompt by combining context components in priority order:
-// IDENTITY → AGENTS → SOUL → USER → TOOLS → HEARTBEAT → memory
+// AGENTS → IDENTITY → USER → TOOLS → HEARTBEAT → memory
 func (b *Builder) Build() (string, error) {
 	var builder strings.Builder
 
-	// 1. IDENTITY - Core identity and purpose
-	identity, err := b.readFile(workspace.BootstrapIdentity)
-	if err != nil && !os.IsNotExist(err) {
-		return "", fmt.Errorf("failed to read IDENTITY.md: %w", err)
-	}
-	if identity != "" {
-		processed, err := b.processTemplates(identity)
-		if err != nil {
-			return "", fmt.Errorf("failed to process IDENTITY.md templates: %w", err)
-		}
-		builder.WriteString(processed)
-		builder.WriteString("\n\n---\n\n")
-	}
-
-	// 2. AGENTS - Agent instructions and behavior
+	// 1. AGENTS - Agent instructions and behavior
 	agents, err := b.readFile(workspace.BootstrapAgents)
 	if err != nil && !os.IsNotExist(err) {
 		return "", fmt.Errorf("failed to read AGENTS.md: %w", err)
@@ -78,21 +64,21 @@ func (b *Builder) Build() (string, error) {
 		builder.WriteString("\n\n---\n\n")
 	}
 
-	// 3. SOUL - Personality and tone
-	soul, err := b.readFile(workspace.BootstrapSoul)
+	// 2. IDENTITY - Core identity and purpose
+	identity, err := b.readFile(workspace.BootstrapIdentity)
 	if err != nil && !os.IsNotExist(err) {
-		return "", fmt.Errorf("failed to read SOUL.md: %w", err)
+		return "", fmt.Errorf("failed to read IDENTITY.md: %w", err)
 	}
-	if soul != "" {
-		processed, err := b.processTemplates(soul)
+	if identity != "" {
+		processed, err := b.processTemplates(identity)
 		if err != nil {
-			return "", fmt.Errorf("failed to process SOUL.md templates: %w", err)
+			return "", fmt.Errorf("failed to process IDENTITY.md templates: %w", err)
 		}
 		builder.WriteString(processed)
 		builder.WriteString("\n\n---\n\n")
 	}
 
-	// 4. USER - User profile and preferences
+	// 3. USER - User profile and preferences
 	user, err := b.readFile(workspace.BootstrapUser)
 	if err != nil && !os.IsNotExist(err) {
 		return "", fmt.Errorf("failed to read USER.md: %w", err)
@@ -106,7 +92,7 @@ func (b *Builder) Build() (string, error) {
 		builder.WriteString("\n\n---\n\n")
 	}
 
-	// 5. TOOLS - Available tools and operations
+	// 4. TOOLS - Available tools and operations
 	tools, err := b.readFile(workspace.BootstrapTools)
 	if err != nil && !os.IsNotExist(err) {
 		return "", fmt.Errorf("failed to read TOOLS.md: %w", err)
@@ -120,7 +106,7 @@ func (b *Builder) Build() (string, error) {
 		builder.WriteString("\n\n---\n\n")
 	}
 
-	// 6. HEARTBEAT - Active periodic tasks
+	// 5. HEARTBEAT - Active periodic tasks
 	heartbeatContent, err := b.buildHeartbeatContext()
 	if err != nil {
 		return "", fmt.Errorf("failed to build heartbeat context: %w", err)
@@ -277,8 +263,6 @@ func (b *Builder) GetComponent(name string) (string, error) {
 		return b.readFile(workspace.BootstrapIdentity)
 	case "AGENTS":
 		return b.readFile(workspace.BootstrapAgents)
-	case "SOUL":
-		return b.readFile(workspace.BootstrapSoul)
 	case "USER":
 		return b.readFile(workspace.BootstrapUser)
 	case "TOOLS":
