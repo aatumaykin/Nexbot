@@ -15,14 +15,6 @@
 - Confirmation before executing commands
 - Ask for permission before file operations
 
-## Projects
-
-{{PROJECT_LIST}}
-
-## Frequently Used Commands
-
-{{FREQUENT_COMMANDS}}
-
 ## Contact Information
 
 - **Email**: {{USER_EMAIL}}
