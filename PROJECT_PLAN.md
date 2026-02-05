@@ -503,7 +503,6 @@ timeout_seconds = 30
 - Brave Search API integration (новый skill).
 - Web fetch tool (http client).
 - URL summarization skill.
-- More built-in tools (git, process info).
 - Tests: web search, HTTP fetching.
 
 

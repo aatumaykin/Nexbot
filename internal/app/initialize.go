@@ -11,6 +11,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/commands"
 	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/heartbeat"
+	"github.com/aatumaykin/nexbot/internal/ipc"
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/tools"
@@ -247,7 +248,24 @@ func (a *App) Initialize(ctx context.Context) error {
 		}
 	}
 
-	// 11. Mark as started
+	// 11. Initialize IPC handler
+	a.ipcHandler, err = ipc.NewHandler(a.logger, ws.Subpath("sessions"))
+	if err != nil {
+		return fmt.Errorf("failed to create IPC handler: %w", err)
+	}
+
+	// Write PID file
+	if err := ipc.WritePID(ws.Path(), os.Getpid()); err != nil {
+		return fmt.Errorf("failed to write PID file: %w", err)
+	}
+
+	// Start IPC server
+	socketPath := ipc.GetSocketPath(ws.Path())
+	if err := a.ipcHandler.Start(ctx, socketPath); err != nil {
+		return fmt.Errorf("failed to start IPC server: %w", err)
+	}
+
+	// 12. Mark as started
 	a.mu.Lock()
 	a.started = true
 	a.mu.Unlock()
