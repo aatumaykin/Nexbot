@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/aatumaykin/nexbot/internal/agent/loop"
 	"github.com/aatumaykin/nexbot/internal/bus"
@@ -76,6 +77,40 @@ func (a *App) Initialize(ctx context.Context) error {
 	}
 	if err := ws.EnsureSubpath("sessions"); err != nil {
 		return fmt.Errorf("failed to create sessions subdirectory: %w", err)
+	}
+
+	// 4.1. Create HEARTBEAT.md bootstrap if it doesn't exist
+	heartbeatPath := ws.Subpath("HEARTBEAT.md")
+	if _, err := os.Stat(heartbeatPath); os.IsNotExist(err) {
+		a.logger.Info("Creating HEARTBEAT.md bootstrap",
+			logger.Field{Key: "path", Value: heartbeatPath})
+
+		heartbeatContent := `# HEARTBEAT - Задачи и отправка
+
+Этот файл читается каждые 10 минут.
+
+## Как использовать
+
+### Для LLM
+
+1. Читай секцию "Задачи"
+2. Проверяй время выполнения
+3. Если пора выполнить:
+   - Выполни задачу (используй доступные tools: read_file, write_file, send_message)
+   - Если нужно отправить сообщение — используй send_message tool
+   - Если нужно обновить HEARTBEAT.md — используй write_file tool
+4. Если ничего — верни "HEARTBEAT_OK"
+
+## Задачи
+
+---
+
+Добавляй задачи сюда.
+`
+		if err := os.WriteFile(heartbeatPath, []byte(heartbeatContent), 0644); err != nil {
+			return fmt.Errorf("failed to create HEARTBEAT.md: %w", err)
+		}
+		a.logger.Info("HEARTBEAT.md created")
 	}
 
 	// 4.1. Initialize worker pool
