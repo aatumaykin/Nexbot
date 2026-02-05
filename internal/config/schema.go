@@ -28,6 +28,7 @@ type Config struct {
 	Channels   ChannelsConfig   `toml:"channels"`
 	Tools      ToolsConfig      `toml:"tools"`
 	Cron       CronConfig       `toml:"cron"`
+	Heartbeat  HeartbeatConfig  `toml:"heartbeat"`
 	Workers    WorkersConfig    `toml:"workers"`
 	Subagent   SubagentConfig   `toml:"subagent"`
 	MessageBus MessageBusConfig `toml:"message_bus"`
@@ -145,4 +146,11 @@ type SubagentConfig struct {
 // MessageBusConfig представляет конфигурацию message bus
 type MessageBusConfig struct {
 	Capacity int `toml:"capacity"`
+}
+
+// HeartbeatConfig представляет конфигурацию HEARTBEAT loader (v0.2)
+type HeartbeatConfig struct {
+	Enabled       bool   `toml:"enabled"`
+	HeartbeatFile string `toml:"heartbeat_file"`
+	CheckInterval string `toml:"check_interval"`
 }

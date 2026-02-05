@@ -15,6 +15,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/channels/telegram"
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/cron"
+	"github.com/aatumaykin/nexbot/internal/heartbeat"
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/tools"
@@ -166,6 +167,44 @@ func serveHandler(cmd *cobra.Command, args []string) {
 	if err := ws.EnsureSubpath("sessions"); err != nil {
 		log.Error("Failed to create sessions directory", err)
 		os.Exit(1)
+	}
+
+	// Load HEARTBEAT tasks if enabled
+	var heartbeatLoader *heartbeat.Loader
+	if cfg.Heartbeat.Enabled {
+		log.Info("💓 Loading HEARTBEAT tasks")
+		heartbeatLoader = heartbeat.NewLoader(ws.Path(), log)
+
+		tasks, err := heartbeatLoader.Load()
+		if err != nil {
+			log.WarnCtx(ctx, "Failed to load HEARTBEAT tasks", logger.Field{Key: "error", Value: err})
+		} else {
+			log.InfoCtx(ctx, "Loaded HEARTBEAT tasks",
+				logger.Field{Key: "count", Value: len(tasks)})
+
+			// Add HEARTBEAT tasks to cron scheduler
+			if cronScheduler != nil {
+				for _, task := range tasks {
+					job := cron.Job{
+						ID:       task.Name,
+						Schedule: task.Schedule,
+						Command:  task.Task,
+						Metadata: map[string]string{
+							"type": "heartbeat",
+							"task": task.Name,
+						},
+					}
+					if _, err := cronScheduler.AddJob(job); err != nil {
+						log.WarnCtx(ctx, "Failed to add HEARTBEAT task to cron",
+							logger.Field{Key: "error", Value: err},
+							logger.Field{Key: "task", Value: task.Name})
+					}
+				}
+				log.InfoCtx(ctx, "HEARTBEAT tasks added to cron scheduler")
+			} else {
+				log.Warn("Cron scheduler is not enabled, HEARTBEAT tasks will not be scheduled")
+			}
+		}
 	}
 
 	// Initialize agent loop
@@ -410,6 +449,11 @@ func serveHandler(cmd *cobra.Command, args []string) {
 		if err := cronScheduler.Stop(); err != nil {
 			log.Error("Failed to stop cron scheduler", err)
 		}
+	}
+
+	// Stop HEARTBEAT loader if enabled
+	if heartbeatLoader != nil {
+		log.Info("🛑 HEARTBEAT loader stopped")
 	}
 
 	// Stop worker pool

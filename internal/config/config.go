@@ -252,6 +252,14 @@ func applyDefaults(c *Config) {
 		c.Cron.JobsFile = "jobs.json"
 	}
 
+	// Heartbeat defaults
+	if c.Heartbeat.HeartbeatFile == "" {
+		c.Heartbeat.HeartbeatFile = "HEARTBEAT.md"
+	}
+	if c.Heartbeat.CheckInterval == "" {
+		c.Heartbeat.CheckInterval = "*/5 * * * *"
+	}
+
 	// Workers defaults
 	if c.Workers.PoolSize == 0 {
 		c.Workers.PoolSize = 5
