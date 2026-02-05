@@ -68,8 +68,9 @@ type Scheduler struct {
 	cron       *cron.Cron
 	logger     *logger.Logger
 	bus        *bus.MessageBus
-	workerPool WorkerPool // Worker pool for async task execution
-	storage    *Storage   // Persistent storage for jobs
+	workerPool WorkerPool   // Worker pool for async task execution
+	storage    *Storage     // Persistent storage for jobs
+	ticker     *time.Ticker // Ticker for oneshot job checking
 	ctx        context.Context
 	cancel     context.CancelFunc
 	started    bool
@@ -111,10 +112,16 @@ func (s *Scheduler) Start(ctx context.Context) error {
 	s.cron.Start()
 	s.logger.Info("cron scheduler started")
 
+	// Start oneshot ticker
+	s.oneshotTicker()
+
 	// Wait for context cancellation
 	go func() {
 		<-s.ctx.Done()
 		s.cron.Stop()
+		if s.ticker != nil {
+			s.ticker.Stop()
+		}
 		s.logger.Info("cron scheduler stopped")
 	}()
 
@@ -334,4 +341,78 @@ func (s *Scheduler) deleteJob(jobID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.jobs, jobID)
+}
+
+// oneshotTicker starts a ticker that checks for oneshot jobs every minute.
+func (s *Scheduler) oneshotTicker() {
+	s.ticker = time.NewTicker(1 * time.Minute)
+	go func() {
+		for {
+			select {
+			case <-s.ctx.Done():
+				return
+			case <-s.ticker.C:
+				s.checkAndExecuteOneshots(time.Now())
+			}
+		}
+	}()
+}
+
+// checkAndExecuteOneshots checks for and executes overdue oneshot jobs.
+// It loads all jobs from storage and executes those that are overdue.
+func (s *Scheduler) checkAndExecuteOneshots(now time.Time) {
+	// Load all jobs from storage
+	storageJobs, err := s.storage.Load()
+	if err != nil {
+		s.logger.Error("failed to load jobs for oneshot check", err)
+		return
+	}
+
+	updated := false
+	for _, storageJob := range storageJobs {
+		// Only check oneshot jobs
+		if storageJob.Type != string(JobTypeOneshot) {
+			continue
+		}
+
+		// Check if job should execute now
+		if storageJob.ExecuteAt == nil {
+			s.logger.Warn("oneshot job has no execute_at", logger.Field{Key: "job_id", Value: storageJob.ID})
+			continue
+		}
+
+		if storageJob.ExecuteAt.After(now) || storageJob.Executed {
+			continue
+		}
+
+		// Mark as executed and update
+		storageJob.Executed = true
+		storageJob.ExecutedAt = &now
+		updated = true
+
+		// Submit job to worker pool
+		job := Job{
+			ID:         storageJob.ID,
+			Type:       JobType(storageJob.Type),
+			Schedule:   storageJob.Schedule,
+			ExecuteAt:  storageJob.ExecuteAt,
+			Command:    storageJob.Command,
+			UserID:     storageJob.UserID,
+			Metadata:   storageJob.Metadata,
+			Executed:   storageJob.Executed,
+			ExecutedAt: storageJob.ExecutedAt,
+		}
+		s.executeJob(job)
+
+		s.logger.Info("executed oneshot job",
+			logger.Field{Key: "job_id", Value: storageJob.ID},
+			logger.Field{Key: "execute_at", Value: storageJob.ExecuteAt})
+	}
+
+	// Save updated jobs to storage
+	if updated {
+		if err := s.storage.Save(storageJobs); err != nil {
+			s.logger.Error("failed to save jobs after oneshot execution", err)
+		}
+	}
 }
