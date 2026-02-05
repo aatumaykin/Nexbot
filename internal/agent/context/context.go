@@ -9,6 +9,7 @@ import (
 
 	"github.com/aatumaykin/nexbot/internal/heartbeat"
 	"github.com/aatumaykin/nexbot/internal/llm"
+	"github.com/aatumaykin/nexbot/internal/workspace"
 )
 
 // Context defines the structure for context components.
@@ -50,7 +51,7 @@ func (b *Builder) Build() (string, error) {
 	var builder strings.Builder
 
 	// 1. IDENTITY - Core identity and purpose
-	identity, err := b.readFile("IDENTITY.md")
+	identity, err := b.readFile(workspace.BootstrapIdentity)
 	if err != nil && !os.IsNotExist(err) {
 		return "", fmt.Errorf("failed to read IDENTITY.md: %w", err)
 	}
@@ -64,7 +65,7 @@ func (b *Builder) Build() (string, error) {
 	}
 
 	// 2. AGENTS - Agent instructions and behavior
-	agents, err := b.readFile("AGENTS.md")
+	agents, err := b.readFile(workspace.BootstrapAgents)
 	if err != nil && !os.IsNotExist(err) {
 		return "", fmt.Errorf("failed to read AGENTS.md: %w", err)
 	}
@@ -78,7 +79,7 @@ func (b *Builder) Build() (string, error) {
 	}
 
 	// 3. SOUL - Personality and tone
-	soul, err := b.readFile("SOUL.md")
+	soul, err := b.readFile(workspace.BootstrapSoul)
 	if err != nil && !os.IsNotExist(err) {
 		return "", fmt.Errorf("failed to read SOUL.md: %w", err)
 	}
@@ -92,7 +93,7 @@ func (b *Builder) Build() (string, error) {
 	}
 
 	// 4. USER - User profile and preferences
-	user, err := b.readFile("USER.md")
+	user, err := b.readFile(workspace.BootstrapUser)
 	if err != nil && !os.IsNotExist(err) {
 		return "", fmt.Errorf("failed to read USER.md: %w", err)
 	}
@@ -106,7 +107,7 @@ func (b *Builder) Build() (string, error) {
 	}
 
 	// 5. TOOLS - Available tools and operations
-	tools, err := b.readFile("TOOLS.md")
+	tools, err := b.readFile(workspace.BootstrapTools)
 	if err != nil && !os.IsNotExist(err) {
 		return "", fmt.Errorf("failed to read TOOLS.md: %w", err)
 	}
@@ -272,8 +273,16 @@ func (b *Builder) GetWorkspace() string {
 // GetComponent returns a specific context component by name.
 func (b *Builder) GetComponent(name string) (string, error) {
 	switch name {
-	case "IDENTITY", "AGENTS", "SOUL", "USER", "TOOLS":
-		return b.readFile(name + ".md")
+	case "IDENTITY":
+		return b.readFile(workspace.BootstrapIdentity)
+	case "AGENTS":
+		return b.readFile(workspace.BootstrapAgents)
+	case "SOUL":
+		return b.readFile(workspace.BootstrapSoul)
+	case "USER":
+		return b.readFile(workspace.BootstrapUser)
+	case "TOOLS":
+		return b.readFile(workspace.BootstrapTools)
 	default:
 		return "", fmt.Errorf("unknown component: %s", name)
 	}
@@ -282,7 +291,7 @@ func (b *Builder) GetComponent(name string) (string, error) {
 // buildHeartbeatContext builds heartbeat context from HEARTBEAT.md file.
 func (b *Builder) buildHeartbeatContext() (string, error) {
 	// Read HEARTBEAT.md file
-	heartbeatFile, err := b.readFile("HEARTBEAT.md")
+	heartbeatFile, err := b.readFile(workspace.BootstrapHeartbeat)
 	if err != nil && !os.IsNotExist(err) {
 		return "", fmt.Errorf("failed to read HEARTBEAT.md: %w", err)
 	}
