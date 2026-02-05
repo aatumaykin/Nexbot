@@ -131,35 +131,74 @@ func (t *ShellExecTool) validateCommand(command string) error {
 		return fmt.Errorf("no commands are whitelisted in configuration")
 	}
 
-	// Extract the base command (first word before any arguments)
+	// Check if the command matches any allowed pattern
+	for _, allowed := range t.cfg.Tools.Shell.AllowedCommands {
+		if t.matchPattern(command, allowed) {
+			return nil
+		}
+	}
+
+	// Extract base command for error message
 	parts := strings.Fields(command)
 	if len(parts) == 0 {
 		return fmt.Errorf("command is empty")
 	}
-
 	baseCommand := parts[0]
-
-	// Check if the base command is in the whitelist
-	for _, allowed := range t.cfg.Tools.Shell.AllowedCommands {
-		// Wildcard: allow all commands
-		if allowed == "*" {
-			return nil
-		}
-
-		// Exact match
-		if baseCommand == allowed {
-			return nil
-		}
-
-		// Check if whitelist entry is a path to the command
-		if strings.Contains(allowed, baseCommand) {
-			return nil
-		}
-	}
 
 	// Command not in whitelist
 	return fmt.Errorf("command '%s' is not in the allowed commands whitelist: %v",
 		baseCommand, t.cfg.Tools.Shell.AllowedCommands)
+}
+
+// matchPattern checks if a command matches a given pattern.
+// Pattern types:
+//   - Exact match: "echo hello" matches "echo hello"
+//   - Base command: "echo hello" matches "echo"
+//   - Wildcard with one *: "git status" matches "git *"
+//   - Full wildcard: "echo hello" matches "*"
+func (t *ShellExecTool) matchPattern(command, pattern string) bool {
+	// Trim whitespace
+	command = strings.TrimSpace(command)
+	pattern = strings.TrimSpace(pattern)
+
+	// Full wildcard: allow all commands
+	if pattern == "*" {
+		return true
+	}
+
+	// Both empty is not a match
+	if command == "" && pattern == "" {
+		return false
+	}
+
+	// Exact match
+	if command == pattern {
+		return true
+	}
+
+	// Base command match: pattern contains only the command name
+	parts := strings.Fields(command)
+	if len(parts) == 0 {
+		return false
+	}
+	baseCommand := parts[0]
+	if pattern == baseCommand {
+		return true
+	}
+
+	// Wildcard with one *: e.g., "git *" matches "git status"
+	if strings.HasSuffix(pattern, "*") {
+		prefix := strings.TrimSuffix(pattern, "*")
+		prefix = strings.TrimSpace(prefix)
+		// Command must start with the prefix
+		if prefix != "" && strings.HasPrefix(command, prefix) {
+			// Ensure the prefix is followed by whitespace or nothing
+			remaining := strings.TrimPrefix(command, prefix)
+			return remaining == "" || strings.HasPrefix(remaining, " ")
+		}
+	}
+
+	return false
 }
 
 // executeCommand executes a shell command and returns its combined stdout/stderr.
