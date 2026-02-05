@@ -293,8 +293,3 @@ func generateSessionID(jobID string) string {
 func (s *Scheduler) GenerateJobID() string {
 	return generateJobID()
 }
-
-// GenerateJobID генерирует уникальный ID для job (пакетная функция)
-func GenerateJobID() string {
-	return fmt.Sprintf("job_%d", time.Now().UnixNano())
-}

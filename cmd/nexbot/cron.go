@@ -1,12 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 
+	"github.com/aatumaykin/nexbot/internal/constants"
 	"github.com/aatumaykin/nexbot/internal/cron"
 )
 
@@ -40,24 +40,19 @@ func runCronAdd(cmd *cobra.Command, args []string) {
 	command := args[1]
 
 	// Load existing jobs
-	jobs, err := loadJobs()
+	jobs, err := cron.LoadJobs(constants.DefaultWorkDir)
 	if err != nil && !os.IsNotExist(err) {
-		fmt.Fprintf(os.Stderr, "Error loading jobs: %v\n", err)
+		fmt.Fprintf(os.Stderr, constants.MsgErrorLoadingJobs, err)
 		os.Exit(1)
 	}
 
 	// Create new job
 	job := cron.Job{
-		ID:       generateJobID(),
+		ID:       cron.GenerateJobID(),
 		Schedule: schedule,
 		Command:  command,
-		UserID:   "cli", // Jobs from CLI are system jobs
+		UserID:   constants.CronDefaultUserID,
 	}
-
-	// Validate cron expression
-	// Note: We don't use cron.New here as it would require full scheduler initialization
-	// Instead, we'll rely on the scheduler to validate when the job is added
-	// For CLI, we can do basic validation of the expression format
 
 	// Add to jobs map
 	if jobs == nil {
@@ -66,72 +61,71 @@ func runCronAdd(cmd *cobra.Command, args []string) {
 	jobs[job.ID] = job
 
 	// Save jobs
-	if err := saveJobs(jobs); err != nil {
-		fmt.Fprintf(os.Stderr, "Error saving job: %v\n", err)
+	if err := cron.SaveJobs(constants.DefaultWorkDir, jobs); err != nil {
+		fmt.Fprintf(os.Stderr, constants.MsgErrorSavingJobs, err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("✅ Job added successfully\n")
-	fmt.Printf("   ID:       %s\n", job.ID)
-	fmt.Printf("   Schedule: %s\n", schedule)
-	fmt.Printf("   Command:  %s\n", command)
-	fmt.Printf("\nNote: Start 'nexbot serve' to activate this job\n")
+	fmt.Printf(constants.MsgJobAdded)
+	fmt.Printf(constants.MsgJobID, job.ID)
+	fmt.Printf(constants.MsgJobSchedule, schedule)
+	fmt.Printf(constants.MsgJobCommand, command)
+	fmt.Printf(constants.MsgJobRemoveNote)
 }
 
 func runCronList(cmd *cobra.Command, args []string) {
 	// Load jobs
-	jobs, err := loadJobs()
+	jobs, err := cron.LoadJobs(constants.DefaultWorkDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Println("No scheduled tasks found.")
+			fmt.Print(constants.MsgJobsNotFound)
 			return
 		}
-		fmt.Fprintf(os.Stderr, "Error loading jobs: %v\n", err)
+		fmt.Fprintf(os.Stderr, constants.MsgErrorLoadingJobs, err)
 		os.Exit(1)
 	}
 
 	if len(jobs) == 0 {
-		fmt.Println("No scheduled tasks found.")
+		fmt.Print(constants.MsgJobsNotFound)
 		return
 	}
 
 	// Print jobs
-	fmt.Println("Scheduled Tasks:")
-	fmt.Println("-----------------")
+	fmt.Print(constants.MsgJobsListHeader)
 	for _, job := range jobs {
-		fmt.Printf("ID:       %s\n", job.ID)
-		fmt.Printf("Schedule: %s\n", job.Schedule)
-		fmt.Printf("Command:  %s\n", job.Command)
+		fmt.Printf(constants.MsgJobID, job.ID)
+		fmt.Printf(constants.MsgJobSchedule, job.Schedule)
+		fmt.Printf(constants.MsgJobCommand, job.Command)
 		if len(job.Metadata) > 0 {
-			fmt.Print("Metadata: ")
+			fmt.Print(constants.MsgJobsMetadata)
 			for k, v := range job.Metadata {
 				fmt.Printf("%s=%s ", k, v)
 			}
 			fmt.Println()
 		}
-		fmt.Println("-----------------")
+		fmt.Printf(constants.MsgJobsListSep)
 	}
-	fmt.Printf("Total: %d job(s)\n", len(jobs))
+	fmt.Printf(constants.MsgJobsTotal, len(jobs))
 }
 
 func runCronRemove(cmd *cobra.Command, args []string) {
 	jobID := args[0]
 
 	// Load jobs
-	jobs, err := loadJobs()
+	jobs, err := cron.LoadJobs(constants.DefaultWorkDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Fprintf(os.Stderr, "Error: No jobs found\n")
+			fmt.Fprintf(os.Stderr, constants.MsgErrorNoJobsFound)
 			os.Exit(1)
 		}
-		fmt.Fprintf(os.Stderr, "Error loading jobs: %v\n", err)
+		fmt.Fprintf(os.Stderr, constants.MsgErrorLoadingJobs, err)
 		os.Exit(1)
 	}
 
 	// Check if job exists
 	if _, exists := jobs[jobID]; !exists {
-		fmt.Fprintf(os.Stderr, "Error: Job '%s' not found\n", jobID)
-		fmt.Printf("Use 'nexbot cron list' to see all jobs\n")
+		fmt.Fprintf(os.Stderr, constants.MsgErrorJobNotFound, jobID)
+		fmt.Printf(constants.MsgJobNotFoundHint)
 		os.Exit(1)
 	}
 
@@ -139,65 +133,12 @@ func runCronRemove(cmd *cobra.Command, args []string) {
 	delete(jobs, jobID)
 
 	// Save jobs
-	if err := saveJobs(jobs); err != nil {
-		fmt.Fprintf(os.Stderr, "Error saving jobs: %v\n", err)
+	if err := cron.SaveJobs(constants.DefaultWorkDir, jobs); err != nil {
+		fmt.Fprintf(os.Stderr, constants.MsgErrorSavingJobs, err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("✅ Job '%s' removed successfully\n", jobID)
-}
-
-// loadJobs loads jobs from workspace/jobs.json
-func loadJobs() (map[string]cron.Job, error) {
-	configPath, err := getConfigPath()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get config path: %w", err)
-	}
-
-	jobsPath := configPath + "/jobs.json"
-	data, err := os.ReadFile(jobsPath)
-	if err != nil {
-		return nil, err
-	}
-
-	var jobs map[string]cron.Job
-	if err := json.Unmarshal(data, &jobs); err != nil {
-		return nil, fmt.Errorf("failed to parse jobs file: %w", err)
-	}
-
-	return jobs, nil
-}
-
-// saveJobs saves jobs to workspace/jobs.json
-func saveJobs(jobs map[string]cron.Job) error {
-	configPath, err := getConfigPath()
-	if err != nil {
-		return fmt.Errorf("failed to get config path: %w", err)
-	}
-
-	jobsPath := configPath + "/jobs.json"
-	data, err := json.MarshalIndent(jobs, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal jobs: %w", err)
-	}
-
-	if err := os.WriteFile(jobsPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write jobs file: %w", err)
-	}
-
-	return nil
-}
-
-// getConfigPath returns the config directory path (parent of config file)
-func getConfigPath() (string, error) {
-	// For now, use current directory
-	// TODO: Make this configurable via config file or flag
-	return ".", nil
-}
-
-// generateJobID generates a unique job ID
-func generateJobID() string {
-	return fmt.Sprintf("job_%d", os.Getpid())
+	fmt.Printf(constants.MsgJobRemoved, jobID)
 }
 
 func init() {

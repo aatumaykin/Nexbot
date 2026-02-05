@@ -135,7 +135,7 @@ func TestCronRemove(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify job exists before removal
-	jobs, _ := loadJobs()
+	jobs, _ := cron.LoadJobs(tempDir)
 	_, exists := jobs["job_1"]
 	assert.True(t, exists)
 
@@ -147,7 +147,7 @@ func TestCronRemove(t *testing.T) {
 	runCronRemove(cmd, []string{"job_1"}) // Pass just job ID
 
 	// Verify job was removed
-	jobs, _ = loadJobs()
+	jobs, _ = cron.LoadJobs(tempDir)
 	_, exists = jobs["job_1"]
 	assert.False(t, exists)
 }
@@ -169,7 +169,7 @@ func TestCronRemoveNonExistent(t *testing.T) {
 	require.NoError(t, err)
 
 	// Load jobs to verify
-	jobs, _ := loadJobs()
+	jobs, _ := cron.LoadJobs(tempDir)
 	assert.NotNil(t, jobs)
 
 	// Try to remove non-existent job - this will call os.Exit
@@ -190,12 +190,12 @@ func TestLoadJobsNoFile(t *testing.T) {
 	_ = os.Chdir(tempDir)
 
 	// Load jobs when no file exists
-	jobs, err := loadJobs()
+	jobs, err := cron.LoadJobs(tempDir)
 
-	// Should return nil and IsNotExist error
-	assert.Error(t, err)
-	assert.True(t, os.IsNotExist(err))
-	assert.Nil(t, jobs)
+	// Should return empty map and no error
+	assert.NoError(t, err)
+	assert.NotNil(t, jobs)
+	assert.Empty(t, jobs)
 }
 
 func TestLoadJobsWithFile(t *testing.T) {
@@ -223,7 +223,7 @@ func TestLoadJobsWithFile(t *testing.T) {
 	require.NoError(t, err)
 
 	// Load jobs
-	jobs, err := loadJobs()
+	jobs, err := cron.LoadJobs(tempDir)
 
 	require.NoError(t, err)
 	require.NotNil(t, jobs)
@@ -257,7 +257,7 @@ func TestSaveJobs(t *testing.T) {
 	}
 
 	// Save jobs
-	err := saveJobs(jobs)
+	err := cron.SaveJobs(tempDir, jobs)
 	require.NoError(t, err)
 
 	// Verify file was created
@@ -272,8 +272,8 @@ func TestSaveJobs(t *testing.T) {
 
 func TestGenerateJobID(t *testing.T) {
 	// Generate job IDs
-	id1 := generateJobID()
-	id2 := generateJobID()
+	id1 := cron.GenerateJobID()
+	id2 := cron.GenerateJobID()
 
 	// IDs should be different (process IDs are recycled, but in tests they're often the same)
 	// So we'll just check format
@@ -330,11 +330,11 @@ func TestCronJobPersistence(t *testing.T) {
 		},
 	}
 
-	err = saveJobs(jobs)
+	err = cron.SaveJobs(tempDir, jobs)
 	require.NoError(t, err)
 
 	// Load jobs to verify they were saved
-	savedJobs, err := loadJobs()
+	savedJobs, err := cron.LoadJobs(tempDir)
 	require.NoError(t, err)
 	assert.Len(t, savedJobs, 2)
 
@@ -354,7 +354,7 @@ func TestCronJobPersistence(t *testing.T) {
 	}
 
 	// Load jobs again - they should still be there
-	reloadedJobs, err := loadJobs()
+	reloadedJobs, err := cron.LoadJobs(tempDir)
 	require.NoError(t, err)
 	assert.Len(t, reloadedJobs, 2)
 
@@ -422,7 +422,7 @@ func TestCronExecutionWithMock(t *testing.T) {
 
 	// Save job to persistent storage
 	jobs := map[string]cron.Job{job.ID: job}
-	err = saveJobs(jobs)
+	err = cron.SaveJobs(tempDir, jobs)
 	require.NoError(t, err)
 
 	// Add job to scheduler
@@ -464,7 +464,7 @@ func TestCronAddCommandWithInvalidSchedule(t *testing.T) {
 	// This test verifies that we can add a job with any schedule string to storage
 	// The actual validation happens when the scheduler loads and tries to use it
 	jobs := map[string]cron.Job{}
-	err := saveJobs(jobs)
+	err := cron.SaveJobs(tempDir, jobs)
 	require.NoError(t, err)
 
 	// Try to add job with invalid schedule (this will save to storage but fail in scheduler)
@@ -484,7 +484,7 @@ func TestCronAddCommandWithInvalidSchedule(t *testing.T) {
 	require.NoError(t, err)
 
 	// Load and verify job was saved
-	loadedJobs, err := loadJobs()
+	loadedJobs, err := cron.LoadJobs(tempDir)
 	require.NoError(t, err)
 	assert.Greater(t, len(loadedJobs), 0)
 }
@@ -626,7 +626,7 @@ func TestCronRemoveCommandOutput(t *testing.T) {
 	assert.Contains(t, output, "✅ Job 'job_1' removed successfully")
 
 	// Verify job was removed
-	jobs, _ := loadJobs()
+	jobs, _ := cron.LoadJobs(tempDir)
 	_, exists := jobs["job_1"]
 	assert.False(t, exists)
 }
@@ -653,11 +653,11 @@ func TestCronCommandsIntegration(t *testing.T) {
 		},
 	}
 
-	err := saveJobs(jobs)
+	err := cron.SaveJobs(tempDir, jobs)
 	require.NoError(t, err)
 
 	// Verify job was saved
-	jobs, err = loadJobs()
+	jobs, err = cron.LoadJobs(tempDir)
 	require.NoError(t, err)
 	assert.Len(t, jobs, 1)
 
@@ -669,16 +669,16 @@ func TestCronCommandsIntegration(t *testing.T) {
 		UserID:   "cli",
 	}
 
-	err = saveJobs(jobs)
+	err = cron.SaveJobs(tempDir, jobs)
 	require.NoError(t, err)
 
 	// Verify both jobs exist
-	jobs, err = loadJobs()
+	jobs, err = cron.LoadJobs(tempDir)
 	require.NoError(t, err)
 	assert.Len(t, jobs, 2)
 
 	// 3. Remove first job
-	err = saveJobs(map[string]cron.Job{
+	err = cron.SaveJobs(tempDir, map[string]cron.Job{
 		"integration-job-2": {
 			ID:       "integration-job-2",
 			Schedule: "*/5 * * * *",
@@ -689,7 +689,7 @@ func TestCronCommandsIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	// 4. Verify only one job remains
-	jobs, err = loadJobs()
+	jobs, err = cron.LoadJobs(tempDir)
 	require.NoError(t, err)
 	assert.Len(t, jobs, 1)
 	assert.Equal(t, "integration-job-2", jobs["integration-job-2"].ID)
@@ -729,7 +729,7 @@ func TestMultipleConcurrentCLIOperations(t *testing.T) {
 			defer mu.Unlock()
 
 			// Load existing jobs
-			jobs, err := loadJobs()
+			jobs, err := cron.LoadJobs(tempDir)
 			if err != nil && !os.IsNotExist(err) {
 				return
 			}
@@ -742,7 +742,7 @@ func TestMultipleConcurrentCLIOperations(t *testing.T) {
 			jobs[jobID] = job
 
 			// Save jobs
-			_ = saveJobs(jobs)
+			_ = cron.SaveJobs(tempDir, jobs)
 		}(i)
 	}
 
@@ -752,7 +752,7 @@ func TestMultipleConcurrentCLIOperations(t *testing.T) {
 	}
 
 	// Verify all jobs were saved
-	jobs, err := loadJobs()
+	jobs, err := cron.LoadJobs(tempDir)
 	require.NoError(t, err)
 	assert.Len(t, jobs, numGoroutines)
 
