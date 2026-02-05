@@ -21,6 +21,7 @@ func TestNewBuilder(t *testing.T) {
 
 		if builder == nil {
 			t.Error("NewBuilder() returned nil builder")
+			return
 		}
 
 		if builder.workspace != tmpDir {

@@ -324,32 +324,6 @@ func (s *Scheduler) GenerateJobID() string {
 	return generateJobID()
 }
 
-// getJob retrieves a job from the in-memory registry by ID.
-// Returns the job and true if found, empty job and false otherwise.
-// This method is thread-safe.
-func (s *Scheduler) getJob(jobID string) (Job, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	job, exists := s.jobs[jobID]
-	return job, exists
-}
-
-// setJob stores or updates a job in the in-memory registry.
-// This method is thread-safe.
-func (s *Scheduler) setJob(jobID string, job Job) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.jobs[jobID] = job
-}
-
-// deleteJob removes a job from the in-memory registry.
-// This method is thread-safe.
-func (s *Scheduler) deleteJob(jobID string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	delete(s.jobs, jobID)
-}
-
 // oneshotTicker starts a ticker that checks for oneshot jobs every minute.
 func (s *Scheduler) oneshotTicker() {
 	s.ticker = time.NewTicker(1 * time.Minute)

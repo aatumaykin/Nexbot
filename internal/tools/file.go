@@ -315,8 +315,6 @@ func (t *WriteFileTool) Execute(args string) (string, error) {
 		if strings.Contains(cleanPath, "..") {
 			return "", fmt.Errorf("path contains directory traversal attempt")
 		}
-	} else {
-		// For relative paths, workspace.ResolvePath already validates this
 	}
 
 	// Create parent directories if they don't exist

@@ -40,9 +40,7 @@ func NewBuilder(config Config) (*Builder, error) {
 
 	return &Builder{
 		workspace: config.Workspace,
-		context: Context{
-			Workspace: config.Workspace,
-		},
+		context:   Context(config),
 	}, nil
 }
 

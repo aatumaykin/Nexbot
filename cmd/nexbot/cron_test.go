@@ -304,10 +304,12 @@ func TestCronJobPersistence(t *testing.T) {
 	msgBus := bus.New(100, log)
 	err = msgBus.Start(context.Background())
 	require.NoError(t, err)
-	defer msgBus.Stop()
+	t.Cleanup(func() {
+		require.NoError(t, msgBus.Stop())
+	})
 
 	// Create and start first scheduler instance
-	scheduler1 := cron.NewScheduler(log, msgBus, nil)
+	scheduler1 := cron.NewScheduler(log, msgBus, nil, nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -343,7 +345,7 @@ func TestCronJobPersistence(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create second scheduler instance (simulate restart)
-	scheduler2 := cron.NewScheduler(log, msgBus, nil)
+	scheduler2 := cron.NewScheduler(log, msgBus, nil, nil)
 	ctx2, cancel2 := context.WithCancel(context.Background())
 	defer cancel2()
 
@@ -391,10 +393,12 @@ func TestCronExecutionWithMock(t *testing.T) {
 	msgBus := bus.New(100, log)
 	err = msgBus.Start(context.Background())
 	require.NoError(t, err)
-	defer msgBus.Stop()
+	t.Cleanup(func() {
+		require.NoError(t, msgBus.Stop())
+	})
 
 	// Create scheduler
-	scheduler := cron.NewScheduler(log, msgBus, nil)
+	scheduler := cron.NewScheduler(log, msgBus, nil, nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

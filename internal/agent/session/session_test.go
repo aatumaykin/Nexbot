@@ -557,23 +557,22 @@ func TestConcurrentOperations(t *testing.T) {
 		}
 
 		// Concurrently append messages
-		done := make(chan bool, 10)
+		errChan := make(chan error, 10)
 		for i := 0; i < 10; i++ {
 			go func(idx int) {
 				msg := llm.Message{
 					Role:    llm.RoleUser,
 					Content: fmt.Sprintf("Message %d", idx),
 				}
-				if err := session.Append(msg); err != nil {
-					t.Fatal(err)
-				}
-				done <- true
+				errChan <- session.Append(msg)
 			}(i)
 		}
 
-		// Wait for all goroutines
+		// Wait for all goroutines and check errors
 		for i := 0; i < 10; i++ {
-			<-done
+			if err := <-errChan; err != nil {
+				t.Fatalf("Append() error = %v", err)
+			}
 		}
 
 		// Verify all messages were added

@@ -446,9 +446,7 @@ category: docker
 	if err := os.WriteFile(filepath.Join(gitDir, "SKILL.md"), []byte(gitContent), 0644); err != nil {
 		t.Fatalf("Failed to write git skill: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(gitDir, "git-status.md"), []byte(gitStatusContent), 0644); err != nil {
-		// Not a SKILL.md file, should be ignored
-	}
+	_ = os.WriteFile(filepath.Join(gitDir, "git-status.md"), []byte(gitStatusContent), 0644)
 	if err := os.WriteFile(filepath.Join(dockerDir, "SKILL.md"), []byte(dockerContent), 0644); err != nil {
 		t.Fatalf("Failed to write docker skill: %v", err)
 	}
@@ -855,25 +853,4 @@ description: Test skill
 	if len(skills) != 1 {
 		t.Errorf("Expected 1 skill after reload, got %d", len(skills))
 	}
-}
-
-// fakeWorkspace is a minimal implementation for testing
-type fakeWorkspace struct {
-	subpath string
-}
-
-func (f *fakeWorkspace) Subpath(relPath string) string {
-	return filepath.Join(f.subpath, relPath)
-}
-
-func (f *fakeWorkspace) Path() string {
-	return f.subpath
-}
-
-func (f *fakeWorkspace) ResolvePath(path string) (string, error) {
-	return filepath.Join(f.subpath, path), nil
-}
-
-func (f *fakeWorkspace) EnsureDir() error {
-	return os.MkdirAll(f.subpath, 0755)
 }

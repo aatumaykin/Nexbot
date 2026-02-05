@@ -140,16 +140,16 @@ Example usage:
 			fmt.Printf(constants.TestMsgRequestFailed, err)
 
 			// Provide friendly error messages
-			fmt.Println(constants.TestMsgPossibleCauses)
-			fmt.Println(constants.TestMsgCauseAPIKey)
-			fmt.Println(constants.TestMsgCauseNetwork)
-			fmt.Println(constants.TestMsgCauseUnavail)
-			fmt.Println(constants.TestMsgCauseRateLimit)
-			fmt.Println(constants.TestMsgTroubleshooting)
-			fmt.Println(constants.TestMsgStepVerifyAPIKey)
-			fmt.Println(constants.TestMsgCheckConnection)
-			fmt.Println(constants.TestMsgTryAgain)
-			fmt.Println(constants.TestMsgCheckStatus)
+			fmt.Print(constants.TestMsgPossibleCauses)
+			fmt.Print(constants.TestMsgCauseAPIKey)
+			fmt.Print(constants.TestMsgCauseNetwork)
+			fmt.Print(constants.TestMsgCauseUnavail)
+			fmt.Print(constants.TestMsgCauseRateLimit)
+			fmt.Print(constants.TestMsgTroubleshooting)
+			fmt.Print(constants.TestMsgStepVerifyAPIKey)
+			fmt.Print(constants.TestMsgCheckConnection)
+			fmt.Print(constants.TestMsgTryAgain)
+			fmt.Print(constants.TestMsgCheckStatus)
 			os.Exit(1)
 		}
 

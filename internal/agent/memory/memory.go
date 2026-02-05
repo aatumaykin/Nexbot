@@ -408,7 +408,6 @@ func (s *Store) parseMarkdown(content string) []llm.Message {
 			parts := strings.Fields(trimmed)
 			if len(parts) >= 3 {
 				toolCallID := strings.TrimSuffix(parts[2], "]")
-				currentRole = llm.RoleTool
 				// Create tool message and add it immediately
 				messages = append(messages, llm.Message{
 					Role:       llm.RoleTool,

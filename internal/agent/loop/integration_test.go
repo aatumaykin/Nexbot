@@ -107,8 +107,12 @@ func TestLoopProcess_MultiMessage(t *testing.T) {
 	workspaceDir := filepath.Join(tempDir, "workspace")
 	sessionDir := filepath.Join(tempDir, "sessions")
 
-	os.MkdirAll(workspaceDir, 0755)
-	os.MkdirAll(sessionDir, 0755)
+	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
+		t.Fatalf("Failed to create workspace directory: %v", err)
+	}
+	if err := os.MkdirAll(sessionDir, 0755); err != nil {
+		t.Fatalf("Failed to create sessions directory: %v", err)
+	}
 
 	// Create mock provider with fixtures
 	responses := []string{
@@ -166,8 +170,12 @@ func TestLoopProcess_EchoMode(t *testing.T) {
 	tempDir := t.TempDir()
 	workspaceDir := filepath.Join(tempDir, "workspace")
 	sessionDir := filepath.Join(tempDir, "sessions")
-	os.MkdirAll(workspaceDir, 0755)
-	os.MkdirAll(sessionDir, 0755)
+	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
+		t.Fatalf("Failed to create workspace directory: %v", err)
+	}
+	if err := os.MkdirAll(sessionDir, 0755); err != nil {
+		t.Fatalf("Failed to create sessions directory: %v", err)
+	}
 
 	mockProvider := llm.NewEchoProvider()
 	looper, _ := NewLoop(Config{
@@ -199,8 +207,12 @@ func TestLoopProcess_ErrorHandling(t *testing.T) {
 	tempDir := t.TempDir()
 	workspaceDir := filepath.Join(tempDir, "workspace")
 	sessionDir := filepath.Join(tempDir, "sessions")
-	os.MkdirAll(workspaceDir, 0755)
-	os.MkdirAll(sessionDir, 0755)
+	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
+		t.Fatalf("Failed to create workspace directory: %v", err)
+	}
+	if err := os.MkdirAll(sessionDir, 0755); err != nil {
+		t.Fatalf("Failed to create sessions directory: %v", err)
+	}
 
 	// Create error provider
 	mockProvider := llm.NewErrorProvider()
@@ -249,8 +261,12 @@ func TestLoopProcess_ErrorAfterNCalls(t *testing.T) {
 	tempDir := t.TempDir()
 	workspaceDir := filepath.Join(tempDir, "workspace")
 	sessionDir := filepath.Join(tempDir, "sessions")
-	os.MkdirAll(workspaceDir, 0755)
-	os.MkdirAll(sessionDir, 0755)
+	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
+		t.Fatalf("Failed to create workspace directory: %v", err)
+	}
+	if err := os.MkdirAll(sessionDir, 0755); err != nil {
+		t.Fatalf("Failed to create sessions directory: %v", err)
+	}
 
 	// Create provider that fails after 2 calls
 	mockProvider := llm.NewFixedProvider("Success")
@@ -292,8 +308,12 @@ func TestLoopSessionManagement(t *testing.T) {
 	tempDir := t.TempDir()
 	workspaceDir := filepath.Join(tempDir, "workspace")
 	sessionDir := filepath.Join(tempDir, "sessions")
-	os.MkdirAll(workspaceDir, 0755)
-	os.MkdirAll(sessionDir, 0755)
+	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
+		t.Fatalf("Failed to create workspace directory: %v", err)
+	}
+	if err := os.MkdirAll(sessionDir, 0755); err != nil {
+		t.Fatalf("Failed to create sessions directory: %v", err)
+	}
 
 	mockProvider := llm.NewFixedProvider("Test response")
 	looper, _ := NewLoop(Config{
@@ -358,8 +378,12 @@ func TestLoop_NewLoop_Validation(t *testing.T) {
 	validationTempDir := t.TempDir()
 	validationWorkspaceDir := filepath.Join(validationTempDir, "workspace")
 	validationSessionDir := filepath.Join(validationTempDir, "sessions")
-	os.MkdirAll(validationWorkspaceDir, 0755)
-	os.MkdirAll(validationSessionDir, 0755)
+	if err := os.MkdirAll(validationWorkspaceDir, 0755); err != nil {
+		t.Fatalf("Failed to create validation workspace directory: %v", err)
+	}
+	if err := os.MkdirAll(validationSessionDir, 0755); err != nil {
+		t.Fatalf("Failed to create validation sessions directory: %v", err)
+	}
 
 	tests := []struct {
 		name    string
@@ -435,8 +459,12 @@ func TestLoop_GetContextBuilder(t *testing.T) {
 	tempDir := t.TempDir()
 	workspaceDir := filepath.Join(tempDir, "workspace")
 	sessionDir := filepath.Join(tempDir, "sessions")
-	os.MkdirAll(workspaceDir, 0755)
-	os.MkdirAll(sessionDir, 0755)
+	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
+		t.Fatalf("Failed to create workspace directory: %v", err)
+	}
+	if err := os.MkdirAll(sessionDir, 0755); err != nil {
+		t.Fatalf("Failed to create sessions directory: %v", err)
+	}
 
 	looper, _ := NewLoop(Config{
 		Workspace:   workspaceDir,
@@ -467,8 +495,12 @@ func TestLoop_GetSessionStatus(t *testing.T) {
 	tempDir := t.TempDir()
 	workspaceDir := filepath.Join(tempDir, "workspace")
 	sessionDir := filepath.Join(tempDir, "sessions")
-	os.MkdirAll(workspaceDir, 0755)
-	os.MkdirAll(sessionDir, 0755)
+	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
+		t.Fatalf("Failed to create workspace directory: %v", err)
+	}
+	if err := os.MkdirAll(sessionDir, 0755); err != nil {
+		t.Fatalf("Failed to create sessions directory: %v", err)
+	}
 
 	looper, _ := NewLoop(Config{
 		Workspace:   workspaceDir,

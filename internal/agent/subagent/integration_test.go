@@ -19,12 +19,11 @@ import (
 // mockAgentLoop is a mock implementation of the agent loop for testing.
 // It simulates the main agent loop that can spawn subagents.
 type mockAgentLoop struct {
-	manager   *Manager
-	toolReg   *tools.Registry
-	responses []string
-	mu        sync.Mutex
-	response  string
-	logger    *logger.Logger
+	manager  *Manager
+	toolReg  *tools.Registry
+	mu       sync.Mutex
+	response string
+	logger   *logger.Logger
 }
 
 // spawnAdapter adapts the Manager.Spawn signature to tools.SpawnFunc.
@@ -91,13 +90,6 @@ func (m *mockAgentLoop) processMessage(ctx context.Context, message string) (str
 		return m.response, nil
 	}
 	return "Mock agent response", nil
-}
-
-// setResponse sets the mock response for the agent loop.
-func (m *mockAgentLoop) setResponse(response string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.response = response
 }
 
 // containsSpawnToolCall checks if a message contains a spawn tool call.

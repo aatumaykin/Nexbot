@@ -346,7 +346,9 @@ func TestMultipleSessionsWithSameContext(t *testing.T) {
 			if err := sess2.Append(msg); err != nil {
 				t.Fatal(err)
 			}
-			memStore.Write(sessionID2, msg)
+			if err := memStore.Write(sessionID2, msg); err != nil {
+				t.Fatal(err)
+			}
 		}
 
 		// Build contexts for each session

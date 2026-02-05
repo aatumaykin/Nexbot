@@ -12,6 +12,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/mymmrac/telego"
+	"github.com/stretchr/testify/require"
 )
 
 // Suppress unused import warning for loop (used for nil argument type)
@@ -313,7 +314,9 @@ func TestConnector_handleUpdate_Success(t *testing.T) {
 		t.Fatal("Timeout waiting for inbound message")
 	}
 
-	msgBus.Stop()
+	t.Cleanup(func() {
+		require.NoError(t, msgBus.Stop())
+	})
 }
 
 // TestConnector_handleUpdate_WhitelistBlocked tests update blocking by whitelist
@@ -379,7 +382,9 @@ func TestConnector_handleUpdate_WhitelistBlocked(t *testing.T) {
 		// Expected: no message received
 	}
 
-	msgBus.Stop()
+	t.Cleanup(func() {
+		require.NoError(t, msgBus.Stop())
+	})
 }
 
 // TestConnector_Stop tests graceful shutdown
@@ -598,7 +603,9 @@ func TestConnector_handleUpdate_NewCommand(t *testing.T) {
 		t.Fatal("Timeout waiting for inbound message")
 	}
 
-	msgBus.Stop()
+	t.Cleanup(func() {
+		require.NoError(t, msgBus.Stop())
+	})
 }
 
 // TestConnector_handleUpdate_NewCommand_Unauthorized tests that /new command is blocked for unauthorized users
@@ -658,7 +665,9 @@ func TestConnector_handleUpdate_NewCommand_Unauthorized(t *testing.T) {
 		// Expected: no message received
 	}
 
-	msgBus.Stop()
+	t.Cleanup(func() {
+		require.NoError(t, msgBus.Stop())
+	})
 }
 
 // TestConnector_handleUpdate_NewCommand_ThenRegularMessage tests that regular messages work after /new command
@@ -753,7 +762,9 @@ func TestConnector_handleUpdate_NewCommand_ThenRegularMessage(t *testing.T) {
 		t.Fatal("Timeout waiting for regular message")
 	}
 
-	msgBus.Stop()
+	t.Cleanup(func() {
+		require.NoError(t, msgBus.Stop())
+	})
 }
 
 // TestConnector_handleEvents tests event handling for typing indicator

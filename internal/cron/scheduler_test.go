@@ -15,7 +15,7 @@ import (
 func TestNewScheduler(t *testing.T) {
 	log := testLogger()
 	msgBus := bus.New(100, log)
-	scheduler := NewScheduler(log, msgBus, nil)
+	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	assert.NotNil(t, scheduler)
 	assert.NotNil(t, scheduler.cron)
@@ -33,7 +33,7 @@ func TestScheduler_StartStop(t *testing.T) {
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
 
-	scheduler := NewScheduler(log, msgBus, nil)
+	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -68,7 +68,7 @@ func TestScheduler_AddJob(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus, nil)
+	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -104,7 +104,7 @@ func TestScheduler_AddJobAutoID(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus, nil)
+	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -138,7 +138,7 @@ func TestScheduler_AddJobInvalidSchedule(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus, nil)
+	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -167,7 +167,7 @@ func TestScheduler_RemoveJob(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus, nil)
+	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -210,7 +210,7 @@ func TestScheduler_ListJobs(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus, nil)
+	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -262,7 +262,7 @@ func TestScheduler_JobExecution(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus, nil)
+	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -315,7 +315,7 @@ func TestScheduler_JobExecutionWithMetadata(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus, nil)
+	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -361,7 +361,7 @@ func TestScheduler_GetJob(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus, nil)
+	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -400,7 +400,7 @@ func TestScheduler_GracefulShutdown(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus, nil)
+	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -547,7 +547,7 @@ func TestCronExpressionValidation(t *testing.T) {
 			require.NoError(t, err)
 			defer stopMessageBus(msgBus)
 
-			scheduler := NewScheduler(log, msgBus, nil)
+			scheduler := NewScheduler(log, msgBus, nil, nil)
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -589,7 +589,7 @@ func TestSchedulerDuplicateJobID(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus, nil)
+	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -642,7 +642,7 @@ func TestSchedulerRemoveNonExistentJob(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus, nil)
+	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -666,7 +666,7 @@ func TestSchedulerListWithNoJobs(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus, nil)
+	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -690,7 +690,7 @@ func TestSchedulerConcurrentAddRemove(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus, nil)
+	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -811,7 +811,7 @@ func TestSchedulerOneshotExecution(t *testing.T) {
 	job := Job{
 		ID:        "oneshot-1",
 		Type:      JobTypeOneshot,
-		Schedule:  "* * * * *",
+		Schedule:  "* * * * * *",
 		Command:   "test command",
 		UserID:    "user-1",
 		ExecuteAt: &past,
@@ -843,7 +843,7 @@ func TestSchedulerOneshotAlreadyExecuted(t *testing.T) {
 	job := Job{
 		ID:        "oneshot-2",
 		Type:      JobTypeOneshot,
-		Schedule:  "* * * * *",
+		Schedule:  "* * * * * *",
 		Command:   "test command",
 		UserID:    "user-1",
 		ExecuteAt: &past,
@@ -875,7 +875,7 @@ func TestSchedulerCleanupExecuted(t *testing.T) {
 	job1 := Job{
 		ID:        "oneshot-new",
 		Type:      JobTypeOneshot,
-		Schedule:  "* * * * *",
+		Schedule:  "* * * * * *",
 		Command:   "keep this",
 		UserID:    "user-1",
 		ExecuteAt: &past,
@@ -885,7 +885,7 @@ func TestSchedulerCleanupExecuted(t *testing.T) {
 	job2 := Job{
 		ID:         "oneshot-executed",
 		Type:       JobTypeOneshot,
-		Schedule:   "* * * * *",
+		Schedule:   "* * * * * *",
 		Command:    "remove this",
 		UserID:     "user-1",
 		ExecuteAt:  &past,
@@ -893,12 +893,10 @@ func TestSchedulerCleanupExecuted(t *testing.T) {
 		ExecutedAt: &past,
 	}
 	_, _ = scheduler.AddJob(job2)
-	jobs, err := scheduler.ListJobs()
-	require.NoError(t, err)
+	jobs := scheduler.ListJobs()
 	assert.Len(t, jobs, 2)
 	scheduler.CleanupExecutedOneshots()
-	jobs, err = scheduler.ListJobs()
-	require.NoError(t, err)
+	jobs = scheduler.ListJobs()
 	assert.Len(t, jobs, 1)
 	assert.Equal(t, "oneshot-new", jobs[0].ID)
 	assert.Equal(t, "keep this", jobs[0].Command)
@@ -908,8 +906,8 @@ func TestSchedulerCleanupExecuted(t *testing.T) {
 	assert.Equal(t, "oneshot-new", remainingJobs[0].ID)
 	err = scheduler.Stop()
 	assert.NoError(t, err)
-	_ = scheduler.AddJob(job1)
-	_ = scheduler.AddJob(job2)
+	_, _ = scheduler.AddJob(job1)
+	_, _ = scheduler.AddJob(job2)
 }
 
 func TestSchedulerStorageIntegration(t *testing.T) {
@@ -923,12 +921,14 @@ func TestSchedulerStorageIntegration(t *testing.T) {
 	defer cancel()
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
-	defer scheduler.Stop()
+	t.Cleanup(func() {
+		require.NoError(t, scheduler.Stop())
+	})
 	now := time.Now()
 	job1 := Job{
 		ID:       "recurring-1",
 		Type:     JobTypeRecurring,
-		Schedule: "* * * * *",
+		Schedule: "* * * * * *",
 		Command:  "recurring command",
 		UserID:   "user-1",
 	}
@@ -939,7 +939,7 @@ func TestSchedulerStorageIntegration(t *testing.T) {
 	job2 := Job{
 		ID:        "oneshot-1",
 		Type:      JobTypeOneshot,
-		Schedule:  "* * * * *",
+		Schedule:  "* * * * * *",
 		Command:   "oneshot command",
 		UserID:    "user-1",
 		ExecuteAt: &future,

@@ -22,8 +22,12 @@ func TestLoop_ToolCalling(t *testing.T) {
 	tmpDir := t.TempDir()
 	workspaceDir := filepath.Join(tmpDir, "workspace")
 	sessionDir := filepath.Join(tmpDir, "sessions")
-	os.MkdirAll(workspaceDir, 0755)
-	os.MkdirAll(sessionDir, 0755)
+	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
+		t.Fatalf("Failed to create workspace directory: %v", err)
+	}
+	if err := os.MkdirAll(sessionDir, 0755); err != nil {
+		t.Fatalf("Failed to create sessions directory: %v", err)
+	}
 
 	// Create test file
 	testFile := filepath.Join(workspaceDir, "test.txt")
