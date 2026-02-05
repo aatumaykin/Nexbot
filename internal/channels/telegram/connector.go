@@ -18,6 +18,7 @@ import (
 
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/config"
+	"github.com/aatumaykin/nexbot/internal/constants"
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/mymmrac/telego"
@@ -152,6 +153,7 @@ func (c *Connector) registerCommands() error {
 		Commands: []telego.BotCommand{
 			{Command: "new", Description: "Start a new session (clear history)"},
 			{Command: "status", Description: "Show session and bot status"},
+			{Command: "restart", Description: "Restart bot"},
 		},
 	}
 
@@ -183,7 +185,7 @@ func (c *Connector) sendStartupMessage() error {
 		return nil
 	}
 
-	message := "🚀 Бот Nexbot успешно запущен и готов к работе!"
+	message := constants.MsgTelegramStartup
 
 	for _, userID := range c.cfg.AllowedUsers {
 		var chatID int64
@@ -304,6 +306,42 @@ func (c *Connector) handleUpdate(update telego.Update) error {
 		}
 
 		c.logger.DebugCtx(c.ctx, "status command published",
+			logger.Field{Key: "user_id", Value: userID},
+			logger.Field{Key: "session_id", Value: sessionID})
+
+		return nil
+	}
+
+	// Check for /restart command - restarts the bot
+	if msg.Text == "/restart" {
+		if !c.isAllowedUser(userID) {
+			c.logger.WarnCtx(c.ctx, "command blocked - user not in whitelist",
+				logger.Field{Key: "user_id", Value: userID},
+				logger.Field{Key: "command", Value: "/restart"})
+			return nil
+		}
+
+		sessionID := fmt.Sprintf("%d", msg.Chat.ID)
+
+		inboundMsg := bus.NewInboundMessage(
+			bus.ChannelTypeTelegram,
+			userID,
+			sessionID,
+			msg.Text,
+			map[string]any{
+				"command":    "restart",
+				"message_id": msg.MessageID,
+				"chat_id":    msg.Chat.ID,
+				"chat_type":  msg.Chat.Type,
+				"username":   msg.From.Username,
+			},
+		)
+
+		if err := c.bus.PublishInbound(*inboundMsg); err != nil {
+			return fmt.Errorf("failed to publish restart command: %w", err)
+		}
+
+		c.logger.DebugCtx(c.ctx, "restart command published",
 			logger.Field{Key: "user_id", Value: userID},
 			logger.Field{Key: "session_id", Value: sessionID})
 
