@@ -40,7 +40,7 @@ func (t *ShellExecTool) Name() string {
 
 // Description returns a description of what the tool does.
 func (t *ShellExecTool) Description() string {
-	return "Executes shell commands with security restrictions. Only whitelisted commands are allowed. Commands have a timeout and are logged."
+	return "Executes shell commands with security restrictions. Supports deny, ask, and allowed command lists. Commands have a timeout and are logged."
 }
 
 // Parameters returns the JSON Schema for the tool's parameters.
@@ -79,8 +79,12 @@ func (t *ShellExecTool) Execute(args string) (string, error) {
 		return "", fmt.Errorf("shell_exec tool is disabled in configuration")
 	}
 
-	// Validate command against whitelist
+	// Validate command against deny/ask/allowed lists
 	if err := t.validateCommand(shellArgs.Command); err != nil {
+		// Check if confirmation is required
+		if strings.Contains(err.Error(), "# CONFIRM_REQUIRED:") {
+			return err.Error(), nil
+		}
 		return "", fmt.Errorf("command validation failed: %w", err)
 	}
 
@@ -124,30 +128,46 @@ func (t *ShellExecTool) Execute(args string) (string, error) {
 	return result, nil
 }
 
-// validateCommand validates that a command is in the whitelist.
+// validateCommand validates a command against deny/ask/allowed lists in order.
+// Validation order: deny → ask → allowed
 func (t *ShellExecTool) validateCommand(command string) error {
-	// If no whitelist is configured, deny all commands (fail-safe)
-	if len(t.cfg.Tools.Shell.AllowedCommands) == 0 {
-		return fmt.Errorf("no commands are whitelisted in configuration")
-	}
+	denyCommands := t.cfg.Tools.Shell.DenyCommands
+	askCommands := t.cfg.Tools.Shell.AskCommands
+	allowedCommands := t.cfg.Tools.Shell.AllowedCommands
 
-	// Check if the command matches any allowed pattern
-	for _, allowed := range t.cfg.Tools.Shell.AllowedCommands {
-		if t.matchPattern(command, allowed) {
-			return nil
+	// Step 1: Check deny_commands - if command matches, deny immediately
+	for _, denyPattern := range denyCommands {
+		if t.matchPattern(command, denyPattern) {
+			return fmt.Errorf("denied by deny_commands")
 		}
 	}
 
-	// Extract base command for error message
-	parts := strings.Fields(command)
-	if len(parts) == 0 {
-		return fmt.Errorf("command is empty")
+	// Step 2: Check ask_commands - if command matches, require confirmation
+	for _, askPattern := range askCommands {
+		if t.matchPattern(command, askPattern) {
+			return fmt.Errorf("# CONFIRM_REQUIRED: Command '%s' requires confirmation", command)
+		}
 	}
-	baseCommand := parts[0]
 
-	// Command not in whitelist
-	return fmt.Errorf("command '%s' is not in the allowed commands whitelist: %v",
-		baseCommand, t.cfg.Tools.Shell.AllowedCommands)
+	// Step 3: Check allowed_commands
+	// If allowed_commands is empty and both deny and ask are empty, allow all (fail-open)
+	if len(allowedCommands) == 0 && len(denyCommands) == 0 && len(askCommands) == 0 {
+		return nil // All commands allowed
+	}
+
+	// If allowed_commands is configured, command must match at least one pattern
+	if len(allowedCommands) > 0 {
+		for _, allowedPattern := range allowedCommands {
+			if t.matchPattern(command, allowedPattern) {
+				return nil // Command is allowed
+			}
+		}
+		// Command didn't match any allowed pattern
+		return fmt.Errorf("command not allowed")
+	}
+
+	// allowed_commands is empty, but deny or ask was configured - command is allowed
+	return nil
 }
 
 // matchPattern checks if a command matches a given pattern.

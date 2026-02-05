@@ -643,8 +643,8 @@ func TestShellExecTool_Execute_NotWhitelisted(t *testing.T) {
 		t.Error("Expected error for non-whitelisted command")
 	}
 
-	if !contains(err.Error(), "whitelist") || !contains(err.Error(), "allowed") {
-		t.Errorf("Expected error to mention 'whitelist' or 'allowed', got: %v", err)
+	if !contains(err.Error(), "allowed") {
+		t.Errorf("Expected error to mention 'allowed', got: %v", err)
 	}
 }
 
@@ -760,11 +760,8 @@ func TestShellExecTool_Execute_EmptyWhitelist(t *testing.T) {
 	args := `{"command": "echo test"}`
 	_, err = tool.Execute(args)
 
-	if err == nil {
-		t.Error("Expected error when whitelist is empty")
-	}
-
-	if !contains(err.Error(), "no commands") || !contains(err.Error(), "whitelisted") {
-		t.Errorf("Expected error to mention 'no commands' or 'whitelisted', got: %v", err)
+	// With new logic: all lists empty = fail-open (all commands allowed)
+	if err != nil {
+		t.Errorf("Expected no error when all lists are empty (fail-open), got: %v", err)
 	}
 }
