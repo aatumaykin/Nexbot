@@ -121,7 +121,6 @@ const (
 type CronConfig struct {
 	Enabled  bool   `toml:"enabled"`
 	Timezone string `toml:"timezone"`
-	JobsFile string `toml:"jobs_file"`
 }
 
 // JobsDir возвращает путь к директории для хранения cron jobs
@@ -150,7 +149,6 @@ type MessageBusConfig struct {
 
 // HeartbeatConfig представляет конфигурацию HEARTBEAT loader (v0.2)
 type HeartbeatConfig struct {
-	Enabled       bool   `toml:"enabled"`
-	HeartbeatFile string `toml:"heartbeat_file"`
-	CheckInterval string `toml:"check_interval"`
+	Enabled              bool `toml:"enabled"`
+	CheckIntervalMinutes int  `toml:"check_interval_minutes"`
 }

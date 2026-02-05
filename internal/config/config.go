@@ -248,16 +248,10 @@ func applyDefaults(c *Config) {
 	if c.Cron.Timezone == "" {
 		c.Cron.Timezone = "UTC"
 	}
-	if c.Cron.JobsFile == "" {
-		c.Cron.JobsFile = "jobs.json"
-	}
 
 	// Heartbeat defaults
-	if c.Heartbeat.HeartbeatFile == "" {
-		c.Heartbeat.HeartbeatFile = "HEARTBEAT.md"
-	}
-	if c.Heartbeat.CheckInterval == "" {
-		c.Heartbeat.CheckInterval = "*/5 * * * *"
+	if c.Heartbeat.CheckIntervalMinutes == 0 {
+		c.Heartbeat.CheckIntervalMinutes = 5
 	}
 
 	// Workers defaults

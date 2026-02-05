@@ -22,6 +22,9 @@ bootstrap_max_chars = 20000
 # -----------------------------------------------------------------------------
 # Настройки поведения агента и параметров модели.
 [agent]
+# LLM провайдер: "zai" или "openai"
+provider = "zai"
+
 # Модель по умолчанию для запросов к LLM
 model = "glm-4.7-flash"
 
@@ -40,10 +43,6 @@ timeout_seconds = 60
 # -----------------------------------------------------------------------------
 # LLM Provider Settings
 # -----------------------------------------------------------------------------
-# Основная конфигурация LLM провайдера.
-[llm]
-# LLM провайдер: "zai" или "openai"
-provider = "zai"
 
 # -----------------------------------------------------------------------------
 # Z.ai Provider Settings
@@ -60,9 +59,6 @@ base_url = "https://api.z.ai/api/coding/paas/v4"
 # Таймаут HTTP запросов к Z.ai API
 timeout_seconds = 60
 
-# Модель Z.ai по умолчанию
-model = "glm-4.7-flash"
-
 # -----------------------------------------------------------------------------
 # OpenAI Provider Settings (Optional)
 # -----------------------------------------------------------------------------
@@ -70,7 +66,6 @@ model = "glm-4.7-flash"
 # [llm.openai]
 # api_key = "${OPENAI_API_KEY:}"
 # base_url = "https://api.openai.com/v1"
-# model = "gpt-4"
 
 # -----------------------------------------------------------------------------
 # Telegram Channel Settings
@@ -117,9 +112,6 @@ enabled = true
 # Добавляйте только безопасные команды
 allowed_commands = ["ls", "cat", "grep", "find", "cd", "pwd", "echo", "date", "git"]
 
-# Рабочая директория по умолчанию для shell команд
-working_dir = "~/.nexbot"
-
 # Таймаут выполнения shell команды
 timeout_seconds = 30
 
@@ -129,13 +121,10 @@ timeout_seconds = 30
 # Конфигурация планировщика задач (v0.2+).
 [cron]
 # Включить cron планировщик
-enabled = false
+enabled = true
 
 # Часовой пояс для планирования задач
 timezone = "UTC"
-
-# Файл с определениями cron задач (относительный путь от workspace)
-jobs_file = "jobs.json"
 
 # -----------------------------------------------------------------------------
 # HEARTBEAT Configuration
@@ -145,17 +134,8 @@ jobs_file = "jobs.json"
 # Включить выполнение HEARTBEAT задач
 enabled = true
 
-# Имя файла с задачами (относительный путь от workspace)
-heartbeat_file = "HEARTBEAT.md"
-
-# Как часто проверять HEARTBEAT.md на изменения (cron expression)
-# * * * * * - каждую минуту
-# 0 * * * * - каждый час
-# 0 0 * * * - каждые сутки
-check_interval = "* * * * *"
-
-# Путь к workspace для HEARTBEAT.md (по умолчанию: ~/.nexbot)
-workspace_path = "~/.nexbot"
+# Как часто проверять HEARTBEAT.md на изменения (в минутах)
+check_interval_minutes = 10
 
 # -----------------------------------------------------------------------------
 # Worker Pool Settings
