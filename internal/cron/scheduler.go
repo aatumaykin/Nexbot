@@ -65,16 +65,17 @@ type Job struct {
 
 // Scheduler manages cron job scheduling and execution
 type Scheduler struct {
-	cron       *cron.Cron
-	logger     *logger.Logger
-	bus        *bus.MessageBus
-	workerPool WorkerPool   // Worker pool for async task execution
-	storage    *Storage     // Persistent storage for jobs
-	ticker     *time.Ticker // Ticker for oneshot job checking
-	ctx        context.Context
-	cancel     context.CancelFunc
-	started    bool
-	mu         sync.RWMutex
+	cron          *cron.Cron
+	logger        *logger.Logger
+	bus           *bus.MessageBus
+	workerPool    WorkerPool   // Worker pool for async task execution
+	storage       *Storage     // Persistent storage for jobs
+	ticker        *time.Ticker // Ticker for oneshot job checking
+	cleanupTicker *time.Ticker // Ticker for executed cleanup
+	ctx           context.Context
+	cancel        context.CancelFunc
+	started       bool
+	mu            sync.RWMutex
 
 	// Job registry for tracking jobs by ID
 	jobs        map[string]Job
@@ -115,12 +116,18 @@ func (s *Scheduler) Start(ctx context.Context) error {
 	// Start oneshot ticker
 	s.oneshotTicker()
 
+	// Start executed cleanup ticker
+	s.executedCleanup()
+
 	// Wait for context cancellation
 	go func() {
 		<-s.ctx.Done()
 		s.cron.Stop()
 		if s.ticker != nil {
 			s.ticker.Stop()
+		}
+		if s.cleanupTicker != nil {
+			s.cleanupTicker.Stop()
 		}
 		s.logger.Info("cron scheduler stopped")
 	}()
@@ -415,4 +422,60 @@ func (s *Scheduler) checkAndExecuteOneshots(now time.Time) {
 			s.logger.Error("failed to save jobs after oneshot execution", err)
 		}
 	}
+}
+
+// executedCleanup starts a ticker that cleans up executed oneshot jobs every 24 hours.
+func (s *Scheduler) executedCleanup() {
+	s.cleanupTicker = time.NewTicker(24 * time.Hour)
+	go func() {
+		for {
+			select {
+			case <-s.ctx.Done():
+				return
+			case <-s.cleanupTicker.C:
+				s.CleanupExecutedOneshots()
+			}
+		}
+	}()
+}
+
+// CleanupExecutedOneshots removes all executed oneshot jobs from storage.
+// It reloads the jobs map from storage to reflect the changes.
+// This method is public and can be called manually.
+func (s *Scheduler) CleanupExecutedOneshots() {
+	// Remove executed oneshots from storage
+	if err := s.storage.RemoveExecutedOneshots(); err != nil {
+		s.logger.Error("failed to remove executed oneshots", err)
+		return
+	}
+
+	// Reload jobs from storage
+	storageJobs, err := s.storage.Load()
+	if err != nil {
+		s.logger.Error("failed to reload jobs after cleanup", err)
+		return
+	}
+
+	// Update in-memory jobs map
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.jobs = make(map[string]Job)
+	for _, storageJob := range storageJobs {
+		job := Job{
+			ID:         storageJob.ID,
+			Type:       JobType(storageJob.Type),
+			Schedule:   storageJob.Schedule,
+			ExecuteAt:  storageJob.ExecuteAt,
+			Command:    storageJob.Command,
+			UserID:     storageJob.UserID,
+			Metadata:   storageJob.Metadata,
+			Executed:   storageJob.Executed,
+			ExecutedAt: storageJob.ExecutedAt,
+		}
+		s.jobs[job.ID] = job
+	}
+
+	s.logger.Info("cleaned up executed oneshot jobs",
+		logger.Field{Key: "remaining_jobs", Value: len(s.jobs)})
 }
