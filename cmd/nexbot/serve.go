@@ -18,6 +18,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/tools"
+	"github.com/aatumaykin/nexbot/internal/workers"
 	"github.com/aatumaykin/nexbot/internal/workspace"
 	"github.com/spf13/cobra"
 )
@@ -208,6 +209,14 @@ func serveHandler(cmd *cobra.Command, args []string) {
 		}
 		log.Info("✅ Subagent manager initialized")
 	}
+
+	// Initialize worker pool
+	log.Info("⚙️ Initializing worker pool",
+		logger.Field{Key: "pool_size", Value: cfg.Workers.PoolSize},
+		logger.Field{Key: "queue_size", Value: cfg.Workers.QueueSize})
+	workerPool := workers.NewPool(cfg.Workers.PoolSize, cfg.Workers.QueueSize, log)
+	workerPool.Start()
+	log.Info("✅ Worker pool started")
 
 	// Register tools
 	if cfg.Tools.Shell.Enabled {
@@ -402,6 +411,10 @@ func serveHandler(cmd *cobra.Command, args []string) {
 			log.Error("Failed to stop cron scheduler", err)
 		}
 	}
+
+	// Stop worker pool
+	log.Info("🛑 Stopping worker pool")
+	workerPool.Stop()
 
 	// Stop subagent manager if enabled
 	if subagentManager != nil {
