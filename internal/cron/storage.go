@@ -270,6 +270,51 @@ func (s *Storage) Save(jobs []StorageJob) error {
 	return nil
 }
 
+// UpsertJob adds a new cron job to storage or updates an existing one.
+// This operation loads all jobs, checks if a job with the same ID exists,
+// and either updates it or appends it to the end.
+//
+// Parameters:
+//   - job: The StorageJob to upsert
+//
+// Returns:
+//   - error: Error if the operation fails
+func (s *Storage) UpsertJob(job StorageJob) error {
+	// Load all jobs
+	jobs, err := s.Load()
+	if err != nil {
+		return err
+	}
+
+	// Check if job already exists
+	found := false
+	for i, existingJob := range jobs {
+		if existingJob.ID == job.ID {
+			// Update existing job
+			jobs[i] = job
+			found = true
+			break
+		}
+	}
+
+	// Add new job if not found
+	if !found {
+		jobs = append(jobs, job)
+	}
+
+	// Save all jobs
+	if err := s.Save(jobs); err != nil {
+		return err
+	}
+
+	s.logger.Debug("job upserted to storage",
+		logger.Field{Key: "job_id", Value: job.ID},
+		logger.Field{Key: "file", Value: s.filePath},
+		logger.Field{Key: "updated", Value: found})
+
+	return nil
+}
+
 // RemoveExecutedOneshots removes executed oneshot cron jobs from storage.
 // This operation cleans up temporary jobs that have been executed to save space.
 // Recurring jobs and unexecuted oneshot jobs are preserved.

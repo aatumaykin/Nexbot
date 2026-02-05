@@ -176,6 +176,26 @@ func (s *Scheduler) AddJob(job Job) (string, error) {
 	s.jobIDs[entryID] = job.ID
 	s.jobEntryIDs[job.ID] = entryID
 
+	// Persist job to storage
+	if s.storage != nil {
+		storageJob := StorageJob{
+			ID:         job.ID,
+			Type:       string(job.Type),
+			Schedule:   job.Schedule,
+			ExecuteAt:  job.ExecuteAt,
+			Command:    job.Command,
+			UserID:     job.UserID,
+			Metadata:   job.Metadata,
+			Executed:   job.Executed,
+			ExecutedAt: job.ExecutedAt,
+		}
+		if err := s.storage.UpsertJob(storageJob); err != nil {
+			s.logger.Error("failed to persist job to storage", err,
+				logger.Field{Key: "job_id", Value: job.ID})
+			// Continue even if storage fails - job is already in memory
+		}
+	}
+
 	s.logger.Info("cron job added",
 		logger.Field{Key: "job_id", Value: job.ID},
 		logger.Field{Key: "schedule", Value: job.Schedule},
@@ -198,6 +218,15 @@ func (s *Scheduler) RemoveJob(jobID string) error {
 	delete(s.jobs, jobID)
 	delete(s.jobIDs, entryID)
 	delete(s.jobEntryIDs, jobID)
+
+	// Remove from storage
+	if s.storage != nil {
+		if err := s.storage.Remove(jobID); err != nil {
+			s.logger.Error("failed to remove job from storage", err,
+				logger.Field{Key: "job_id", Value: jobID})
+			// Continue even if storage fails - job is already removed from memory
+		}
+	}
 
 	s.logger.Info("cron job removed",
 		logger.Field{Key: "job_id", Value: jobID},
