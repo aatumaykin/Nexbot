@@ -16,6 +16,8 @@ import (
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/workers"
 	"sync"
+
+	"github.com/aatumaykin/nexbot/internal/ipc"
 )
 
 // App represents the main application structure.
@@ -43,6 +45,9 @@ type App struct {
 
 	// Heartbeat checker
 	heartbeatChecker *heartbeat.Checker
+
+	// IPC handler
+	ipcHandler *ipc.Handler
 
 	// Context management
 	ctx    context.Context
@@ -89,4 +94,9 @@ func (a *App) Run(ctx context.Context) error {
 
 	// Graceful shutdown
 	return a.Shutdown()
+}
+
+// GetIPC returns the IPC handler instance.
+func (a *App) GetIPC() *ipc.Handler {
+	return a.ipcHandler
 }

@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/aatumaykin/nexbot/internal/agent/session"
-	"github.com/aatumaykin/nexbot/internal/app"
 	"github.com/aatumaykin/nexbot/internal/logger"
 )
 
@@ -29,7 +28,6 @@ type Response struct {
 
 // Handler обрабатывает IPC запросы
 type Handler struct {
-	app        *app.App
 	logger     *logger.Logger
 	socket     net.Listener
 	ctx        context.Context
@@ -37,7 +35,7 @@ type Handler struct {
 }
 
 // NewHandler создаёт новый IPC Handler
-func NewHandler(a *app.App, l *logger.Logger, sessionDir string) (*Handler, error) {
+func NewHandler(l *logger.Logger, sessionDir string) (*Handler, error) {
 	// Create session manager
 	sessionMgr, err := session.NewManager(sessionDir)
 	if err != nil {
@@ -45,7 +43,6 @@ func NewHandler(a *app.App, l *logger.Logger, sessionDir string) (*Handler, erro
 	}
 
 	return &Handler{
-		app:        a,
 		logger:     l,
 		sessionMgr: sessionMgr,
 	}, nil
@@ -122,7 +119,7 @@ func (h *Handler) handleConnection(conn net.Conn) {
 // handleSendMessage обрабатывает запрос отправки сообщения
 func (h *Handler) handleSendMessage(req *Request, conn net.Conn) {
 	// Валидация канала
-	if err := h.validateChannel(h.app, req.Channel); err != nil {
+	if err := h.validateChannel(req.Channel); err != nil {
 		h.sendErrorResponse(conn, fmt.Sprintf("channel validation failed: %v", err))
 		return
 	}
@@ -146,7 +143,7 @@ func (h *Handler) handleSendMessage(req *Request, conn net.Conn) {
 func (h *Handler) handleAgent(req *Request, conn net.Conn) {
 	// Валидация сессии
 	if req.SessionID != "" {
-		if !h.validateSession(h.app, req.SessionID) {
+		if !h.validateSession(req.SessionID) {
 			h.sendErrorResponse(conn, fmt.Sprintf("session not found: %s", req.SessionID))
 			return
 		}
@@ -168,13 +165,13 @@ func (h *Handler) handleAgent(req *Request, conn net.Conn) {
 }
 
 // validateChannel проверяет валидность канала
-func (h *Handler) validateChannel(a *app.App, channelType string) error {
+func (h *Handler) validateChannel(channelType string) error {
 	// TODO: реализовать валидацию канала
 	return nil
 }
 
 // validateSession проверяет существование сессии
-func (h *Handler) validateSession(a *app.App, sessionID string) bool {
+func (h *Handler) validateSession(sessionID string) bool {
 	exists, err := h.sessionMgr.Exists(sessionID)
 	if err != nil {
 		h.logger.Error("failed to check session existence", err)
