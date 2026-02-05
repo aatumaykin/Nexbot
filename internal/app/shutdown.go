@@ -6,6 +6,8 @@ package app
 import (
 	"context"
 	"fmt"
+
+	"github.com/aatumaykin/nexbot/internal/ipc"
 )
 
 // Shutdown performs graceful shutdown of all components.
@@ -28,6 +30,18 @@ func (a *App) Shutdown() error {
 
 	// Cancel context to stop all background operations
 	a.cancel()
+
+	// Cleanup IPC
+	if a.ipcHandler != nil {
+		if err := a.ipcHandler.Stop(); err != nil {
+			a.logger.Error("failed to stop IPC handler", err)
+		}
+	}
+
+	// Remove PID file and socket
+	if err := ipc.Cleanup(a.config.Workspace.Path); err != nil {
+		a.logger.Error("failed to cleanup IPC files", err)
+	}
 
 	// Stop telegram connector if not nil
 	if a.telegram != nil {
