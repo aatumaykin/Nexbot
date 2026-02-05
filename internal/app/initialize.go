@@ -249,7 +249,7 @@ func (a *App) Initialize(ctx context.Context) error {
 	}
 
 	// 11. Initialize IPC handler
-	a.ipcHandler, err = ipc.NewHandler(a.logger, ws.Subpath("sessions"))
+	a.ipcHandler, err = ipc.NewHandler(a.logger, ws.Subpath("sessions"), a.messageBus)
 	if err != nil {
 		return fmt.Errorf("failed to create IPC handler: %w", err)
 	}

@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/aatumaykin/nexbot/internal/agent/session"
+	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/logger"
 )
 
@@ -32,10 +33,11 @@ type Handler struct {
 	socket     net.Listener
 	ctx        context.Context
 	sessionMgr *session.Manager
+	messageBus *bus.MessageBus
 }
 
 // NewHandler создаёт новый IPC Handler
-func NewHandler(l *logger.Logger, sessionDir string) (*Handler, error) {
+func NewHandler(l *logger.Logger, sessionDir string, messageBus *bus.MessageBus) (*Handler, error) {
 	// Create session manager
 	sessionMgr, err := session.NewManager(sessionDir)
 	if err != nil {
@@ -45,6 +47,7 @@ func NewHandler(l *logger.Logger, sessionDir string) (*Handler, error) {
 	return &Handler{
 		logger:     l,
 		sessionMgr: sessionMgr,
+		messageBus: messageBus,
 	}, nil
 }
 
@@ -124,9 +127,29 @@ func (h *Handler) handleSendMessage(req *Request, conn net.Conn) {
 		return
 	}
 
-	// TODO: отправка сообщения в канал
-	h.logger.Info("send_message request",
+	// Создаем outbound сообщение
+	outboundMsg := bus.NewOutboundMessage(
+		bus.ChannelType(req.Channel),
+		req.UserID,
+		req.SessionID,
+		req.Content,
+		nil,
+	)
+
+	// Публикуем в message bus
+	if err := h.messageBus.PublishOutbound(*outboundMsg); err != nil {
+		h.sendErrorResponse(conn, fmt.Sprintf("failed to publish message: %v", err))
+		h.logger.Error("failed to publish outbound message", err,
+			logger.Field{Key: "channel", Value: req.Channel},
+			logger.Field{Key: "user_id", Value: req.UserID},
+			logger.Field{Key: "session_id", Value: req.SessionID})
+		return
+	}
+
+	h.logger.Info("send_message request processed",
 		logger.Field{Key: "channel", Value: req.Channel},
+		logger.Field{Key: "user_id", Value: req.UserID},
+		logger.Field{Key: "session_id", Value: req.SessionID},
 		logger.Field{Key: "content", Value: req.Content})
 
 	// Отправляем успешный ответ
@@ -141,20 +164,32 @@ func (h *Handler) handleSendMessage(req *Request, conn net.Conn) {
 
 // handleAgent обрабатывает запрос к агенту
 func (h *Handler) handleAgent(req *Request, conn net.Conn) {
-	// Валидация сессии
-	if req.SessionID != "" {
-		if !h.validateSession(req.SessionID) {
-			h.sendErrorResponse(conn, fmt.Sprintf("session not found: %s", req.SessionID))
-			return
-		}
+	// Публикуем inbound сообщение для обработки агентом
+	inboundMsg := bus.NewInboundMessage(
+		bus.ChannelType(req.Channel),
+		req.UserID,
+		req.SessionID,
+		req.Content,
+		nil,
+	)
+
+	// Публикуем в message bus (пойдет через message processor -> agent -> ответ в канал)
+	if err := h.messageBus.PublishInbound(*inboundMsg); err != nil {
+		h.sendErrorResponse(conn, fmt.Sprintf("failed to publish message: %v", err))
+		h.logger.Error("failed to publish inbound message", err,
+			logger.Field{Key: "channel", Value: req.Channel},
+			logger.Field{Key: "user_id", Value: req.UserID},
+			logger.Field{Key: "session_id", Value: req.SessionID})
+		return
 	}
 
-	// TODO: обработка запроса к агенту
-	h.logger.Info("agent request",
+	h.logger.Info("agent request processed",
+		logger.Field{Key: "channel", Value: req.Channel},
+		logger.Field{Key: "user_id", Value: req.UserID},
 		logger.Field{Key: "session_id", Value: req.SessionID},
-		logger.Field{Key: "user_id", Value: req.UserID})
+		logger.Field{Key: "content", Value: req.Content})
 
-	// Отправляем успешный ответ
+	// Отправляем успешный ответ (ответ агента будет отправлен в канал через message processor)
 	resp := Response{
 		Success: true,
 	}
