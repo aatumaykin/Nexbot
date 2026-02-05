@@ -2,16 +2,14 @@ package main
 
 import (
 	"os"
-
-	"github.com/aatumaykin/nexbot/internal/constants"
 )
 
 var (
 	// Version variables set during build
-	Version   string = constants.DefaultVersion
-	BuildTime string = constants.DefaultBuildTime
-	GitCommit string = constants.DefaultGitCommit
-	GoVersion string = constants.DefaultGoVersion
+	Version   string = "0.1.0-dev"
+	BuildTime string = "unknown"
+	GitCommit string = "unknown"
+	GoVersion string = "unknown"
 )
 
 func main() {
