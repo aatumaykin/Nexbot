@@ -47,6 +47,23 @@ func NewManager(baseDir string) (*Manager, error) {
 	}, nil
 }
 
+// Exists проверяет существует ли сессия
+// Returns true if session file exists, false otherwise
+func (m *Manager) Exists(sessionID string) (bool, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	sessionFile := filepath.Join(m.baseDir, sessionID+".jsonl")
+	_, err := os.Stat(sessionFile)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // GetOrCreate retrieves an existing session or creates a new one.
 // Returns the session and a boolean indicating whether it was newly created.
 func (m *Manager) GetOrCreate(sessionID string) (*Session, bool, error) {
