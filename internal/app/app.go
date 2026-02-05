@@ -82,24 +82,3 @@ func (a *App) Run(ctx context.Context) error {
 	// Graceful shutdown
 	return a.Shutdown()
 }
-
-// Initialize initializes all application components.
-// This method is implemented in internal/app/initialize.go (Nexbot-d74).
-func (a *App) Initialize(ctx context.Context) error {
-	// TODO: Implement in Nexbot-d74
-	return nil
-}
-
-// StartMessageProcessing starts the message processing loop.
-// This method is implemented in internal/app/message_processor.go (Nexbot-3ug).
-func (a *App) StartMessageProcessing(ctx context.Context) error {
-	// TODO: Implement in Nexbot-3ug
-	return nil
-}
-
-// Shutdown performs graceful shutdown of all components.
-// This method is implemented in internal/app/shutdown.go (Nexbot-l18).
-func (a *App) Shutdown() error {
-	// TODO: Implement in Nexbot-l18
-	return nil
-}
