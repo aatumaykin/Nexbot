@@ -23,6 +23,15 @@ const (
 	ZAIRetryDelay = 1 * time.Second
 )
 
+// truncateResponse truncates response body to maxLen characters for logging
+func truncateResponse(body []byte, maxLen int) string {
+	str := string(body)
+	if len(str) > maxLen {
+		return str[:maxLen] + "..."
+	}
+	return str
+}
+
 // ZAIConfig contains configuration for the Z.ai provider.
 type ZAIConfig struct {
 	APIKey         string `json:"api_key"`         // API key for authentication
@@ -171,7 +180,7 @@ func (p *ZAIProvider) doRequest(ctx stdcontext.Context, reqBody []byte) (*zaiRes
 	if httpResp.StatusCode < 200 || httpResp.StatusCode >= 300 {
 		p.logger.ErrorCtx(ctx, "Z.ai API returned error status", nil,
 			logger.Field{Key: "status_code", Value: httpResp.StatusCode},
-			logger.Field{Key: "response_body", Value: string(respBody)})
+			logger.Field{Key: "response_preview", Value: truncateResponse(respBody, 200)})
 
 		return nil, &zaiHTTPError{
 			StatusCode: httpResp.StatusCode,
@@ -179,15 +188,15 @@ func (p *ZAIProvider) doRequest(ctx stdcontext.Context, reqBody []byte) (*zaiRes
 		}
 	}
 
-	// Debug: log raw response body
+	// Debug: log raw response body preview
 	p.logger.DebugCtx(ctx, "Raw Z.ai response body",
-		logger.Field{Key: "response_body", Value: string(respBody)})
+		logger.Field{Key: "response_preview", Value: truncateResponse(respBody, 200)})
 
 	// Parse JSON response
 	var zaiResp zaiResponse
 	if err := json.Unmarshal(respBody, &zaiResp); err != nil {
 		p.logger.ErrorCtx(ctx, "Failed to unmarshal Z.ai response", err,
-			logger.Field{Key: "response_body", Value: string(respBody)})
+			logger.Field{Key: "response_preview", Value: truncateResponse(respBody, 200)})
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
@@ -287,13 +296,13 @@ func (p *ZAIProvider) mapChatResponse(zaiResp *zaiResponse) *ChatResponse {
 		content = choice.Message.ReasoningContent
 	}
 
-	// Log full LLM response
+	// Log LLM response metadata
 	p.logger.DebugCtx(stdcontext.Background(), "LLM response",
 		logger.Field{Key: "model", Value: zaiResp.Model},
 		logger.Field{Key: "finish_reason", Value: choice.FinishReason},
-		logger.Field{Key: "content", Value: content},
-		logger.Field{Key: "reasoning_content", Value: choice.Message.ReasoningContent},
-		logger.Field{Key: "tool_calls", Value: fmt.Sprintf("%+v", choice.Message.ToolCalls)})
+		logger.Field{Key: "content_length", Value: len(content)},
+		logger.Field{Key: "reasoning_length", Value: len(choice.Message.ReasoningContent)},
+		logger.Field{Key: "tool_calls_count", Value: len(choice.Message.ToolCalls)})
 
 	return &ChatResponse{
 		Content:      content,
