@@ -288,3 +288,13 @@ func generateJobID() string {
 func generateSessionID(jobID string) string {
 	return fmt.Sprintf("cron_%s", jobID)
 }
+
+// GenerateJobID генерирует уникальный ID для job (экспортируемый метод)
+func (s *Scheduler) GenerateJobID() string {
+	return generateJobID()
+}
+
+// GenerateJobID генерирует уникальный ID для job (пакетная функция)
+func GenerateJobID() string {
+	return fmt.Sprintf("job_%d", time.Now().UnixNano())
+}
