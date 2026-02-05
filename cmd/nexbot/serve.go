@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aatumaykin/nexbot/internal/agent/loop"
+	"github.com/aatumaykin/nexbot/internal/agent/subagent"
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/channels/telegram"
 	"github.com/aatumaykin/nexbot/internal/config"
@@ -183,6 +184,31 @@ func serveHandler(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// Initialize subagent manager if enabled
+	var subagentManager *subagent.Manager
+	if cfg.Subagent.Enabled {
+		log.Info("🧬 Initializing subagent manager")
+		subagentManager, err = subagent.NewManager(subagent.Config{
+			SessionDir: ws.Subpath("sessions"),
+			Logger:     log,
+			LoopConfig: loop.Config{
+				Workspace:         cfg.Workspace.Path,
+				SessionDir:        ws.Subpath("sessions"),
+				LLMProvider:       llmProvider,
+				Logger:            log,
+				Model:             cfg.Agent.Model,
+				MaxTokens:         cfg.Agent.MaxTokens,
+				Temperature:       cfg.Agent.Temperature,
+				MaxToolIterations: cfg.Agent.MaxIterations,
+			},
+		})
+		if err != nil {
+			log.Error("Failed to initialize subagent manager", err)
+			os.Exit(1)
+		}
+		log.Info("✅ Subagent manager initialized")
+	}
+
 	// Register tools
 	if cfg.Tools.Shell.Enabled {
 		shellTool := tools.NewShellExecTool(cfg, log)
@@ -198,6 +224,19 @@ func serveHandler(cmd *cobra.Command, args []string) {
 		agentLoop.RegisterTool(writeFileTool)
 		agentLoop.RegisterTool(listDirTool)
 		log.Info("✅ File tools registered")
+	}
+
+	// Register spawn tool if subagent manager is enabled
+	if cfg.Subagent.Enabled && subagentManager != nil {
+		spawnTool := tools.NewSpawnTool(func(ctx context.Context, parentSession string, task string) (string, error) {
+			subagent, err := subagentManager.Spawn(ctx, parentSession, task)
+			if err != nil {
+				return "", err
+			}
+			return subagent.ID, nil
+		})
+		agentLoop.RegisterTool(spawnTool)
+		log.Info("✅ Spawn tool registered")
 	}
 
 	// Initialize Telegram connector if enabled
@@ -362,6 +401,12 @@ func serveHandler(cmd *cobra.Command, args []string) {
 		if err := cronScheduler.Stop(); err != nil {
 			log.Error("Failed to stop cron scheduler", err)
 		}
+	}
+
+	// Stop subagent manager if enabled
+	if subagentManager != nil {
+		log.Info("🛑 Stopping subagent manager")
+		subagentManager.StopAll()
 	}
 
 	// Stop message bus
