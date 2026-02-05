@@ -20,6 +20,16 @@ const (
 	ChannelTypeCron bus.ChannelType = "cron"
 )
 
+// JobType represents the type of a cron job
+type JobType string
+
+const (
+	// JobTypeRecurring is a repeating job that runs on a schedule
+	JobTypeRecurring JobType = "recurring"
+	// JobTypeOneshot is a one-time job that runs once at the specified time
+	JobTypeOneshot JobType = "oneshot"
+)
+
 // Task represents a cron task to be submitted to worker pool
 type Task struct {
 	ID      string          // Unique task identifier
