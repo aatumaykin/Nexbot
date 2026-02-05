@@ -122,6 +122,13 @@ func (s *Storage) Load() ([]StorageJob, error) {
 // Returns:
 //   - error: Error if the operation fails
 func (s *Storage) Append(job StorageJob) error {
+	// Ensure directory exists
+	if err := os.MkdirAll(filepath.Dir(s.filePath), 0755); err != nil {
+		s.logger.Error("failed to create storage directory", err,
+			logger.Field{Key: "dir", Value: filepath.Dir(s.filePath)})
+		return err
+	}
+
 	// Open file with append mode
 	file, err := os.OpenFile(s.filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -204,6 +211,13 @@ func (s *Storage) Remove(jobID string) error {
 // Returns:
 //   - error: Error if the operation fails
 func (s *Storage) Save(jobs []StorageJob) error {
+	// Ensure directory exists
+	if err := os.MkdirAll(filepath.Dir(s.filePath), 0755); err != nil {
+		s.logger.Error("failed to create storage directory", err,
+			logger.Field{Key: "dir", Value: filepath.Dir(s.filePath)})
+		return err
+	}
+
 	// Create temporary file path
 	tmpPath := s.filePath + ".tmp"
 
@@ -251,6 +265,60 @@ func (s *Storage) Save(jobs []StorageJob) error {
 
 	s.logger.Debug("jobs saved to storage",
 		logger.Field{Key: "count", Value: len(jobs)},
+		logger.Field{Key: "file", Value: s.filePath})
+
+	return nil
+}
+
+// RemoveExecutedOneshots removes executed oneshot cron jobs from storage.
+// This operation cleans up temporary jobs that have been executed to save space.
+// Recurring jobs and unexecuted oneshot jobs are preserved.
+//
+// Returns:
+//   - error: Error if the operation fails
+func (s *Storage) RemoveExecutedOneshots() error {
+	// Load all jobs
+	jobs, err := s.Load()
+	if err != nil {
+		return err
+	}
+
+	// Filter jobs
+	var filteredJobs []StorageJob
+	removedCount := 0
+	for _, job := range jobs {
+		// Keep recurring jobs
+		if job.Type == "recurring" {
+			filteredJobs = append(filteredJobs, job)
+			continue
+		}
+
+		// Keep unexecuted oneshot jobs
+		if job.Type == "oneshot" && !job.Executed {
+			filteredJobs = append(filteredJobs, job)
+			continue
+		}
+
+		// Remove executed oneshot jobs
+		if job.Type == "oneshot" && job.Executed {
+			removedCount++
+		}
+	}
+
+	if removedCount > 0 {
+		s.logger.Info("removed executed oneshot jobs",
+			logger.Field{Key: "count", Value: removedCount})
+	} else {
+		s.logger.Debug("no executed oneshot jobs to remove")
+	}
+
+	// Save filtered jobs
+	if err := s.Save(filteredJobs); err != nil {
+		return err
+	}
+
+	s.logger.Debug("executed oneshot jobs removed from storage",
+		logger.Field{Key: "removed_count", Value: removedCount},
 		logger.Field{Key: "file", Value: s.filePath})
 
 	return nil
