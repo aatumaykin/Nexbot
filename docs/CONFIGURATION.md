@@ -410,6 +410,13 @@ Cron задачи могут ссылаться на переменные окр
 - Каждая задача должна иметь поля `name`, `cron`, и `description`
 - `cron` выражение должно быть валидным (см. справку по cron)
 
+**Cron Configuration (краткая справка):**
+
+| Параметр | Тип    | Default | Описание                |
+| --------- | ------ | ------- | ----------------------- |
+| enabled   | bool   | true    | Включить cron scheduler |
+| timezone  | string | UTC     | Часовой пояс            |
+
 ---
 
 ### `[workers]` — Настройки Worker Pool (v0.2)
@@ -445,6 +452,13 @@ queue_size = 100
 | `heartbeat_file` | string | `HEARTBEAT.md` | Файл с задачами в workspace |
 | `check_interval` | string | `"* * * * *"` | Как часто проверять HEARTBEAT.md на изменения |
 | `workspace_path` | string | `~/.nexbot` | Путь к workspace для HEARTBEAT.md |
+
+**Heartbeat Configuration (краткая справка):**
+
+| Параметр | Тип  | Default | Описание                    |
+| --------- | ---- | ------- | --------------------------- |
+| enabled   | bool | true    | Включить heartbeat проверки |
+| check_interval_minutes | int | 10      | Интервал проверки в минутах |
 
 **Пример:**
 
