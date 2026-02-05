@@ -19,30 +19,47 @@ Nexbot использует модульную многослойную архи
 │  │ Inbound Queue│  │ Outbound Queue│  │ Task Queue   │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
 └─────────────────────────────────────────────────────────────┘
-                             │
-         ┌───────────────────┼───────────────────┐
-         │                   │                   │
- ┌───────▼───────┐   ┌───────▼──────────┐  ┌────▼─────────────┐
- │   CHANNELS    │   │    AGENT CORE    │  │   TASK SYSTEM    │
- └───────────────┘   └──────────────────┘  └─────────────────┘
-         │                   │                   │
- ┌───────▼───────┐   ┌───────▼──────────┐  ┌────▼─────────────┐
- │   TELEGRAM    │   │   LLM ENGINE     │  │    WORKER POOL   │
- │   (input)     │   │   (provider)     │  │   (async tasks)  │
- └───────────────┘   └──────────────────┘  └─────────────────┘
-         │                   │                   │
-         └───────────────────┴───────────────────┘
-                             │
-             ┌───────────────┼───────────────┐
-             │               │               │
-     ┌───────▼───────┐ ┌────▼──────┐ ┌──────▼──────┐
-     │   SKILLS      │ │   TOOLS   │ │  WORKSPACE  │
-     │   SYSTEM      │ │  SYSTEM   │ │  (context)  │
-     └───────────────┘ └───────────┘ └─────────────┘
-             │               │               │
-     ┌───────▼───────────────▼───────────────▼───────┐
-     │            AGENT CONTEXT (IDENTITY, etc.)      │
-     └────────────────────────────────────────────────┘
+                              │
+          ┌───────────────────┼───────────────────┐
+          │                   │                   │
+  ┌───────▼───────┐   ┌───────▼──────────┐  ┌────▼─────────────┐
+  │   CHANNELS    │   │    AGENT CORE    │  │   TASK SYSTEM    │
+  └───────────────┘   └──────────────────┘  └─────────────────┘
+          │                   │                   │
+  ┌───────▼───────┐   ┌───────▼──────────┐  ┌────▼─────────────┐
+  │   TELEGRAM    │   │   LLM ENGINE     │  │    WORKER POOL   │
+  │   (input)     │   │   (provider)     │  │   (async tasks)  │
+  │   (v0.2)      │   └──────────────────┘  │    (NEW v0.2)   │
+  └───────┬───────┘                          └──────┬───────────┘
+          │                                         │
+          │                                         │
+          ▼                                         ▼
+┌─────────────────────────────────────────────┐   ┌─────────────────┐
+│         Tool Registry                      │   │   Cron          │
+│  ├─ File Tools                            │   │   Scheduler     │
+│  ├─ Shell Tools                           │   │   (NEW v0.2)   │
+│  ├─ Cron Tool (NEW v0.2)                  │   └────────┬────────┘
+│  └─ Spawn Tool (NEW v0.2)                  │            │
+└────────────┬────────────────────────────────┘            │
+             │                                             │
+             ▼                                             ▼
+      ┌──────────────┐                               ┌─────────────────┐
+      │   Subagent   │                               │   HEARTBEAT     │
+      │   Manager    │                               │   System        │
+      │  (NEW v0.2)  │                               │   (NEW v0.2)   │
+      └──────────────┘                               └─────────────────┘
+             │
+      ┌────────┴────────┐
+      │                 │
+┌─────▼──────┐   ┌─────▼──────┐
+│   SKILLS   │   │  WORKSPACE │
+│   SYSTEM   │   │  (context) │
+└────────────┘   └────────────┘
+      │                 │
+┌─────▼─────────────────▼───────┐
+│   AGENT CONTEXT              │
+│   (IDENTITY, AGENTS, etc.)   │
+└───────────────────────────────┘
 ```
 
 ## Основные компоненты
@@ -180,168 +197,191 @@ IDENTITY → AGENTS → SOUL → USER → TOOLS → MEMORY
 
 ### Cron Scheduler
 
-Фоновый планировщик для выполнения задач в определённое время с помощью cron выражений.
+Фоновый планировщик для выполнения задач по расписанию с поддержкой recurring и oneshot задач.
+
+**Подробная документация:** [docs/architecture/cron_scheduler.md](architecture/cron_scheduler.md)
 
 **Компоненты:**
-- **Cron Engine**: Основан на библиотеке robfig/cron/v3
-- **Job Store**: JSON файл для определений задач
-- **Поддержка Timezone**: Настраиваемый timezone для каждой задачи
-- **Logging**: Логи выполнения в nexbot.log
+- **Scheduler**: Основной планировщик на robfig/cron/v3
+- **Storage**: Персистентное хранение в JSONL формате
+- **Worker Pool Integration**: Асинхронное выполнение задач через Worker Pool
+- **Job Registry**: Отслеживание активных задач
 
 **Архитектура:**
 ```
-Cron Engine
+Cron Engine (robfig/cron)
     │
-    ├─ Парсинг cron выражений
-    ├─ Отслеживание запланированного времени
-    ├─ Триггер выполнения задачи
-    └─ Логирование результатов выполнения
+    ├─ Recurring Jobs (cron expression)
+    │   └─ → Trigger → Worker Pool → Agent
+    │
+    └─ Oneshot Jobs (ticker 1 min)
+        └─ → Check ExecuteAt → Worker Pool → Agent
+            └─ Cleanup (ticker 24h)
 ```
 
-**Формат хранения задач:**
-```json
-{
-  "jobs": [
-    {
-      "name": "job-name",
-      "cron": "0 3 * * *",
-      "description": "Task description",
-      "enabled": true
-    }
-  ]
-}
-```
+**Типы задач:**
+- **Recurring**: Повторяющиеся задачи по cron выражению
+- **Oneshot**: Однократные задачи в указанное время
 
-**Формат cron выражений:**
-```
-* * * * *
-│ │ │ │ │
-│ │ │ │ └─── День недели (0-7, 0 и 7 — воскресенье)
-│ │ │ └───── Месяц (1-12)
-│ │ └─────── День месяца (1-31)
-│ └───────── Час (0-23)
-└─────────── Минута (0-59)
-```
+**Хранилище:** `~/.nexbot/cron/jobs.jsonl`
 
 **Ключевые возможности:**
-- Стандартный синтаксис cron совместимый с [robfig/cron](https://pkg.go.dev/github.com/robfig/cron/v3)
-- Timezone-aware планирование
-- JSON хранение задач
-- Логирование выполнения
-- Обработка ошибок и повторы
+- Поддержка cron выражений с секундами (`* * * * * *`)
+- Worker Pool для асинхронного выполнения
+- Fallback на Message Bus если Worker Pool недоступен
+- Graceful shutdown с cleanup выполненных oneshot задач
+- Thread-safe операции через mutex
 
 ### Subagent Manager
 
-Управляет созданием и выполнением независимых процессов агента.
+Управляет созданием и выполнением изолированных subagents с собственными сессиями и памятью.
+
+**Подробная документация:** [docs/architecture/subagent_manager.md](architecture/subagent_manager.md)
 
 **Компоненты:**
-- **Subagent Manager**: Создаёт и координирует subagents
-- **Управление сессиями**: Уникальные session ID для каждого subagent
-- **Изоляция контекста**: Отдельный контекст для каждого subagent
-- **Маршрутизация сообщений**: Результаты возвращаются главному агенту
+- **Manager**: Создание и управление жизненным циклом subagents
+- **Subagent**: Изолированный экземпляр агента с собственным Loop
+- **Storage**: Изолированное хранение сессий в отдельных директориях
 
 **Архитектура:**
 ```
 Main Agent
     │
-    ├─ Триггер spawn tool
+    ├─ Spawn Tool Call
     │
     └─ Subagent Manager
             │
-            ├─ Создать session ID
-            ├─ Клонировать контекст (base)
-            ├─ Spawn процесса агента
-            ├─ Запустить agent loop
-            ├─ Захватить вывод
-            └─ Вернуться к главному агенту
+            ├─ Generate UUID for subagent
+            ├─ Create isolated session
+            ├─ Create Loop (loopFactory)
+            ├─ Start agent loop
+            ├─ Process task independently
+            └─ Return result to main agent
 ```
 
-**Конфигурация:**
-```toml
-[subagent]
-enabled = true
-max_concurrent = 10
-timeout_seconds = 300
-session_prefix = "subagent-"
-```
+**Хранилище:** `~/.nexbot/sessions/subagents/<subagent_id>/session.jsonl`
 
 **Ключевые возможности:**
-- Поддержка одновременных subagents (настраиваемый лимит)
-- Изолированный контекст выполнения
-- Управление timeout
-- Очистка ресурсов
-- Логирование активности всех subagents
+- Параллельное выполнение задач
+- Изолированный контекст и память для каждого subagent
+- Thread-safe операции через mutex
+- Parent-child сессии для отслеживания происхождения
+- Graceful shutdown через context cancellation
 
 ### Worker Pool
 
-Управляет async выполнением задач для параллельной обработки.
+Асинхронный пул воркеров для фоновой обработки задач разных типов.
+
+**Подробная документация:** [docs/architecture/worker_pool.md](architecture/worker_pool.md)
 
 **Компоненты:**
-- **Worker Pool**: Пул goroutines фиксированного размера
-- **Task Queue**: Буферизированный канал для ожидающих задач
-- **Task Execution**: Выполнение задач асинхронно
-- **Result Collection**: Возврат результатов вызывающему
+- **WorkerPool**: Управление пулом goroutine воркеров
+- **Task**: Единица работы с контекстом и payload
+- **Result**: Результат выполнения с метриками
+- **PoolMetrics**: Отслеживание метрик выполнения
+- **taskWaitGroup**: Обертка sync.WaitGroup с thread-safe доступом
 
 **Архитектура:**
 ```
-Main Agent
-    │
-    ├─ Отправить задачу в очередь
-    │
-    └─ Worker Pool
-            │
-            ├─ Worker 1
-            ├─ Worker 2
-            ├─ Worker 3
-            ├─ Worker 4
-            └─ Worker 5
-            │
-            └─ Вернуть результаты
+Task Queue (buffered)
+         │
+         ▼
+    ┌────────┐
+    │ Worker │───┐
+    │ Pool   │   │
+    └────────┘   │
+         │       │
+    ┌────┴────┬──┴────┐
+    │         │         │
+ Worker 1  Worker 2  Worker N
+    │         │         │
+    ▼         ▼         ▼
+Task Types:
+  ├─ cron (Cron Scheduler)
+  └─ subagent (Subagent tasks)
+    │         │         │
+    └─────────┴─────────┘
+              │
+         Result Channel
 ```
 
-**Конфигурация:**
-```toml
-[workers]
-pool_size = 5
-queue_size = 100
-```
+**Типы задач:**
+- **cron**: Периодические задачи от Cron Scheduler
+- **subagent**: Задачи для выполнения в subagent
+
+**Метрики:**
+- TasksSubmitted
+- TasksCompleted
+- TasksFailed
+- TotalDuration
 
 **Ключевые возможности:**
-- Фиксированный размер пула для предсказуемого использования ресурсов
-- Буферизированная очередь для обработки пиков
-- Асинхронное выполнение без блокировки главного агента
-- Сбор результатов
-- Пропагация ошибок
+- Фиксированное количество воркеров для предсказуемого использования ресурсов
+- Буферизированная очередь задач
+- Результаты через канал для мониторинга
+- Panic recovery для каждого воркера
+- Context cancellation для graceful shutdown
 
 ### HEARTBEAT System
 
-Задачи health check с настраиваемыми интервалами.
+Система периодических проверок состояния через HEARTBEAT.md файл.
+
+**Подробная документация:** [docs/architecture/heartbeat_system.md](architecture/heartbeat_system.md)
 
 **Компоненты:**
-- **Heartbeat Engine**: Запускает проверочные задачи по расписанию
-- **Task Scheduler**: Интеграция с cron системой
-- **Task Definition**: Файлы HEARTBEAT.md в workspace
-- **Result Logging**: Результаты health check
+- **Loader**: Загрузка и валидация HEARTBEAT.md
+- **Parser**: Парсинг markdown контента в список задач
+- **Checker**: Периодическая проверка через Agent interface
+- **Agent Interface**: Обработка heartbeat проверок
 
 **Архитектура:**
 ```
-HEARTBEAT.md files
-    │
-    ├─ interval: 300 (seconds)
-    ├─ description: System health check
-    └─ tasks:
-        ├─ Check service status
-        ├─ Verify disk space
-        ├─ Review error logs
-        └─ Generate health report
+HEARTBEAT.md (workspace)
+         │
+         ▼
+     Loader → Parser → Validate Tasks
+         │
+         ▼
+  Checker (periodic interval)
+         │
+         ▼
+  Agent.ProcessHeartbeatCheck()
+         │
+         ├─ Read HEARTBEAT.md
+         ├─ Follow tasks
+         ├─ Use tools
+         └─ Return response
+              │
+              ▼
+         Process Response
+              │
+              ├─ HEARTBEAT_OK (all good)
+              └─ Actions taken
+```
+
+**Хранилище:** `~/.nexbot/HEARTBEAT.md`
+
+**Формат HEARTBEAT.md:**
+```markdown
+# Heartbeat Tasks
+
+## Periodic Reviews
+
+### Daily Standup
+- Schedule: "0 9 * * *"
+- Task: "Review daily progress, check for blocked tasks, update priorities"
+
+### Weekly Summary
+- Schedule: "0 17 * * 5"
+- Task: "Review weekly achievements, plan next week"
 ```
 
 **Ключевые возможности:**
-- Настраиваемые интервалы
-- Гибкие определения задач
-- Структурированный вывод
-- Интеграция с cron задачами
-- Отслеживание истории выполнения
+- Парсинг задач из markdown формата
+- Валидация cron выражений
+- Интеграция с Cron Scheduler для планирования
+- Периодические проверки через Checker
+- Agent-driven выполнение с инструментами
 
 ## Поток данных
 
@@ -356,13 +396,17 @@ HEARTBEAT.md files
    ↓
 4. Agent Loop извлекает сообщение из очереди
    ↓
-5. Загрузка контекста из файлов workspace
+5. Загрузка контекста из файлов workspace (IDENTITY → AGENTS → SOUL → USER → TOOLS → MEMORY)
    ↓
 6. Отправка LLM провайдеру (Z.ai)
    ↓
 7. Парсинг ответа LLM
    ↓
-8. Выполнение tool calls (если есть)
+8. Выполнение tool calls (если есть):
+   ├─ read_file/write_file/list_dir
+   ├─ shell_exec
+   ├─ cron (Cron Scheduler)
+   └─ spawn (Subagent Manager)
    ↓
 9. Spawn subagents (если запрошено)
    ↓
@@ -374,21 +418,23 @@ HEARTBEAT.md files
 ### Поток Cron задач
 
 ```
-1. Cron Engine запускается по расписанию
+1. Cron Engine запускается по расписанию (recurring) или ticker (oneshot)
    ↓
 2. Поиск соответствующей cron задачи
    ↓
 3. Триггер выполнения задачи
    ↓
-4. Создание задачи в Task Queue
+4. Создание Task (cron_<job>_<ts>)
    ↓
-5. Worker Pool забирает задачу
+5. Submit Task в Worker Pool
    ↓
-6. Выполнение логики задачи
+6. Worker Pool забирает задачу
    ↓
-7. Логирование результатов выполнения
+7. Worker выполняет задачу через Agent/Message Bus
    ↓
-8. Сохранение результатов в логах
+8. Результат отправляется в result channel
+   ↓
+9. Логирование результатов выполнения
 ```
 
 ### Поток Subagent
@@ -396,39 +442,61 @@ HEARTBEAT.md files
 ```
 1. Главный агент вызывает spawn tool
    ↓
-2. Subagent Manager получает запрос
+2. Subagent Manager получает запрос (Spawn ctx, parentSession, task)
    ↓
-3. Генерация уникального session ID
+3. Lock mutex
    ↓
-4. Клонирование контекста главного агента
+4. Generate UUID for subagent
    ↓
-5. Создание экземпляра subagent
+5. Create isolated session ID (subagent-<ts>)
    ↓
-6. Запуск subagent loop
+6. Create Context (WithCancel)
    ↓
-7. Обработка сообщений/инструментов независимо
+7. Create Loop (loopFactory)
    ↓
-8. Возврат результатов главному агенту
+8. Create Subagent struct
    ↓
-9. Очистка ресурсов subagent
+9. Store in registry (subagents map)
+   ↓
+10. Unlock mutex
+   ↓
+11. Return Subagent
+    ↓
+12. Subagent.Process(task) → Loop.Process()
+    ↓
+13. Return response to main agent
+    ↓
+14. Stop(id) → Cancel Context → Delete from registry
 ```
 
 ### Поток Worker Pool
 
 ```
-1. Задача отправлена в очередь
+1. Задача отправлена в очередь (Submit(task))
    ↓
-2. Задача добавлена в буферизированный канал
+2. Задача добавлена в буферизированный канал (taskQueue)
    ↓
-3. Worker доступен? Да → Обработка
+3. Worker Pool increment TasksSubmitted (mutex lock)
    ↓
-4. Worker выполняет задачу
+4. Worker goroutine получает задачу из канала
    ↓
-5. Результат собран
+5. processTask(task) → Record start time
    ↓
-6. Worker возвращается в пул
+6. Determine Context (task or pool)
    ↓
-7. Задача отмечена как завершённая
+7. executeTask(ctx, task):
+   ├─ Switch task.Type
+   ├─ "cron" → executeCronTask()
+   ├─ "subagent" → executeSubagentTask()
+   └─ default → Error: Unknown Type
+   ↓
+8. Calculate Duration
+   ↓
+9. Update Metrics (TasksCompleted/TasksFailed)
+   ↓
+10. Send Result to resultCh
+    ↓
+11. Worker loop back to wait for next task
 ```
 
 ## Архитектура конфигурации
@@ -558,6 +626,15 @@ config.toml в текущей директории
 
 ## Ссылки
 
+### Документация компонентов v0.2
+
+- [Cron Scheduler Architecture](architecture/cron_scheduler.md) — Полная документация планировщика задач
+- [Subagent Manager Architecture](architecture/subagent_manager.md) — Архитектура управления subagents
+- [Worker Pool Architecture](architecture/worker_pool.md) — Архитектура пула воркеров
+- [HEARTBEAT System Architecture](architecture/heartbeat_system.md) — Архитектура системы проверок
+
+### Внешние ресурсы
+
 - [Message Bus Design](https://martinfowler.com/articles/patterns-of-distributed-systems/MessageBus.html)
 - [Go Concurrency](https://go.dev/doc/effective_go#concurrency)
 - [robfig/cron](https://pkg.go.dev/github.com/robfig/cron/v3)
@@ -565,4 +642,4 @@ config.toml в текущей директории
 
 ---
 
-**Последнее обновление:** v0.2.0 Архитектура
+**Последнее обновление:** v0.2.0 Архитектура (обновлено для компонентов Cron Scheduler, Subagent Manager, Worker Pool, HEARTBEAT System)

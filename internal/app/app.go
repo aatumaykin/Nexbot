@@ -13,6 +13,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
+	"github.com/aatumaykin/nexbot/internal/workers"
 	"sync"
 )
 
@@ -35,6 +36,9 @@ type App struct {
 
 	// Scheduled tasks
 	cronScheduler *cron.Scheduler
+
+	// Background task execution
+	workerPool *workers.WorkerPool
 
 	// Context management
 	ctx    context.Context

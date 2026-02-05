@@ -10,9 +10,37 @@ import (
 	"github.com/aatumaykin/nexbot/internal/commands"
 	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/llm"
+	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/tools"
+	"github.com/aatumaykin/nexbot/internal/workers"
 	"github.com/aatumaykin/nexbot/internal/workspace"
 )
+
+// workerPoolAdapter adapts workers.WorkerPool to cron.WorkerPool interface.
+// It converts cron.Task to workers.Task before submitting.
+type workerPoolAdapter struct {
+	pool *workers.WorkerPool
+}
+
+// newWorkerPoolAdapter creates a new adapter for workers pool.
+func newWorkerPoolAdapter(pool *workers.WorkerPool) cron.WorkerPool {
+	return &workerPoolAdapter{pool: pool}
+}
+
+// Submit adapts the cron.Task to workers.Task and submits it to the pool.
+func (a *workerPoolAdapter) Submit(task cron.Task) {
+	// Convert cron.Task to workers.Task
+	workersTask := workers.Task{
+		ID:      task.ID,
+		Type:    task.Type,
+		Payload: task.Payload,
+		Context: task.Context,
+		Metrics: make(map[string]interface{}),
+	}
+
+	// Submit to workers pool
+	a.pool.Submit(workersTask)
+}
 
 // Initialize initializes all application components.
 // It sets up the message bus, LLM provider, workspace, agent loop,
@@ -48,6 +76,20 @@ func (a *App) Initialize(ctx context.Context) error {
 	if err := ws.EnsureSubpath("sessions"); err != nil {
 		return fmt.Errorf("failed to create sessions subdirectory: %w", err)
 	}
+
+	// 4.1. Initialize worker pool
+	workerPool := workers.NewPool(a.config.Workers.PoolSize, a.config.Workers.QueueSize, a.logger)
+	workerPool.Start()
+	a.workerPool = workerPool
+
+	// 4.2. Initialize cron storage
+	cronStorage := cron.NewStorage(ws.Path(), a.logger)
+	cronJobs, err := cronStorage.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load cron jobs from storage: %w", err)
+	}
+	a.logger.Info("loaded cron jobs from storage",
+		logger.Field{Key: "count", Value: len(cronJobs)})
 
 	// 5. Initialize agent loop
 	agentLoop, err := loop.NewLoop(loop.Config{
@@ -107,12 +149,49 @@ func (a *App) Initialize(ctx context.Context) error {
 
 	// 9. Initialize cron scheduler if enabled
 	if a.config.Cron.Enabled {
-		// For now, pass nil as worker pool - will be implemented later
-		cronStorage := cron.NewStorage(ws.Path(), a.logger)
-		a.cronScheduler = cron.NewScheduler(a.logger, a.messageBus, nil, cronStorage)
+		// Create worker pool adapter
+		workerPoolAdapter := newWorkerPoolAdapter(workerPool)
+
+		// Create cron scheduler
+		a.cronScheduler = cron.NewScheduler(a.logger, a.messageBus, workerPoolAdapter, cronStorage)
+
+		// Start cron scheduler
 		if err := a.cronScheduler.Start(a.ctx); err != nil {
 			return fmt.Errorf("failed to start cron scheduler: %w", err)
 		}
+		a.logger.Info("cron scheduler started")
+
+		// Load jobs from storage and add to scheduler
+		for _, storageJob := range cronJobs {
+			job := cron.Job{
+				ID:         storageJob.ID,
+				Type:       cron.JobType(storageJob.Type),
+				Schedule:   storageJob.Schedule,
+				ExecuteAt:  storageJob.ExecuteAt,
+				Command:    storageJob.Command,
+				UserID:     storageJob.UserID,
+				Metadata:   storageJob.Metadata,
+				Executed:   storageJob.Executed,
+				ExecutedAt: storageJob.ExecutedAt,
+			}
+
+			// Skip oneshot jobs that are already executed
+			if job.Type == cron.JobTypeOneshot && job.Executed {
+				continue
+			}
+
+			// Add job to scheduler
+			if _, err := a.cronScheduler.AddJob(job); err != nil {
+				a.logger.Error("failed to add cron job to scheduler", err,
+					logger.Field{Key: "job_id", Value: job.ID},
+					logger.Field{Key: "schedule", Value: job.Schedule})
+				continue
+			}
+		}
+
+		// Register CronTool
+		cronTool := tools.NewCronTool(a.cronScheduler, cronStorage, a.logger)
+		a.agentLoop.RegisterTool(cronTool)
 	}
 
 	// 10. Mark as started

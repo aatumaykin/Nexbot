@@ -43,6 +43,11 @@ func (a *App) Shutdown() error {
 		}
 	}
 
+	// Stop worker pool if not nil
+	if a.workerPool != nil {
+		a.workerPool.Stop()
+	}
+
 	// Stop message bus
 	var busErr error
 	if a.messageBus != nil {

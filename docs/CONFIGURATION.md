@@ -607,6 +607,29 @@ allowed_commands = ["ls", "cat", "grep", "find", "cd", "pwd", "echo", "date", "g
 working_dir = "~/.nexbot"
 timeout_seconds = 30
 
+# Конфигурация cron (v0.2.0)
+[cron]
+enabled = true
+timezone = "UTC"
+jobs_file = "jobs.json"
+
+# Конфигурация worker pool (v0.2.0)
+[workers]
+pool_size = 5
+queue_size = 100
+
+# Конфигурация subagent manager (v0.2.0)
+[subagent]
+enabled = true
+max_concurrent = 10
+timeout_seconds = 300
+session_prefix = "subagent-"
+
+# Конфигурация HEARTBEAT (v0.2.0)
+[heartbeat]
+enabled = true
+check_interval_minutes = 30
+
 # Конфигурация логирования
 [logging]
 level = "info"

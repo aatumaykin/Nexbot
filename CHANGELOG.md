@@ -66,6 +66,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added detailed documentation for cron features
 - Added documentation for subagent management
 - Added documentation for heartbeat tasks
+- Added `docs/architecture/` directory with component architecture documentation:
+  - `cron_scheduler.md` - Complete cron scheduler architecture with flow diagrams
+  - `subagent_manager.md` - Subagent manager architecture and lifecycle
+  - `worker_pool.md` - Worker pool architecture and task execution flow
+  - `heartbeat_system.md` - HEARTBEAT system architecture and integration
+- Updated `docs/ARCHITECTURE.md` with v0.2.0 components and diagrams
 
 ## [0.1.0] - 2026-02-03
 

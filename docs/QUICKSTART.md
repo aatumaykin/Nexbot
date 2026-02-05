@@ -51,6 +51,25 @@ model = "glm-4.7-flash"
 enabled = true
 token = "${TELEGRAM_BOT_TOKEN}"
 
+[cron]
+enabled = true
+timezone = "UTC"
+jobs_file = "jobs.json"
+
+[subagent]
+enabled = true
+max_concurrent = 10
+timeout_seconds = 300
+session_prefix = "subagent-"
+
+[workers]
+pool_size = 5
+queue_size = 100
+
+[heartbeat]
+enabled = true
+check_interval_minutes = 30
+
 [logging]
 level = "info"
 EOF
@@ -89,6 +108,48 @@ nexbot serve
 Создай файл test.txt с текстом "Hello World"
 ```
 
+## ⚙️ Конфигурация v0.2.0
+
+### Новые секции конфигурации
+
+**Cron Scheduler:**
+```toml
+[cron]
+enabled = true              # Включить cron планировщик
+timezone = "UTC"           # Часовой пояс для планирования
+jobs_file = "jobs.json"    # Файл для хранения задач
+```
+
+**Subagent Manager:**
+```toml
+[subagent]
+enabled = true              # Включить subagent spawning
+max_concurrent = 10         # Максимальное количество одновременных subagents
+timeout_seconds = 300      # Таймаут выполнения задач (по умолчанию 5 минут)
+session_prefix = "subagent-"  # Префикс для session ID
+```
+
+**Worker Pool:**
+```toml
+[workers]
+pool_size = 5              # Количество воркеров в пуле
+queue_size = 100            # Размер буфера очереди задач
+```
+
+**HEARTBEAT:**
+```toml
+[heartbeat]
+enabled = true              # Включить HEARTBEAT проверку
+check_interval_minutes = 30  # Интервал проверок в минутах
+```
+
+```
+Привет, кто ты?
+Прочитай файл config.toml
+Выполни: ls -la
+Создай файл test.txt с текстом "Hello World"
+```
+
 ### Инструменты (Tools)
 
 **Файловые операции:**
@@ -110,18 +171,43 @@ nexbot serve
 
 Автоматическое выполнение задач по расписанию.
 
-### Включение Cron
+### Cron CLI команды
 
-Добавьте в `~/.nexbot/config.toml`:
+Начиная с v0.2.0, можно управлять cron задачами через CLI:
 
-```toml
-[cron]
-enabled = true
-timezone = "UTC"
-jobs_file = "jobs.json"
+```bash
+# Добавить запланированную задачу
+nexbot cron add --schedule "0 9 * * *" --command "Daily health check"
+
+# Список всех запланированных задач
+nexbot cron list
+
+# Удалить задачу по ID
+nexbot cron remove job_12345
 ```
 
-### Создание jobs.json
+**Примеры cron выражений:**
+
+```bash
+# Каждый час
+nexbot cron add --schedule "0 * * * *" --command "Run hourly status check"
+
+# Каждый день в 9:00
+nexbot cron add --schedule "0 9 * * *" --command "Morning health check"
+
+# Каждые 5 минут
+nexbot cron add --schedule "*/5 * * * *" --command "Check system status"
+
+# Каждый понедельник в 10:00
+nexbot cron add --schedule "0 10 * * 1" --command "Weekly report"
+
+# Каждое первое число месяца в 3:00
+nexbot cron add --schedule "0 3 1 * *" --command "Monthly backup"
+```
+
+### Создание jobs.json (legacy формат)
+
+Для ручного создания задач можно использовать JSON файл:
 
 ```bash
 cat > ~/.nexbot/jobs.json << 'EOF'
@@ -131,18 +217,6 @@ cat > ~/.nexbot/jobs.json << 'EOF'
       "name": "daily-backup",
       "cron": "0 3 * * *",
       "description": "Ежедневный бэкап в 3:00",
-      "enabled": true
-    },
-    {
-      "name": "weekly-report",
-      "cron": "0 10 * * 1",
-      "description": "Недельный отчёт по понедельникам в 10:00",
-      "enabled": true
-    },
-    {
-      "name": "hourly-check",
-      "cron": "15 * * * *",
-      "description": "Проверка статуса каждый час",
       "enabled": true
     }
   ]
@@ -187,6 +261,32 @@ EOF
 enabled = true
 max_concurrent = 10
 timeout_seconds = 300
+session_prefix = "subagent-"
+```
+
+### Пример диалога с spawn tool
+
+```
+Вы: Проанализируй качество кода для репозитория ~/projects/myapp
+
+Bot: Хорошо, я создам subagent для анализа качества кода.
+
+[Bot использует spawn tool]
+spawn_task: "Проанализируй качество кода в ~/projects/myapp:
+1. Прочитай все .go файлы
+2. Проверь соблюдение go best practices
+3. Найди потенциальные проблемы
+4. Верни отчёт"
+
+[Subagent выполняет задачу параллельно]
+
+Subagent: Анализ кода завершён. Найдено:
+- 25 .go файлов
+- 3 потенциальные проблемы в обработке ошибок
+- 1 проблема с импортами
+- Рекомендация: добавить context cancellation для долгих операций
+
+Bot: Анализ качества кода завершён. Subagent нашёл 25 .go файлов и обнаружил 3 проблемы с обработкой ошибок. Основная рекомендация: добавить context cancellation для долгих операций.
 ```
 
 ### Примеры использования

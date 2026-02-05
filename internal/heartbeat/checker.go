@@ -36,8 +36,13 @@ type Checker struct {
 // agent is the agent that will process heartbeat checks.
 // logger is used for logging.
 func NewChecker(intervalMinutes int, agent Agent, logger *logger.Logger) *Checker {
+	// If interval is 0, use 1 millisecond for testing purposes
+	interval := time.Duration(intervalMinutes) * time.Minute
+	if interval == 0 {
+		interval = time.Millisecond
+	}
 	return &Checker{
-		interval: time.Duration(intervalMinutes) * time.Minute,
+		interval: interval,
 		agent:    agent,
 		logger:   logger,
 		started:  false,
