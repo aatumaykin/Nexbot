@@ -765,3 +765,125 @@ func TestShellExecTool_Execute_EmptyWhitelist(t *testing.T) {
 		t.Errorf("Expected no error when all lists are empty (fail-open), got: %v", err)
 	}
 }
+
+func TestShellExecTool_Execute_DenyCommand(t *testing.T) {
+	log, err := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	if err != nil {
+		t.Fatalf("Failed to create logger: %v", err)
+	}
+
+	cfg := &config.Config{
+		Tools: config.ToolsConfig{
+			Shell: config.ShellToolConfig{
+				Enabled:         true,
+				AllowedCommands: []string{"echo", "rm"},
+				DenyCommands:    []string{"rm"},
+				TimeoutSeconds:  5,
+			},
+		},
+	}
+
+	tool := NewShellExecTool(cfg, log)
+	args := `{"command": "rm -rf /tmp/test"}`
+	_, err = tool.Execute(args)
+
+	if err == nil {
+		t.Error("Expected error for denied command")
+	}
+
+	if !contains(err.Error(), "denied by deny_commands") {
+		t.Errorf("Expected error to mention deny, got: %v", err)
+	}
+}
+
+func TestShellExecTool_Execute_AskCommand(t *testing.T) {
+	log, err := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	if err != nil {
+		t.Fatalf("Failed to create logger: %v", err)
+	}
+
+	cfg := &config.Config{
+		Tools: config.ToolsConfig{
+			Shell: config.ShellToolConfig{
+				Enabled:         true,
+				AllowedCommands: []string{"echo", "git"},
+				AskCommands:     []string{"git *"},
+				TimeoutSeconds:  5,
+			},
+		},
+	}
+
+	tool := NewShellExecTool(cfg, log)
+	args := `{"command": "git commit -m test"}`
+	result, err := tool.Execute(args)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	if !contains(result, "CONFIRM_REQUIRED") {
+		t.Errorf("Expected result to contain CONFIRM_REQUIRED, got: %s", result)
+	}
+}
+
+func TestShellExecTool_Execute_Priority(t *testing.T) {
+	log, err := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	if err != nil {
+		t.Fatalf("Failed to create logger: %v", err)
+	}
+
+	cfg := &config.Config{
+		Tools: config.ToolsConfig{
+			Shell: config.ShellToolConfig{
+				Enabled:         true,
+				AllowedCommands: []string{"rm"},
+				DenyCommands:    []string{"rm"},
+				AskCommands:     []string{"rm"},
+				TimeoutSeconds:  5,
+			},
+		},
+	}
+
+	tool := NewShellExecTool(cfg, log)
+	args := `{"command": "rm -rf /tmp/test"}`
+	_, err = tool.Execute(args)
+
+	if err == nil {
+		t.Error("Expected error (deny has priority)")
+	}
+
+	if !contains(err.Error(), "denied by deny_commands") {
+		t.Errorf("Expected deny error (not ask/allowed), got: %v", err)
+	}
+}
+
+func TestShellExecTool_Execute_AllListsEmpty(t *testing.T) {
+	log, err := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	if err != nil {
+		t.Fatalf("Failed to create logger: %v", err)
+	}
+
+	cfg := &config.Config{
+		Tools: config.ToolsConfig{
+			Shell: config.ShellToolConfig{
+				Enabled:         true,
+				AllowedCommands: []string{},
+				DenyCommands:    []string{},
+				AskCommands:     []string{},
+				TimeoutSeconds:  5,
+			},
+		},
+	}
+
+	tool := NewShellExecTool(cfg, log)
+	args := `{"command": "echo test"}`
+	result, err := tool.Execute(args)
+
+	if err != nil {
+		t.Fatalf("Unexpected error (all lists empty = all allowed): %v", err)
+	}
+
+	if !contains(result, "test") {
+		t.Errorf("Expected command to execute, got: %s", result)
+	}
+}
