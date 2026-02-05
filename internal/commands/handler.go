@@ -5,25 +5,35 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aatumaykin/nexbot/internal/agent/loop"
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/constants"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/messages"
 )
 
+// AgentLoopInterface defines the interface for agent loop operations needed by Handler
+type AgentLoopInterface interface {
+	ClearSession(ctx context.Context, sessionID string) error
+	GetSessionStatus(ctx context.Context, sessionID string) (map[string]any, error)
+}
+
+// MessageBusInterface defines the interface for message bus operations needed by Handler
+type MessageBusInterface interface {
+	PublishOutbound(msg bus.OutboundMessage) error
+}
+
 // Handler handles Telegram commands for the agent.
 type Handler struct {
-	agentLoop  *loop.Loop
-	messageBus *bus.MessageBus
+	agentLoop  AgentLoopInterface
+	messageBus MessageBusInterface
 	logger     *logger.Logger
 	onRestart  func() error
 }
 
 // NewHandler creates a new command handler.
 func NewHandler(
-	agentLoop *loop.Loop,
-	messageBus *bus.MessageBus,
+	agentLoop AgentLoopInterface,
+	messageBus MessageBusInterface,
 	log *logger.Logger,
 	onRestart func() error,
 ) *Handler {
