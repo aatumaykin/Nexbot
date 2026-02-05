@@ -46,7 +46,7 @@ func setupTestEnvironment(t *testing.T) (*cron.Scheduler, *cron.Storage, *logger
 	// Cleanup function
 	cleanup := func() {
 		cancel()
-		scheduler.Stop()
+		_ = scheduler.Stop()
 		os.RemoveAll(tempDir)
 	}
 

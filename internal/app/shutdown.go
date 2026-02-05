@@ -48,6 +48,13 @@ func (a *App) Shutdown() error {
 		a.workerPool.Stop()
 	}
 
+	// Stop heartbeat checker if not nil
+	if a.heartbeatChecker != nil {
+		if err := a.heartbeatChecker.Stop(); err != nil {
+			a.logger.Error("Failed to stop heartbeat checker", err)
+		}
+	}
+
 	// Stop message bus
 	var busErr error
 	if a.messageBus != nil {

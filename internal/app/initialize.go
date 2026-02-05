@@ -9,6 +9,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/channels/telegram"
 	"github.com/aatumaykin/nexbot/internal/commands"
 	"github.com/aatumaykin/nexbot/internal/cron"
+	"github.com/aatumaykin/nexbot/internal/heartbeat"
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/tools"
@@ -116,6 +117,11 @@ func (a *App) Initialize(ctx context.Context) error {
 	)
 
 	// 7. Register tools
+	// Register SendMessageTool
+	sendMessageTool := tools.NewSendMessageTool(a.messageBus, a.logger)
+	a.agentLoop.RegisterTool(sendMessageTool)
+	a.logger.Info("Send message tool registered")
+
 	// Register shell tool if enabled
 	if a.config.Tools.Shell.Enabled {
 		shellTool := tools.NewShellExecTool(a.config, a.logger)
@@ -194,7 +200,19 @@ func (a *App) Initialize(ctx context.Context) error {
 		a.agentLoop.RegisterTool(cronTool)
 	}
 
-	// 10. Mark as started
+	// 10. Initialize heartbeat checker if enabled
+	if a.config.Heartbeat.Enabled {
+		a.heartbeatChecker = heartbeat.NewChecker(
+			a.config.Heartbeat.CheckIntervalMinutes,
+			a.agentLoop,
+			a.logger,
+		)
+		if err := a.heartbeatChecker.Start(); err != nil {
+			return fmt.Errorf("failed to start heartbeat checker: %w", err)
+		}
+	}
+
+	// 11. Mark as started
 	a.mu.Lock()
 	a.started = true
 	a.mu.Unlock()

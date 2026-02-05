@@ -101,7 +101,6 @@ type MockMessageBus struct {
 	mu               sync.Mutex
 	outboundMessages []bus.OutboundMessage
 	publishErr       error
-	bus              *bus.MessageBus // wraps real bus for channel subscription
 
 	publishCalled bool
 }

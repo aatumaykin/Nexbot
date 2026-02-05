@@ -9,7 +9,8 @@ import (
 )
 
 // heartbeatPrompt is the prompt used for heartbeat checks.
-const heartbeatPrompt = "Read HEARTBEAT.md from workspace. Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK."
+// This constant is reserved for future use with ProcessHeartbeatCheck.
+// var heartbeatPrompt = "Read HEARTBEAT.md from workspace. Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK."
 
 // heartbeatOKToken is the token that indicates heartbeat check passed successfully.
 const heartbeatOKToken = "HEARTBEAT_OK"

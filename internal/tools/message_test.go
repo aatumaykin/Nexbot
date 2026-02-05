@@ -31,7 +31,7 @@ func setupTestEnvironmentForMessage(t *testing.T) (*bus.MessageBus, *logger.Logg
 	// Cleanup function
 	cleanup := func() {
 		cancel()
-		messageBus.Stop()
+		_ = messageBus.Stop()
 	}
 
 	return messageBus, log, cleanup

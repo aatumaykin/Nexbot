@@ -12,6 +12,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/commands"
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/cron"
+	"github.com/aatumaykin/nexbot/internal/heartbeat"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/workers"
 	"sync"
@@ -39,6 +40,9 @@ type App struct {
 
 	// Background task execution
 	workerPool *workers.WorkerPool
+
+	// Heartbeat checker
+	heartbeatChecker *heartbeat.Checker
 
 	// Context management
 	ctx    context.Context

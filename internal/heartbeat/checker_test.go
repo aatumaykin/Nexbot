@@ -112,7 +112,9 @@ func TestCheckerProcessResponseOK(t *testing.T) {
 
 	err = checker.Start()
 	require.NoError(t, err)
-	defer checker.Stop()
+	defer func() {
+		_ = checker.Stop()
+	}()
 
 	// Wait for at least one check to run
 	time.Sleep(700 * time.Millisecond)
@@ -130,7 +132,9 @@ func TestCheckerProcessResponseAlert(t *testing.T) {
 
 	err = checker.Start()
 	require.NoError(t, err)
-	defer checker.Stop()
+	defer func() {
+		_ = checker.Stop()
+	}()
 
 	// Wait for at least one check to run
 	time.Sleep(700 * time.Millisecond)
@@ -204,7 +208,9 @@ func TestCheckerProcessResponseEmpty(t *testing.T) {
 
 	err = checker.Start()
 	require.NoError(t, err)
-	defer checker.Stop()
+	defer func() {
+		_ = checker.Stop()
+	}()
 
 	// Wait for at least one check to run
 	time.Sleep(700 * time.Millisecond)
@@ -223,7 +229,9 @@ func TestCheckerAgentError(t *testing.T) {
 
 	err = checker.Start()
 	require.NoError(t, err)
-	defer checker.Stop()
+	defer func() {
+		_ = checker.Stop()
+	}()
 
 	// Wait for at least one check to run
 	time.Sleep(700 * time.Millisecond)
