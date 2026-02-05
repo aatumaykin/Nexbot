@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aatumaykin/nexbot/internal/config"
+	"github.com/aatumaykin/nexbot/internal/constants"
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/spf13/cobra"
@@ -48,27 +49,27 @@ Example usage:
 		// Determine config path
 		configPath := testConfigPath
 		if configPath == "" {
-			configPath = "config.toml"
+			configPath = constants.DefaultConfigPath
 		}
 
 		// Load configuration
-		fmt.Printf("📄 Loading configuration: %s\n", configPath)
+		fmt.Printf(constants.TestMsgLoadingConfig, configPath)
 		cfg, err := config.Load(configPath)
 		if err != nil {
-			fmt.Printf("❌ Failed to load configuration: %v\n", err)
+			fmt.Printf(constants.MsgConfigLoadError, err)
 			os.Exit(1)
 		}
 
-		fmt.Println("✅ Configuration loaded")
+		fmt.Println(constants.TestMsgConfigLoaded)
 
 		// Validate LLM configuration
 		if cfg.Agent.Provider != "zai" {
-			fmt.Printf("❌ LLM provider '%s' is not yet supported (only 'zai' is supported)\n", cfg.Agent.Provider)
+			fmt.Printf(constants.TestMsgProviderNotSupported, cfg.Agent.Provider)
 			os.Exit(1)
 		}
 
 		if cfg.LLM.ZAI.APIKey == "" {
-			fmt.Println("❌ Z.ai API key is not configured in [llm.zai.api_key]")
+			fmt.Println(constants.TestMsgAPIKeyNotConfigured)
 			os.Exit(1)
 		}
 
@@ -79,19 +80,19 @@ Example usage:
 			Output: cfg.Logging.Output,
 		})
 		if err != nil {
-			fmt.Printf("❌ Failed to initialize logger: %v\n", err)
+			fmt.Printf(constants.TestMsgFailedToInitLogger, err)
 			os.Exit(1)
 		}
 
 		// Create LLM provider
-		fmt.Printf("🔌 Initializing Z.ai provider...\n")
+		fmt.Printf(constants.TestMsgInitializingProvider)
 
 		// Determine model to use
 		model := modelOverride
 		if model == "" {
 			model = cfg.Agent.Model
 			if model == "" {
-				model = "glm-4.7"
+				model = constants.TestDefaultModel
 			}
 		}
 
@@ -99,19 +100,19 @@ Example usage:
 			APIKey: cfg.LLM.ZAI.APIKey,
 		}, log)
 
-		fmt.Printf("✅ Z.ai provider initialized (model: %s)\n\n", model)
+		fmt.Printf(constants.TestMsgProviderInitialized, model)
 
 		// Prepare test request
-		testMessage := "Hello, world! Please respond with a friendly greeting."
+		testMessage := constants.TestMessage
 
-		fmt.Printf("📨 Sending test request...\n")
-		fmt.Printf("   Message: %q\n\n", testMessage)
+		fmt.Printf(constants.TestMsgSendingRequest)
+		fmt.Printf(constants.TestMsgSendingRequestMessage, testMessage)
 
 		// Measure latency
 		startTime := time.Now()
 
 		// Send request with context timeout
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), constants.TestRequestTimeout)
 		defer cancel()
 
 		req := llm.ChatRequest{
@@ -122,8 +123,8 @@ Example usage:
 				},
 			},
 			Model:       model,
-			Temperature: 0.7,
-			MaxTokens:   200,
+			Temperature: constants.TestTemperature,
+			MaxTokens:   constants.TestMaxTokens,
 		}
 
 		// Apply model override if specified
@@ -136,46 +137,46 @@ Example usage:
 		latency := time.Since(startTime)
 
 		if err != nil {
-			fmt.Printf("\n❌ Request failed: %v\n\n", err)
+			fmt.Printf(constants.TestMsgRequestFailed, err)
 
 			// Provide friendly error messages
-			fmt.Println("Possible causes:")
-			fmt.Println("  • Invalid or expired API key (check ZAI_API_KEY)")
-			fmt.Println("  • Network connectivity issues")
-			fmt.Println("  • Z.ai API is temporarily unavailable")
-			fmt.Println("  • Rate limit exceeded (too many requests)")
-			fmt.Println("\nTroubleshooting steps:")
-			fmt.Println("  1. Verify your API key in config.toml")
-			fmt.Println("  2. Check your internet connection")
-			fmt.Println("  3. Try again in a few minutes")
-			fmt.Println("  4. Check Z.ai status page")
+			fmt.Println(constants.TestMsgPossibleCauses)
+			fmt.Println(constants.TestMsgCauseAPIKey)
+			fmt.Println(constants.TestMsgCauseNetwork)
+			fmt.Println(constants.TestMsgCauseUnavail)
+			fmt.Println(constants.TestMsgCauseRateLimit)
+			fmt.Println(constants.TestMsgTroubleshooting)
+			fmt.Println(constants.TestMsgStepVerifyAPIKey)
+			fmt.Println(constants.TestMsgCheckConnection)
+			fmt.Println(constants.TestMsgTryAgain)
+			fmt.Println(constants.TestMsgCheckStatus)
 			os.Exit(1)
 		}
 
 		// Display success message
-		fmt.Printf("✅ Request successful!\n\n")
+		fmt.Printf(constants.TestMsgRequestSuccessful)
 
 		// Display response details
-		fmt.Printf("📥 Response Details:\n")
-		fmt.Printf("   Model:        %s\n", resp.Model)
-		fmt.Printf("   Latency:      %v\n", latency)
-		fmt.Printf("   Finish Reason: %s\n\n", resp.FinishReason)
+		fmt.Printf(constants.TestMsgResponseDetails)
+		fmt.Printf(constants.TestMsgResponseModel, resp.Model)
+		fmt.Printf(constants.TestMsgResponseLatency, latency)
+		fmt.Printf(constants.TestMsgFinishReason, resp.FinishReason)
 
 		// Display response content
-		fmt.Printf("📝 Response Content:\n")
-		fmt.Printf("   %q\n\n", resp.Content)
+		fmt.Printf(constants.TestMsgResponseContent)
+		fmt.Printf(constants.TestMsgResponseContentText, resp.Content)
 
 		// Display token usage
-		fmt.Printf("📊 Token Usage:\n")
-		fmt.Printf("   Prompt Tokens:     %6d\n", resp.Usage.PromptTokens)
-		fmt.Printf("   Completion Tokens: %6d\n", resp.Usage.CompletionTokens)
-		fmt.Printf("   Total Tokens:      %6d\n\n", resp.Usage.TotalTokens)
+		fmt.Printf(constants.TestMsgTokenUsage)
+		fmt.Printf(constants.TestMsgPromptTokens, resp.Usage.PromptTokens)
+		fmt.Printf(constants.TestMsgCompletionTokens, resp.Usage.CompletionTokens)
+		fmt.Printf(constants.TestMsgTotalTokens, resp.Usage.TotalTokens)
 
 		// Display tool calls if any
 		if len(resp.ToolCalls) > 0 {
-			fmt.Printf("🔧 Tool Calls: %d\n", len(resp.ToolCalls))
+			fmt.Printf(constants.TestMsgToolCalls, len(resp.ToolCalls))
 			for i, tc := range resp.ToolCalls {
-				fmt.Printf("   %d. %s(%s)\n", i+1, tc.Name, tc.Arguments)
+				fmt.Printf(constants.TestMsgToolCallItem, i+1, tc.Name, tc.Arguments)
 			}
 			fmt.Println()
 		}
@@ -183,16 +184,16 @@ Example usage:
 		// Check finish reason
 		switch resp.FinishReason {
 		case llm.FinishReasonStop:
-			fmt.Println("✨ Model completed generation normally")
+			fmt.Println(constants.TestMsgStopNormal)
 		case llm.FinishReasonLength:
-			fmt.Println("⚠️  Model stopped due to max_tokens limit")
+			fmt.Println(constants.TestMsgStopLength)
 		case llm.FinishReasonToolCalls:
-			fmt.Println("🔧 Model requested tool/function calls")
+			fmt.Println(constants.TestMsgStopToolCalls)
 		case llm.FinishReasonError:
-			fmt.Println("❌ Model stopped due to an error")
+			fmt.Println(constants.TestMsgStopError)
 		}
 
-		fmt.Println("\n✨ All checks passed! Your LLM provider is working correctly.")
+		fmt.Println(constants.TestMsgAllPassed)
 	},
 }
 
