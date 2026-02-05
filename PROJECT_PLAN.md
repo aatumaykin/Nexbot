@@ -479,19 +479,6 @@ timeout_seconds = 30
 
 ---
 
-## Success Criteria (v0.2.0, Updated) ✅ ALL MET
-
-- ✅ Cron scheduler с robfig/cron/v3 работает корректно
-- ✅ Cron CLI команды (add/list/remove) работают
-- ✅ Subagent manager умеет создавать subagents через spawn tool
-- ✅ Background task execution (async workers) работает
-- ✅ HEARTBEAT.md задачи выполняются автоматически
-- ✅ Тесты для cron scheduling проходят
-- ✅ Тесты для subagent coordination проходят
-- ✅ Документация обновлена
-
----
-
 ## Post-MVP Roadmap (без Web UI)
 
 ### v0.2.0 - Cron + Spawn (2–3 недели) ✅ **COMPLETE**
@@ -503,6 +490,12 @@ timeout_seconds = 30
 - ✅ Spawn tool registration.
 - ✅ HEARTBEAT.md support (proactive tasks).
 - ✅ Tests: cron scheduling, subagent coordination.
+
+**Интеграционные задачи v0.2.0-1 ~ v0.2.0-5 (выполнены ранее):**
+- ✅ v0.2.0-1: Интеграция cron scheduler в serve.go
+- ✅ v0.2.0-2: Интеграция subagent manager в serve.go
+- ✅ v0.2.0-3: Интеграция worker pool в serve.go
+- ✅ v0.2.0-5: Регистрация spawn tool в serve.go
 
 
 ### v0.3.0 - Web Search + More Tools (2–3 недели)
