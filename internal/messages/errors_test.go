@@ -1,0 +1,211 @@
+package messages
+
+import (
+	"errors"
+	"strings"
+	"testing"
+
+	"github.com/aatumaykin/nexbot/internal/constants"
+)
+
+func TestFormatError(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{
+			name: "simple error",
+			err:  errors.New("test error"),
+			want: "Error: test error",
+		},
+		{
+			name: "empty error message",
+			err:  errors.New(""),
+			want: "Error: ",
+		},
+		{
+			name: "error with special characters",
+			err:  errors.New("error: test\nnew line"),
+			want: "Error: error: test\nnew line",
+		},
+		{
+			name: "long error message",
+			err:  errors.New("this is a very long error message that contains many words and should be handled properly"),
+			want: "Error: this is a very long error message that contains many words and should be handled properly",
+		},
+		{
+			name: "error with unicode",
+			err:  errors.New("ошибка: тест"),
+			want: "Error: ошибка: тест",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FormatError(tt.err)
+			if got != tt.want {
+				t.Errorf("FormatError() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFormatError_NilError(t *testing.T) {
+	got := FormatError(nil)
+	want := "Error: <nil>"
+	if got != want {
+		t.Errorf("FormatError() with nil = %q, want %q", got, want)
+	}
+}
+
+func TestFormatConfigLoadError(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{
+			name: "file not found error",
+			err:  errors.New("no such file or directory"),
+			want: "❌ Failed to load configuration: no such file or directory\n",
+		},
+		{
+			name: "permission denied",
+			err:  errors.New("permission denied"),
+			want: "❌ Failed to load configuration: permission denied\n",
+		},
+		{
+			name: "invalid format",
+			err:  errors.New("invalid TOML format"),
+			want: "❌ Failed to load configuration: invalid TOML format\n",
+		},
+		{
+			name: "empty error",
+			err:  errors.New(""),
+			want: "❌ Failed to load configuration: \n",
+		},
+		{
+			name: "wrapped error",
+			err:  errors.New("read error: EOF"),
+			want: "❌ Failed to load configuration: read error: EOF\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FormatConfigLoadError(tt.err)
+			if got != tt.want {
+				t.Errorf("FormatConfigLoadError() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFormatConfigLoadError_NilError(t *testing.T) {
+	got := FormatConfigLoadError(nil)
+	want := "❌ Failed to load configuration: <nil>\n"
+	if got != want {
+		t.Errorf("FormatConfigLoadError() with nil = %q, want %q", got, want)
+	}
+}
+
+func TestFormatValidationErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		errs []error
+		want string
+	}{
+		{
+			name: "single error",
+			errs: []error{errors.New("field 'name' is required")},
+			want: "❌ Configuration validation failed:\n  - 1. field 'name' is required\n",
+		},
+		{
+			name: "multiple errors",
+			errs: []error{
+				errors.New("field 'name' is required"),
+				errors.New("field 'age' must be positive"),
+				errors.New("field 'email' is invalid"),
+			},
+			want: "❌ Configuration validation failed:\n  - 1. field 'name' is required\n  - 2. field 'age' must be positive\n  - 3. field 'email' is invalid\n",
+		},
+		{
+			name: "empty slice",
+			errs: []error{},
+			want: "",
+		},
+		{
+			name: "nil slice",
+			errs: nil,
+			want: "",
+		},
+		{
+			name: "errors with unicode",
+			errs: []error{
+				errors.New("поле 'name' обязательно"),
+				errors.New("поле 'email' неверно"),
+			},
+			want: "❌ Configuration validation failed:\n  - 1. поле 'name' обязательно\n  - 2. поле 'email' неверно\n",
+		},
+		{
+			name: "error with newlines",
+			errs: []error{
+				errors.New("field 'config'\n  must be valid JSON"),
+			},
+			want: "❌ Configuration validation failed:\n  - 1. field 'config'\n  must be valid JSON\n",
+		},
+		{
+			name: "ten errors",
+			errs: []error{
+				errors.New("error 1"),
+				errors.New("error 2"),
+				errors.New("error 3"),
+				errors.New("error 4"),
+				errors.New("error 5"),
+				errors.New("error 6"),
+				errors.New("error 7"),
+				errors.New("error 8"),
+				errors.New("error 9"),
+				errors.New("error 10"),
+			},
+			want: "❌ Configuration validation failed:\n" +
+				"  - 1. error 1\n" +
+				"  - 2. error 2\n" +
+				"  - 3. error 3\n" +
+				"  - 4. error 4\n" +
+				"  - 5. error 5\n" +
+				"  - 6. error 6\n" +
+				"  - 7. error 7\n" +
+				"  - 8. error 8\n" +
+				"  - 9. error 9\n" +
+				"  - 10. error 10\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FormatValidationErrors(tt.errs)
+			if got != tt.want {
+				t.Errorf("FormatValidationErrors() =\n%q\nwant\n%q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFormatValidationErrors_ConstantCheck(t *testing.T) {
+	// Test that the function uses the correct constants
+	errs := []error{errors.New("test error")}
+	got := FormatValidationErrors(errs)
+
+	// Check header
+	if !strings.HasPrefix(got, constants.MsgConfigValidationError) {
+		t.Errorf("FormatValidationErrors() should start with %q, got %q",
+			constants.MsgConfigValidationError, got)
+	}
+
+	// Check that it contains numbered error
+	if !strings.Contains(got, "1. test error") {
+		t.Errorf("FormatValidationErrors() should contain numbered error, got %q", got)
+	}
+}
