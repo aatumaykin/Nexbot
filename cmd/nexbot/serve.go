@@ -13,6 +13,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/channels/telegram"
 	"github.com/aatumaykin/nexbot/internal/config"
+	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/tools"
@@ -124,6 +125,18 @@ func serveHandler(cmd *cobra.Command, args []string) {
 		log.Error("Failed to start message bus", err,
 			logger.Field{Key: "capacity", Value: cfg.MessageBus.Capacity})
 		os.Exit(1)
+	}
+
+	// Initialize cron scheduler if enabled
+	var cronScheduler *cron.Scheduler
+	if cfg.Cron.Enabled {
+		log.Info("⏰ Initializing cron scheduler")
+		cronScheduler = cron.NewScheduler(log, messageBus)
+		if err := cronScheduler.Start(ctx); err != nil {
+			log.Error("Failed to start cron scheduler", err)
+			os.Exit(1)
+		}
+		log.Info("✅ Cron scheduler started")
 	}
 
 	// Initialize LLM provider
@@ -341,6 +354,13 @@ func serveHandler(cmd *cobra.Command, args []string) {
 	if telegramConnector != nil {
 		if err := telegramConnector.Stop(); err != nil {
 			log.Error("Failed to stop Telegram connector", err)
+		}
+	}
+
+	// Stop cron scheduler if enabled
+	if cronScheduler != nil {
+		if err := cronScheduler.Stop(); err != nil {
+			log.Error("Failed to stop cron scheduler", err)
 		}
 	}
 
