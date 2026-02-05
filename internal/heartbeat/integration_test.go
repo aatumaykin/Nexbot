@@ -25,9 +25,9 @@ func TestIntegration_HeartbeatWithScheduler(t *testing.T) {
 	messageBus := bus.New(100, log)
 
 	// Create scheduler
-	scheduler := cron.NewScheduler(log, messageBus)
+	scheduler := cron.NewScheduler(log, messageBus, nil, nil)
 
-	// Create HEARTBEAT.md file
+	// Create HEARTBEAT.md file with invalid tasks
 	content := `# Heartbeat Tasks
 
 ## Periodic Reviews
@@ -107,7 +107,7 @@ func TestIntegration_HeartbeatWithInvalidTasks(t *testing.T) {
 	messageBus := bus.New(100, log)
 
 	// Create scheduler
-	scheduler := cron.NewScheduler(log, messageBus)
+	scheduler := cron.NewScheduler(log, messageBus, nil, nil)
 
 	// Create HEARTBEAT.md file with invalid tasks
 	content := `# Heartbeat Tasks
@@ -217,7 +217,7 @@ func TestIntegration_HeartbeatEmptyWorkspace(t *testing.T) {
 
 	// Try to register tasks with scheduler (should be no tasks)
 	messageBus := bus.New(100, log)
-	scheduler := cron.NewScheduler(log, messageBus)
+	scheduler := cron.NewScheduler(log, messageBus, nil, nil)
 
 	// List jobs from scheduler (should be empty)
 	jobs := scheduler.ListJobs()

@@ -52,11 +52,15 @@ type CronTaskPayload struct {
 
 // Job represents a scheduled cron job
 type Job struct {
-	ID       string            `json:"id"`                 // Unique job identifier
-	Schedule string            `json:"schedule"`           // Cron expression (e.g., "0 * * * *")
-	Command  string            `json:"command"`            // Message to send to agent when job executes
-	UserID   string            `json:"user_id"`            // User ID for the message
-	Metadata map[string]string `json:"metadata,omitempty"` // Additional job metadata
+	ID         string            `json:"id"`                    // Unique job identifier
+	Type       JobType           `json:"type"`                  // Job type: recurring or oneshot
+	Schedule   string            `json:"schedule"`              // Cron expression (e.g., "0 * * * *")
+	ExecuteAt  *time.Time        `json:"execute_at,omitempty"`  // Execution time for oneshot jobs
+	Command    string            `json:"command"`               // Message to send to agent when job executes
+	UserID     string            `json:"user_id"`               // User ID for the message
+	Metadata   map[string]string `json:"metadata,omitempty"`    // Additional job metadata
+	Executed   bool              `json:"executed,omitempty"`    // Whether the job has been executed
+	ExecutedAt *time.Time        `json:"executed_at,omitempty"` // When the job was executed
 }
 
 // Scheduler manages cron job scheduling and execution
@@ -65,6 +69,7 @@ type Scheduler struct {
 	logger     *logger.Logger
 	bus        *bus.MessageBus
 	workerPool WorkerPool // Worker pool for async task execution
+	storage    *Storage   // Persistent storage for jobs
 	ctx        context.Context
 	cancel     context.CancelFunc
 	started    bool
@@ -77,12 +82,13 @@ type Scheduler struct {
 }
 
 // NewScheduler creates a new cron scheduler instance
-func NewScheduler(logger *logger.Logger, messageBus *bus.MessageBus, workerPool WorkerPool) *Scheduler {
+func NewScheduler(logger *logger.Logger, messageBus *bus.MessageBus, workerPool WorkerPool, storage *Storage) *Scheduler {
 	return &Scheduler{
 		cron:        cron.New(cron.WithSeconds()),
 		logger:      logger,
 		bus:         messageBus,
 		workerPool:  workerPool,
+		storage:     storage,
 		jobs:        make(map[string]Job),
 		jobIDs:      make(map[cron.EntryID]string),
 		jobEntryIDs: make(map[string]cron.EntryID),
@@ -302,4 +308,30 @@ func generateSessionID(jobID string) string {
 // GenerateJobID генерирует уникальный ID для job (экспортируемый метод)
 func (s *Scheduler) GenerateJobID() string {
 	return generateJobID()
+}
+
+// getJob retrieves a job from the in-memory registry by ID.
+// Returns the job and true if found, empty job and false otherwise.
+// This method is thread-safe.
+func (s *Scheduler) getJob(jobID string) (Job, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	job, exists := s.jobs[jobID]
+	return job, exists
+}
+
+// setJob stores or updates a job in the in-memory registry.
+// This method is thread-safe.
+func (s *Scheduler) setJob(jobID string, job Job) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.jobs[jobID] = job
+}
+
+// deleteJob removes a job from the in-memory registry.
+// This method is thread-safe.
+func (s *Scheduler) deleteJob(jobID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.jobs, jobID)
 }
