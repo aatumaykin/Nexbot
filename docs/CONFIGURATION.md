@@ -288,9 +288,26 @@ read_only_dirs = ["/etc", "/usr", "/bin"]
 | Параметр | Тип | По умолчанию | Описание |
 |----------|-----|--------------|----------|
 | `enabled` | bool | `true` | Включить выполнение shell команд |
-| `allowed_commands` | []string | `[]` | Список разрешённых shell команд (пусто = shell отключён) |
+| `allowed_commands` | []string | `[]` | Список разрешённых shell команд |
+| `deny_commands` | []string | `[]` | Список запрещённых shell команд (блокируют выполнение) |
+| `ask_commands` | []string | `[]` | Список команд, требующих подтверждения пользователя |
 | `working_dir` | string | `~/.nexbot` | Рабочая директория по умолчанию для shell команд |
 | `timeout_seconds` | int | `30` | Таймаут выполнения shell команды |
+
+**Порядок проверки команд:**
+
+1. **deny_commands** — если команда совпадает → ошибка (запрещено)
+2. **ask_commands** — если команда совпадает → запрос подтверждения
+3. **allowed_commands** — если список не пустой и команда НЕ совпадает → ошибка
+
+Если все три списка пустые → все команды разрешены (fail-open).
+
+**Паттерны для команд:**
+
+- **Точное совпадение:** `echo` → совпадает только `echo`
+- **Базовая команда:** `git` → совпадает `git commit`, `git status`, `git log` и т.д.
+- **Wildcard с `*`:** `git *` → совпадает все команды git (также как базовая команда)
+- **Полный wildcard:** `*` → совпадает все команды
 
 **Пример:**
 
@@ -298,20 +315,35 @@ read_only_dirs = ["/etc", "/usr", "/bin"]
 [tools.shell]
 enabled = true
 allowed_commands = ["ls", "cat", "grep", "find", "cd", "pwd", "echo", "date", "git"]
+deny_commands = ["rm", "rmdir", "dd", "mkfs", "fdisk", "shutdown"]
+ask_commands = ["git *", "docker *"]
 working_dir = "${NEXBOT_WORKSPACE:~/.nexbot}"
 timeout_seconds = 30
 ```
 
+**Пример с fail-open (все команды разрешены):**
+
+```toml
+[tools.shell]
+enabled = true
+allowed_commands = []
+deny_commands = []
+ask_commands = []
+timeout_seconds = 30
+```
+
 **Валидация:**
-- `allowed_commands` не может быть пустым, когда `enabled = true`
 - `allowed_commands` не может содержать пустые строки
+- `deny_commands` не может содержать пустые строки
+- `ask_commands` не может содержать пустые строки
 - `working_dir` не должен содержать `..` (path traversal)
 
 **Заметки по безопасности:**
-- Shell команды ограничены списком `allowed_commands`
-- Каждая команда проверяется перед выполнением
-- Используйте `allowed_commands` для контроля того, что может делать бот
+- `deny_commands` имеет наивысший приоритет — если команда в этом списке, она всегда заблокирована
+- `ask_commands` полезен для опасных команд (например, `docker *`, `git push`)
+- `allowed_commands` используется для whitelist — только перечисленные команды разрешены
 - Безопасные команды: `ls`, `cat`, `grep`, `find`, `pwd`, `echo`, `date`
+- Опасные команды для deny: `rm`, `rmdir`, `dd`, `mkfs`, `fdisk`, `shutdown`
 
 ---
 
@@ -618,6 +650,8 @@ read_only_dirs = ["/etc", "/usr", "/bin"]
 [tools.shell]
 enabled = true
 allowed_commands = ["ls", "cat", "grep", "find", "cd", "pwd", "echo", "date", "git"]
+deny_commands = ["rm", "rmdir", "dd", "mkfs", "fdisk", "shutdown"]
+ask_commands = ["git *", "docker *"]
 working_dir = "~/.nexbot"
 timeout_seconds = 30
 
@@ -711,10 +745,12 @@ Nexbot проверяет конфигурацию при запуске. Есл
    ```
 
 3. **Ограничьте shell команды:**
-   ```toml
-   [tools.shell]
-   allowed_commands = ["ls", "cat", "grep"]  # Разрешить только безопасные команды
-   ```
+    ```toml
+    [tools.shell]
+    allowed_commands = ["ls", "cat", "grep"]  # Разрешить только безопасные команды
+    deny_commands = ["rm", "rmdir", "dd"]     # Заблокировать опасные команды
+    ask_commands = ["git *", "docker *"]       # Запрашивать подтверждение для этих команд
+    ```
 
 4. **Ограничьте доступ к файлам:**
    ```toml
@@ -743,8 +779,14 @@ Nexbot проверяет конфигурацию при запуске. Есл
 **Ошибка:** "telegram token has invalid format"
 - **Решение:** Убедитесь, что формат токена — `bot_id:token` (например, `1234567890:ABCdefGHIjklMNOpqrsTUVwxyz`)
 
-**Ошибка:** "tools.shell.allowed_commands cannot be empty when shell tool is enabled"
-- **Решение:** Добавьте команды в `allowed_commands` или отключите shell инструмент
+**Ошибка:** "tools.shell.allowed_commands contains empty command"
+- **Решение:** Удалите пустые строки из списка `allowed_commands`
+
+**Ошибка:** "tools.shell.deny_commands contains empty command"
+- **Решение:** Удалите пустые строки из списка `deny_commands`
+
+**Ошибка:** "tools.shell.ask_commands contains empty command"
+- **Решение:** Удалите пустые строки из списка `ask_commands`
 
 ### Ошибки выполнения
 

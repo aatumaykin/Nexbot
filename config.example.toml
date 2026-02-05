@@ -112,6 +112,13 @@ enabled = true
 # Добавляйте только безопасные команды
 allowed_commands = ["ls", "cat", "grep", "find", "cd", "pwd", "echo", "date", "git"]
 
+# Список запрещённых shell команд (заблокированы независимо от allowed)
+deny_commands = ["rm", "rmdir", "dd", "mkfs", "fdisk", "shutdown"]
+
+# Список команд, требующих подтверждения пользователя
+# Используйте "*" для подкоманд (например, "git *" для всех команд git)
+ask_commands = ["git *", "docker *"]
+
 # Таймаут выполнения shell команды
 timeout_seconds = 30
 
