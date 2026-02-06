@@ -25,25 +25,27 @@ import (
 
 // Connector represents the Telegram bot connector
 type Connector struct {
-	cfg          config.TelegramConfig
-	logger       *logger.Logger
-	bus          *bus.MessageBus
-	bot          *telego.Bot
-	ctx          context.Context
-	cancel       context.CancelFunc
-	outboundCh   <-chan bus.OutboundMessage
-	eventCh      <-chan bus.Event
-	typingLock   sync.RWMutex
-	typingCancel map[string]context.CancelFunc
+	cfg            config.TelegramConfig
+	logger         *logger.Logger
+	bus            *bus.MessageBus
+	bot            *telego.Bot
+	ctx            context.Context
+	cancel         context.CancelFunc
+	outboundCh     <-chan bus.OutboundMessage
+	eventCh        <-chan bus.Event
+	typingLock     sync.RWMutex
+	typingCancel   map[string]context.CancelFunc
+	commandHandler *CommandHandler
 }
 
 // New creates a new Telegram connector
 func New(cfg config.TelegramConfig, log *logger.Logger, msgBus *bus.MessageBus) *Connector {
 	return &Connector{
-		cfg:          cfg,
-		logger:       log,
-		bus:          msgBus,
-		typingCancel: make(map[string]context.CancelFunc),
+		cfg:            cfg,
+		logger:         log,
+		bus:            msgBus,
+		typingCancel:   make(map[string]context.CancelFunc),
+		commandHandler: NewCommandHandler(log, msgBus),
 	}
 }
 
@@ -233,116 +235,17 @@ func (c *Connector) handleUpdate(update telego.Update) error {
 
 	// Check for /new command before whitelist check (allow clearing session for authorized users)
 	if msg.Text == "/new" {
-		if !c.isAllowedUser(userID) {
-			c.logger.WarnCtx(c.ctx, "command blocked - user not in whitelist",
-				logger.Field{Key: "user_id", Value: userID},
-				logger.Field{Key: "command", Value: "/new"})
-			return nil
-		}
-
-		// Use chat ID as session ID
-		sessionID := fmt.Sprintf("%d", msg.Chat.ID)
-
-		// Create command message with metadata
-		inboundMsg := bus.NewInboundMessage(
-			bus.ChannelTypeTelegram,
-			userID,
-			sessionID,
-			msg.Text,
-			map[string]any{
-				"command":    "new_session",
-				"message_id": msg.MessageID,
-				"chat_id":    msg.Chat.ID,
-				"chat_type":  msg.Chat.Type,
-				"username":   msg.From.Username,
-			},
-		)
-
-		// Publish to message bus
-		if err := c.bus.PublishInbound(*inboundMsg); err != nil {
-			return fmt.Errorf("failed to publish command message: %w", err)
-		}
-
-		c.logger.DebugCtx(c.ctx, "new session command published",
-			logger.Field{Key: "user_id", Value: userID},
-			logger.Field{Key: "session_id", Value: sessionID})
-
-		return nil
+		return c.commandHandler.HandleCommand(c.ctx, c.isAllowedUser, msg, "new_session", userID)
 	}
 
 	// Check for /status command - shows session and bot status (doesn't go to session)
 	if msg.Text == "/status" {
-		if !c.isAllowedUser(userID) {
-			c.logger.WarnCtx(c.ctx, "command blocked - user not in whitelist",
-				logger.Field{Key: "user_id", Value: userID},
-				logger.Field{Key: "command", Value: "/status"})
-			return nil
-		}
-
-		// Use chat ID as session ID
-		sessionID := fmt.Sprintf("%d", msg.Chat.ID)
-
-		// Create command message with metadata
-		inboundMsg := bus.NewInboundMessage(
-			bus.ChannelTypeTelegram,
-			userID,
-			sessionID,
-			msg.Text,
-			map[string]any{
-				"command":    "status",
-				"message_id": msg.MessageID,
-				"chat_id":    msg.Chat.ID,
-				"chat_type":  msg.Chat.Type,
-				"username":   msg.From.Username,
-			},
-		)
-
-		// Publish to message bus
-		if err := c.bus.PublishInbound(*inboundMsg); err != nil {
-			return fmt.Errorf("failed to publish command message: %w", err)
-		}
-
-		c.logger.DebugCtx(c.ctx, "status command published",
-			logger.Field{Key: "user_id", Value: userID},
-			logger.Field{Key: "session_id", Value: sessionID})
-
-		return nil
+		return c.commandHandler.HandleCommand(c.ctx, c.isAllowedUser, msg, "status", userID)
 	}
 
 	// Check for /restart command - restarts the bot
 	if msg.Text == "/restart" {
-		if !c.isAllowedUser(userID) {
-			c.logger.WarnCtx(c.ctx, "command blocked - user not in whitelist",
-				logger.Field{Key: "user_id", Value: userID},
-				logger.Field{Key: "command", Value: "/restart"})
-			return nil
-		}
-
-		sessionID := fmt.Sprintf("%d", msg.Chat.ID)
-
-		inboundMsg := bus.NewInboundMessage(
-			bus.ChannelTypeTelegram,
-			userID,
-			sessionID,
-			msg.Text,
-			map[string]any{
-				"command":    "restart",
-				"message_id": msg.MessageID,
-				"chat_id":    msg.Chat.ID,
-				"chat_type":  msg.Chat.Type,
-				"username":   msg.From.Username,
-			},
-		)
-
-		if err := c.bus.PublishInbound(*inboundMsg); err != nil {
-			return fmt.Errorf("failed to publish restart command: %w", err)
-		}
-
-		c.logger.DebugCtx(c.ctx, "restart command published",
-			logger.Field{Key: "user_id", Value: userID},
-			logger.Field{Key: "session_id", Value: sessionID})
-
-		return nil
+		return c.commandHandler.HandleCommand(c.ctx, c.isAllowedUser, msg, "restart", userID)
 	}
 
 	// Check whitelist - block unauthorized users
