@@ -10,6 +10,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// mockMessageSender is a simple mock implementation of agent.MessageSender.
+type mockMessageSender struct {
+	sendFunc func(userID, channelType, sessionID, message string) error
+}
+
+func (m *mockMessageSender) SendMessage(userID, channelType, sessionID, message string) error {
+	if m.sendFunc != nil {
+		return m.sendFunc(userID, channelType, sessionID, message)
+	}
+	return nil
+}
+
 // setupTestEnvironmentForMessage creates a test environment with message bus and logger.
 func setupTestEnvironmentForMessage(t *testing.T) (*bus.MessageBus, *logger.Logger, func()) {
 	// Create logger
@@ -37,10 +49,26 @@ func setupTestEnvironmentForMessage(t *testing.T) (*bus.MessageBus, *logger.Logg
 	return messageBus, log, cleanup
 }
 
-// setupSendMessageTool creates a SendMessageTool for testing.
+// setupSendMessageTool creates a SendMessageTool for testing using real message bus.
 func setupSendMessageTool(t *testing.T) *SendMessageTool {
-	messageBus, log, _ := setupTestEnvironmentForMessage(t)
-	return NewSendMessageTool(messageBus, log)
+	messageBus, log, cleanup := setupTestEnvironmentForMessage(t)
+	t.Cleanup(cleanup)
+
+	// Create mock that delegates to real message bus
+	sender := &mockMessageSender{
+		sendFunc: func(userID, channelType, sessionID, message string) error {
+			event := bus.NewOutboundMessage(
+				bus.ChannelType(channelType),
+				userID,
+				sessionID,
+				message,
+				nil, // no metadata
+			)
+			return messageBus.PublishOutbound(*event)
+		},
+	}
+
+	return NewSendMessageTool(sender, log)
 }
 
 // TestSendMessageToolDefaults tests that default values are applied correctly.
@@ -113,7 +141,7 @@ func TestSendMessageToolCustomSession(t *testing.T) {
 
 // TestSendMessageToolPublishError tests error handling when message bus publish fails.
 func TestSendMessageToolPublishError(t *testing.T) {
-	// Create a stopped message bus to simulate publish error
+	// Create logger
 	log, err := logger.New(logger.Config{
 		Level:  "error",
 		Format: "text",
@@ -121,19 +149,24 @@ func TestSendMessageToolPublishError(t *testing.T) {
 	})
 	require.NoError(t, err, "Failed to create logger")
 
-	// Create message bus but don't start it
-	messageBus := bus.New(100, log)
-	tool := NewSendMessageTool(messageBus, log)
+	// Create mock that returns error
+	sender := &mockMessageSender{
+		sendFunc: func(userID, channelType, sessionID, message string) error {
+			return assert.AnError
+		},
+	}
+
+	tool := NewSendMessageTool(sender, log)
 
 	args := `{
 		"message": "Test message"
 	}`
 
 	result, err := tool.Execute(args)
-	// Should return error since message bus is not started
-	assert.Error(t, err, "Execute should return error when message bus is not started")
+	// Should return error since sender returns error
+	assert.Error(t, err, "Execute should return error when sender fails")
 	assert.Empty(t, result, "Result should be empty on error")
-	assert.Contains(t, err.Error(), "failed to publish outbound message", "Error should mention publish failure")
+	assert.Contains(t, err.Error(), "failed to send message", "Error should mention send failure")
 }
 
 // TestSendMessageToolMissingMessage tests that missing required message parameter returns error.

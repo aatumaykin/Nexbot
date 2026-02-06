@@ -236,7 +236,10 @@ func executeMyTool(ctx context.Context, args map[string]interface{}) (interface{
 2. Зарегистрируйте инструмент в `internal/tools/registry.go`:
 
 ```go
-import "github.com/aatumaykin/nexbot/internal/tools"
+import (
+    "github.com/aatumaykin/nexbot/internal/tools"
+    "github.com/aatumaykin/nexbot/internal/tools/file"
+)
 
 func NewRegistry(ctx context.Context, workspace *workspace.Workspace) *Registry {
     r := &Registry{
@@ -246,9 +249,10 @@ func NewRegistry(ctx context.Context, workspace *workspace.Workspace) *Registry 
     }
 
     // Регистрация инструментов
-    r.Register(tools.NewReadFileTool(workspace))
-    r.Register(tools.NewWriteFileTool(workspace))
-    r.Register(tools.NewListDirTool(workspace))
+    r.Register(file.NewReadFileTool(workspace, config))
+    r.Register(file.NewWriteFileTool(workspace, config))
+    r.Register(file.NewListDirTool(workspace, config))
+    r.Register(file.NewDeleteFileTool(workspace, config))
     r.Register(tools.NewShellTool(workspace))
     r.Register(tools.NewMyTool())  // Новый инструмент
 

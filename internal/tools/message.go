@@ -4,15 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/agent"
 	"github.com/aatumaykin/nexbot/internal/logger"
 )
 
 // SendMessageTool implements the Tool interface for sending messages through the message bus.
 // It allows the LLM to send messages to external channels (e.g., Telegram).
 type SendMessageTool struct {
-	messageBus *bus.MessageBus
-	logger     *logger.Logger
+	sender agent.MessageSender
+	logger *logger.Logger
 }
 
 // SendMessageArgs represents the arguments for the send message tool.
@@ -24,10 +24,10 @@ type SendMessageArgs struct {
 }
 
 // NewSendMessageTool creates a new SendMessageTool instance.
-func NewSendMessageTool(messageBus *bus.MessageBus, logger *logger.Logger) *SendMessageTool {
+func NewSendMessageTool(sender agent.MessageSender, logger *logger.Logger) *SendMessageTool {
 	return &SendMessageTool{
-		messageBus: messageBus,
-		logger:     logger,
+		sender: sender,
+		logger: logger,
 	}
 }
 
@@ -95,18 +95,9 @@ func (t *SendMessageTool) Execute(args string) (string, error) {
 		return "", fmt.Errorf("message parameter is required for send_message action")
 	}
 
-	// Create outbound message
-	outboundMsg := bus.NewOutboundMessage(
-		bus.ChannelType(params.ChannelType),
-		params.UserID,
-		params.SessionID,
-		params.Message,
-		nil, // no metadata
-	)
-
-	// Publish to message bus
-	if err := t.messageBus.PublishOutbound(*outboundMsg); err != nil {
-		return "", fmt.Errorf("failed to publish outbound message: %w", err)
+	// Send message through the sender interface
+	if err := t.sender.SendMessage(params.UserID, params.ChannelType, params.SessionID, params.Message); err != nil {
+		return "", fmt.Errorf("failed to send message: %w", err)
 	}
 
 	t.logger.Info("send_message tool executed",

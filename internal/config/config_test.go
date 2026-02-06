@@ -1034,3 +1034,133 @@ func TestValidationError(t *testing.T) {
 		t.Errorf("ValidationError.Error() = %q, want %q", err.Error(), expected)
 	}
 }
+
+// TestMaskSecretTableDriven расширенное покрытие edge cases для maskSecret
+func TestMaskSecretTableDriven(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"empty", "", ""},
+		{"single char", "a", "***"},
+		{"two chars", "ab", "***"},
+		{"three chars", "abc", "***"},
+		{"four chars", "abcd", "***"},
+		{"five chars", "abcde", "***"},
+		{"six chars", "abcdef", "***"},
+		{"seven chars", "abcdefg", "***"},
+		{"eight chars", "abcdefgh", "abcdefgh"},
+		{"nine chars", "abcdefghi", "abcd*fghi"},
+		{"ten chars", "abcdefghij", "abcd**ghij"},
+		{"fifteen chars", "abcdefghijklmno", "abcd*******lmno"},
+		{"with dashes", "a-b-c-d-e-f-g-h-i-j", "a-b-***********-i-j"},
+		{"with special chars", "abc!@#$%^&*def", "abc!*******def"},
+		{"with numbers", "1234567890", "1234**7890"},
+		{"very long", strings.Repeat("x", 100), "xxxx" + strings.Repeat("*", 92) + "xxxx"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := maskSecret(tt.input)
+			if got != tt.expected {
+				t.Errorf("maskSecret(%q) = %q, want %q", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
+
+// TestMaskAPIKeyExtended расширенное покрытие для maskAPIKey
+func TestMaskAPIKeyExtended(t *testing.T) {
+	tests := []struct {
+		name     string
+		apiKey   string
+		expected string
+	}{
+		{"standard 36 char key", "sk-1234567890abcdefghijklmnopqrstuv", "sk-1***************************stuv"},
+		{"8 char key", "sk-12345", "sk-12345"},
+		{"medium 20 char key", "sk-1234567890123456", "sk-1***********3456"},
+		{"key with numbers", "key-9876543210-abcdefghij", "key-*****************ghij"},
+		{"just numbers", "12345678901234567890", "1234************7890"},
+		{"very long key", strings.Repeat("a", 50), "aaaa" + strings.Repeat("*", 42) + "aaaa"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := maskAPIKey(tt.apiKey)
+			if got != tt.expected {
+				t.Errorf("maskAPIKey(%q) = %q, want %q", tt.apiKey, got, tt.expected)
+			}
+		})
+	}
+}
+
+// TestMaskTelegramTokenExtended расширенное покрытие для maskTelegramToken
+func TestMaskTelegramTokenExtended(t *testing.T) {
+	tests := []struct {
+		name     string
+		token    string
+		expected string
+	}{
+		{"valid token format", "123456789:ABCdefGHIjklMNOpqrsTUVwxyz", "123456789:ABCd******************wxyz"},
+		{"short token", "123:abc", "123:***"},
+		{"token with numbers only", "1234567890:0987654321", "1234567890:0987**4321"},
+		{"long token", "999999999:VeryLongTokenStringWithMixedCase", "999999999:Very************************Case"},
+		{"short bot_id", "12:abcdefghij", "12:abcd**ghij"},
+		{"short token part", "1234567890:ab", "1234567890:***"},
+		{"exact 8 char token part", "1234567890:abcdefgh", "1234567890:abcdefgh"},
+		{"multiple colons", "123:456:789", "123:***:789"},
+		{"no colon - regular mask", "123456789ABCdefGHI", "1234**********fGHI"},
+		{"empty parts", "123:", "123:"},
+		{":only token part", ":abcdefghij", ":abcd**ghij"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := maskTelegramToken(tt.token)
+			if got != tt.expected {
+				t.Errorf("maskTelegramToken(%q) = %q, want %q", tt.token, got, tt.expected)
+			}
+		})
+	}
+}
+
+// TestFormatValidationErrorExtended расширенное покрытие для formatValidationError
+func TestFormatValidationErrorExtended(t *testing.T) {
+	tests := []struct {
+		name    string
+		field   string
+		message string
+		secret  string
+	}{
+		{"valid format with long secret", "api_key", "invalid format", strings.Repeat("a", 100)},
+		{"empty value", "token", "missing", ""},
+		{"short secret", "secret", "too short", "ab"},
+		{"medium secret", "api_key", "invalid", "abcdefg"},
+		{"exact 8 char secret", "password", "weak", "abcdefgh"},
+		{"special chars secret", "token", "invalid", "abc!@#$%^&*def"},
+		{"with numbers only", "key", "invalid", "1234567890"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := formatValidationError(tt.field, tt.message, tt.secret)
+			if err == nil {
+				t.Errorf("formatValidationError() returned nil")
+				return
+			}
+			// Проверяем тип ошибки
+			validationErr, ok := err.(*ValidationError)
+			if !ok {
+				t.Errorf("formatValidationError() returned wrong type: %T", err)
+				return
+			}
+			if validationErr.Field != tt.field {
+				t.Errorf("formatValidationError() field = %q, want %q", validationErr.Field, tt.field)
+			}
+			if validationErr.Message == "" {
+				t.Errorf("formatValidationError() message is empty")
+			}
+		})
+	}
+}

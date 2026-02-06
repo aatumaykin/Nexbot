@@ -15,6 +15,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/tools"
+	"github.com/aatumaykin/nexbot/internal/tools/file"
 	"github.com/aatumaykin/nexbot/internal/workers"
 	"github.com/aatumaykin/nexbot/internal/workspace"
 )
@@ -153,8 +154,11 @@ func (a *App) Initialize(ctx context.Context) error {
 	)
 
 	// 7. Register tools
+	// Create message sender interface implementation
+	messageSender := loop.NewAgentMessageSender(a.messageBus)
+
 	// Register SendMessageTool
-	sendMessageTool := tools.NewSendMessageTool(a.messageBus, a.logger)
+	sendMessageTool := tools.NewSendMessageTool(messageSender, a.logger)
 	if err := a.agentLoop.RegisterTool(sendMessageTool); err != nil {
 		return fmt.Errorf("failed to register send message tool: %w", err)
 	}
@@ -170,19 +174,24 @@ func (a *App) Initialize(ctx context.Context) error {
 
 	// Register file tools if enabled
 	if a.config.Tools.File.Enabled {
-		readFileTool := tools.NewReadFileTool(ws, a.config)
+		readFileTool := file.NewReadFileTool(ws, a.config)
 		if err := a.agentLoop.RegisterTool(readFileTool); err != nil {
 			return fmt.Errorf("failed to register read file tool: %w", err)
 		}
 
-		writeFileTool := tools.NewWriteFileTool(ws, a.config)
+		writeFileTool := file.NewWriteFileTool(ws, a.config)
 		if err := a.agentLoop.RegisterTool(writeFileTool); err != nil {
 			return fmt.Errorf("failed to register write file tool: %w", err)
 		}
 
-		listDirTool := tools.NewListDirTool(ws, a.config)
+		listDirTool := file.NewListDirTool(ws, a.config)
 		if err := a.agentLoop.RegisterTool(listDirTool); err != nil {
 			return fmt.Errorf("failed to register list dir tool: %w", err)
+		}
+
+		deleteFileTool := file.NewDeleteFileTool(ws, a.config)
+		if err := a.agentLoop.RegisterTool(deleteFileTool); err != nil {
+			return fmt.Errorf("failed to register delete file tool: %w", err)
 		}
 	}
 
@@ -241,7 +250,8 @@ func (a *App) Initialize(ctx context.Context) error {
 		}
 
 		// Register CronTool
-		cronTool := tools.NewCronTool(a.cronScheduler, cronStorage, a.logger)
+		cronAdapter := cron.NewCronSchedulerAdapter(a.cronScheduler, cronStorage)
+		cronTool := tools.NewCronTool(cronAdapter, a.logger)
 		if err := a.agentLoop.RegisterTool(cronTool); err != nil {
 			return fmt.Errorf("failed to register cron tool: %w", err)
 		}

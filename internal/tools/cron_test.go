@@ -56,7 +56,8 @@ func setupTestEnvironment(t *testing.T) (*cron.Scheduler, *cron.Storage, *logger
 // setupCronTool creates a CronTool for testing.
 func setupCronTool(t *testing.T) *CronTool {
 	scheduler, storage, log, _ := setupTestEnvironment(t)
-	return NewCronTool(scheduler, storage, log)
+	cronAdapter := cron.NewCronSchedulerAdapter(scheduler, storage)
+	return NewCronTool(cronAdapter, log)
 }
 
 // TestCronTool_Name tests that the tool returns the correct name.
@@ -146,7 +147,8 @@ func TestCronToolRemoveJob(t *testing.T) {
 	scheduler, storage, log, cleanup := setupTestEnvironment(t)
 	defer cleanup()
 
-	tool := NewCronTool(scheduler, storage, log)
+	cronAdapter := cron.NewCronSchedulerAdapter(scheduler, storage)
+	tool := NewCronTool(cronAdapter, log)
 
 	// First, add a job
 	addArgs := `{
@@ -191,7 +193,8 @@ func TestCronToolListJobs(t *testing.T) {
 	scheduler, storage, log, cleanup := setupTestEnvironment(t)
 	defer cleanup()
 
-	tool := NewCronTool(scheduler, storage, log)
+	cronAdapter := cron.NewCronSchedulerAdapter(scheduler, storage)
+	tool := NewCronTool(cronAdapter, log)
 
 	// Add a job first
 	addArgs := `{

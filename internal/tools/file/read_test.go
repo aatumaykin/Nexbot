@@ -1,10 +1,11 @@
-package tools
+package file
 
 import (
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/aatumaykin/nexbot/internal/config"
@@ -21,6 +22,10 @@ func testConfig() *config.Config {
 			},
 		},
 	}
+}
+
+func contains(s, substr string) bool {
+	return strings.Contains(s, substr)
 }
 
 func TestReadFileTool_Name(t *testing.T) {
@@ -538,44 +543,5 @@ func TestReadFileTool_SchemaToJSON(t *testing.T) {
 	// Verify structure is preserved
 	if unmarshaled["type"] != "object" {
 		t.Error("Schema type should be preserved after JSON round-trip")
-	}
-}
-
-func TestReadFileTool_RegistryIntegration(t *testing.T) {
-	tmpDir := t.TempDir()
-	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-
-	registry := NewRegistry()
-	tool := NewReadFileTool(ws, testConfig())
-	if err := registry.Register(tool); err != nil {
-		t.Fatalf("Failed to register read file tool: %v", err)
-	}
-
-	// Generate schemas
-	schemas := registry.ToSchema()
-
-	if len(schemas) != 1 {
-		t.Fatalf("Expected 1 schema, got %d", len(schemas))
-	}
-
-	schema := schemas[0]
-
-	// Verify ToolDefinition fields
-	if schema.Name != "read_file" {
-		t.Errorf("Expected name 'read_file', got '%s'", schema.Name)
-	}
-
-	if schema.Description == "" {
-		t.Error("Description should not be empty")
-	}
-
-	if schema.Parameters == nil {
-		t.Error("Parameters should not be nil")
-	}
-
-	// Verify parameters match tool's Parameters()
-	toolParams := tool.Parameters()
-	if len(schema.Parameters) != len(toolParams) {
-		t.Errorf("Schema parameters don't match tool parameters")
 	}
 }

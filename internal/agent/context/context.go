@@ -215,19 +215,9 @@ func (b *Builder) processTemplates(content string) (string, error) {
 	now := time.Now()
 
 	data := map[string]string{
-		"CURRENT_TIME":      now.Format("15:04:05"),
-		"CURRENT_DATE":      now.Format("2006-01-02"),
-		"WORKSPACE_PATH":    b.workspace,
-		"USER_NAME":         "", // TODO: Get from config
-		"USER_TIMEZONE":     "", // TODO: Get from config
-		"USER_EMAIL":        "", // TODO: Get from config
-		"USER_TELEGRAM":     "", // TODO: Get from config
-		"USER_GITHUB":       "", // TODO: Get from config
-		"PROJECT_LIST":      "", // TODO: Get from workspace
-		"FREQUENT_COMMANDS": "", // TODO: Get from workspace
-		"REMINDER_1":        "", // TODO: Get from workspace
-		"REMINDER_2":        "", // TODO: Get from workspace
-		"REMINDER_3":        "", // TODO: Get from workspace
+		"CURRENT_TIME":   now.Format("15:04:05"),
+		"CURRENT_DATE":   now.Format("2006-01-02"),
+		"WORKSPACE_PATH": b.workspace,
 	}
 
 	result := content

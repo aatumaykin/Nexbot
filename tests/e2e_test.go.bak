@@ -13,7 +13,6 @@ import (
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/tools"
-	"github.com/aatumaykin/nexbot/internal/tools/file"
 	"github.com/aatumaykin/nexbot/internal/workspace"
 	"github.com/mymmrac/telego"
 	"sync"
@@ -220,13 +219,13 @@ func TestE2E_TelegramToAgentWithToolCalls(t *testing.T) {
 
 	// Register tools
 	wsForTools := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
-	if err := agentLoop.RegisterTool(file.NewReadFileTool(wsForTools, testConfig())); err != nil {
+	if err := agentLoop.RegisterTool(tools.NewReadFileTool(wsForTools, testConfig())); err != nil {
 		t.Fatalf("Failed to register read file tool: %v", err)
 	}
-	if err := agentLoop.RegisterTool(file.NewWriteFileTool(wsForTools, testConfig())); err != nil {
+	if err := agentLoop.RegisterTool(tools.NewWriteFileTool(wsForTools, testConfig())); err != nil {
 		t.Fatalf("Failed to register write file tool: %v", err)
 	}
-	if err := agentLoop.RegisterTool(file.NewListDirTool(wsForTools, testConfig())); err != nil {
+	if err := agentLoop.RegisterTool(tools.NewListDirTool(wsForTools, testConfig())); err != nil {
 		t.Fatalf("Failed to register list dir tool: %v", err)
 	}
 
@@ -385,10 +384,10 @@ func TestE2E_MultipleToolCalls(t *testing.T) {
 	})
 
 	wsForTools := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
-	if err := agentLoop.RegisterTool(file.NewReadFileTool(wsForTools, testConfig())); err != nil {
+	if err := agentLoop.RegisterTool(tools.NewReadFileTool(wsForTools, testConfig())); err != nil {
 		t.Fatal(err)
 	}
-	if err := agentLoop.RegisterTool(file.NewListDirTool(wsForTools, testConfig())); err != nil {
+	if err := agentLoop.RegisterTool(tools.NewListDirTool(wsForTools, testConfig())); err != nil {
 		t.Fatal(err)
 	}
 
@@ -553,11 +552,11 @@ func TestE2E_ShellExecTool(t *testing.T) {
 		LLMProvider: mockProvider,
 		Logger:      log,
 	})
-
-	wsForTools := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
 	if err := agentLoop.RegisterTool(tools.NewReadFileTool(wsForTools, testConfig())); err != nil {
 		t.Fatal(err)
 	}
+	wsForTools := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
+	agentLoop.RegisterTool(tools.NewReadFileTool(wsForTools, testConfig()))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aatumaykin/nexbot/internal/agent"
 	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
 )
@@ -13,9 +14,8 @@ import (
 // CronTool implements the Tool interface for cron job management.
 // It allows scheduling, listing, and managing recurring tasks.
 type CronTool struct {
-	scheduler *cron.Scheduler
-	storage   *cron.Storage
-	logger    *logger.Logger
+	cronManager agent.CronManager
+	logger      *logger.Logger
 }
 
 // CronArgs represents the arguments for the cron tool.
@@ -29,11 +29,10 @@ type CronArgs struct {
 }
 
 // NewCronTool creates a new CronTool instance.
-func NewCronTool(scheduler *cron.Scheduler, storage *cron.Storage, logger *logger.Logger) *CronTool {
+func NewCronTool(cronManager agent.CronManager, logger *logger.Logger) *CronTool {
 	return &CronTool{
-		scheduler: scheduler,
-		storage:   storage,
-		logger:    logger,
+		cronManager: cronManager,
+		logger:      logger,
 	}
 }
 
@@ -147,7 +146,7 @@ func (t *CronTool) addRecurring(ctx context.Context, params map[string]interface
 	}
 
 	// Add job to scheduler
-	jobID, err := t.scheduler.AddJob(job)
+	jobID, err := t.cronManager.AddJob(job)
 	if err != nil {
 		return "", fmt.Errorf("failed to add recurring job: %w", err)
 	}
@@ -164,7 +163,7 @@ func (t *CronTool) addRecurring(ctx context.Context, params map[string]interface
 		Executed:   job.Executed,
 		ExecutedAt: job.ExecutedAt,
 	}
-	if err := t.storage.Append(storageJob); err != nil {
+	if err := t.cronManager.AppendJob(storageJob); err != nil {
 		t.logger.WarnCtx(ctx, "failed to save job to storage", logger.Field{Key: "job_id", Value: jobID}, logger.Field{Key: "error", Value: err})
 	}
 
@@ -215,7 +214,7 @@ func (t *CronTool) addOneshot(ctx context.Context, params map[string]interface{}
 	}
 
 	// Add job to scheduler
-	jobID, err := t.scheduler.AddJob(job)
+	jobID, err := t.cronManager.AddJob(job)
 	if err != nil {
 		return "", fmt.Errorf("failed to add oneshot job: %w", err)
 	}
@@ -232,7 +231,7 @@ func (t *CronTool) addOneshot(ctx context.Context, params map[string]interface{}
 		Executed:   job.Executed,
 		ExecutedAt: job.ExecutedAt,
 	}
-	if err := t.storage.Append(storageJob); err != nil {
+	if err := t.cronManager.AppendJob(storageJob); err != nil {
 		t.logger.WarnCtx(ctx, "failed to save job to storage", logger.Field{Key: "job_id", Value: jobID}, logger.Field{Key: "error", Value: err})
 	}
 
@@ -250,12 +249,12 @@ func (t *CronTool) removeJob(ctx context.Context, params map[string]interface{})
 	}
 
 	// Remove job from scheduler
-	if err := t.scheduler.RemoveJob(jobID); err != nil {
+	if err := t.cronManager.RemoveJob(jobID); err != nil {
 		return "", fmt.Errorf("failed to remove job: %w", err)
 	}
 
 	// Remove from storage
-	if err := t.storage.Remove(jobID); err != nil {
+	if err := t.cronManager.RemoveFromStorage(jobID); err != nil {
 		t.logger.WarnCtx(ctx, "failed to delete job from storage", logger.Field{Key: "job_id", Value: jobID}, logger.Field{Key: "error", Value: err})
 	}
 
@@ -266,10 +265,7 @@ func (t *CronTool) removeJob(ctx context.Context, params map[string]interface{})
 
 // listJobs lists all cron jobs.
 func (t *CronTool) listJobs(ctx context.Context, params map[string]interface{}) (string, error) {
-	jobs, err := t.storage.Load()
-	if err != nil {
-		return "", fmt.Errorf("failed to list jobs: %w", err)
-	}
+	jobs := t.cronManager.ListJobs()
 
 	if len(jobs) == 0 {
 		return "No scheduled jobs found.", nil

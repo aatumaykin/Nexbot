@@ -10,7 +10,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
-	"github.com/aatumaykin/nexbot/internal/tools"
+	"github.com/aatumaykin/nexbot/internal/tools/file"
 	"github.com/aatumaykin/nexbot/internal/workspace"
 )
 
@@ -85,7 +85,7 @@ func TestLoop_ToolCalling(t *testing.T) {
 
 	// Register read_file tool
 	ws := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
-	readFileTool := tools.NewReadFileTool(ws, testConfig())
+	readFileTool := file.NewReadFileTool(ws, testConfig())
 	if err := looper.RegisterTool(readFileTool); err != nil {
 		t.Fatalf("Failed to register tool: %v", err)
 	}
