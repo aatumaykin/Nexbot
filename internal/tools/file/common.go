@@ -2,9 +2,6 @@ package file
 
 import (
 	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/aatumaykin/nexbot/internal/config"
@@ -48,54 +45,4 @@ func splitLines(s string) []string {
 	}
 
 	return lines
-}
-
-// validatePath validates that a path doesn't contain directory traversal attempts.
-func (ftb *fileToolBase) validatePath(path string) error {
-	cleanPath := filepath.Clean(path)
-	if strings.Contains(cleanPath, "..") {
-		return fmt.Errorf("path contains directory traversal attempt")
-	}
-	return nil
-}
-
-// resolvePath resolves a path to an absolute path.
-// For relative paths, it uses the workspace. For absolute paths, it checks the whitelist.
-func (ftb *fileToolBase) resolvePath(path string) (string, error) {
-	if filepath.IsAbs(path) {
-		// Absolute path - check whitelist_dirs
-		allowed := false
-		for _, allowedDir := range ftb.cfg.Tools.File.WhitelistDirs {
-			// Exact check: path must either be equal to allowedDir or start with allowedDir + separator
-			if path == allowedDir || strings.HasPrefix(path, allowedDir+string(filepath.Separator)) {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			return "", fmt.Errorf("absolute paths are not allowed")
-		}
-		return path, nil
-	}
-
-	// Relative path - resolve against workspace
-	if ftb.workspace == nil {
-		return "", fmt.Errorf("workspace is not configured")
-	}
-	return ftb.workspace.ResolvePath(path)
-}
-
-// fileExists checks if a file exists at the given path.
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
-}
-
-// isDirectory checks if the path is a directory.
-func isDirectory(path string) (bool, error) {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false, err
-	}
-	return info.IsDir(), nil
 }

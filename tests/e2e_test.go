@@ -12,7 +12,6 @@ import (
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
-	"github.com/aatumaykin/nexbot/internal/testutil"
 	"github.com/aatumaykin/nexbot/internal/tools"
 	"github.com/aatumaykin/nexbot/internal/tools/file"
 	"github.com/aatumaykin/nexbot/internal/workspace"
@@ -182,7 +181,7 @@ func TestE2E_TelegramToAgentWithToolCalls(t *testing.T) {
 	}
 
 	// Setup message bus
-	msgBus := testutil.NewTestMessageBus(log)
+	msgBus := bus.New(100, log)
 
 	// Setup LLM provider with tool calling
 	mockLLMResponses := []MockResponse{
@@ -355,7 +354,7 @@ func TestE2E_MultipleToolCalls(t *testing.T) {
 	createTestBootstrapFiles(t, ws)
 
 	log, _ := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
-	msgBus := testutil.NewTestMessageBus(log)
+	msgBus := bus.New(100, log)
 
 	// Setup mock provider with multiple tool call responses
 	mockLLMResponses := []MockResponse{
@@ -457,7 +456,7 @@ func TestE2E_ToolErrorHandling(t *testing.T) {
 	createTestBootstrapFiles(t, ws)
 
 	log, _ := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
-	msgBus := testutil.NewTestMessageBus(log)
+	msgBus := bus.New(100, log)
 
 	// Setup mock provider with simple response (no tool call)
 	mockLLMResponses := []MockResponse{
@@ -536,12 +535,19 @@ func TestE2E_ShellExecTool(t *testing.T) {
 	createTestBootstrapFiles(t, ws)
 
 	log, _ := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
-	msgBus := testutil.NewTestMessageBus(log)
+	msgBus := bus.New(100, log)
 
-	// Setup mock provider with shell command - echo command needs full path or just "echo"
+	// Setup mock provider with shell tool call
 	mockLLMResponses := []MockResponse{
 		{
 			Content:      "I'll execute the echo command for you.",
+			FinishReason: llm.FinishReasonToolCalls,
+			ToolCalls: []llm.ToolCall{
+				{ID: "call_1", Name: "shell_exec", Arguments: `{"command": "echo hello"}`},
+			},
+		},
+		{
+			Content:      "Shell command executed successfully.",
 			FinishReason: llm.FinishReasonStop,
 			ToolCalls:    nil,
 		},
@@ -557,6 +563,18 @@ func TestE2E_ShellExecTool(t *testing.T) {
 
 	wsForTools := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
 	if err := agentLoop.RegisterTool(file.NewReadFileTool(wsForTools, testConfig())); err != nil {
+		t.Fatal(err)
+	}
+	shellCfg := &config.Config{
+		Tools: config.ToolsConfig{
+			Shell: config.ShellToolConfig{
+				Enabled:         true,
+				AllowedCommands: []string{"echo"},
+				TimeoutSeconds:  30,
+			},
+		},
+	}
+	if err := agentLoop.RegisterTool(tools.NewShellExecTool(shellCfg, log)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -578,7 +596,7 @@ func TestE2E_ShellExecTool(t *testing.T) {
 		ChannelType: bus.ChannelTypeTelegram,
 		UserID:      "123",
 		SessionID:   "456",
-		Content:     "Read nonexistent.txt",
+		Content:     "Run echo hello",
 		Timestamp:   time.Now(),
 	}
 
@@ -589,10 +607,12 @@ func TestE2E_ShellExecTool(t *testing.T) {
 	select {
 	case outboundMsg := <-outboundCh:
 		if outboundMsg.Content == "" {
-			t.Error("Expected non-empty response despite tool error")
+			t.Error("Expected non-empty response")
 		}
-		// Verify that the agent handled the error gracefully
-		t.Logf("Response: %s", outboundMsg.Content)
+		if mockProvider.GetCallCount() != 2 {
+			t.Errorf("Expected 2 LLM calls, got %d", mockProvider.GetCallCount())
+		}
+		t.Log("Shell exec test passed!")
 	case <-time.After(5 * time.Second):
 		t.Fatal("Timeout waiting for response")
 	}

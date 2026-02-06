@@ -117,7 +117,7 @@ func TestMockProvider_Chat_EchoMode(t *testing.T) {
 		Model: "test-model",
 	}
 
-	resp, err := p.Chat(ctx, req)
+	resp, err := p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
@@ -144,7 +144,7 @@ func TestMockProvider_Chat_FixedMode(t *testing.T) {
 		},
 	}
 
-	resp, err := p.Chat(ctx, req)
+	resp, err := p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
@@ -177,7 +177,7 @@ func TestMockProvider_Chat_FixturesMode(t *testing.T) {
 		req := ChatRequest{
 			Messages: []Message{{Role: RoleUser, Content: "Test"}},
 		}
-		resp, err := p.Chat(ctx, req)
+		resp, err := p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 		if err != nil {
 			t.Fatalf("Chat() iteration %d error = %v", i, err)
 		}
@@ -191,7 +191,7 @@ func TestMockProvider_Chat_FixturesMode(t *testing.T) {
 	req := ChatRequest{
 		Messages: []Message{{Role: RoleUser, Content: "Test"}},
 	}
-	resp, err := p.Chat(ctx, req)
+	resp, err := p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err != nil {
 		t.Fatalf("Chat() rotation error = %v", err)
 	}
@@ -208,7 +208,7 @@ func TestMockProvider_Chat_ErrorMode(t *testing.T) {
 		Messages: []Message{{Role: RoleUser, Content: "Test"}},
 	}
 
-	_, err := p.Chat(ctx, req)
+	_, err := p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err == nil {
 		t.Error("Chat() expected error, got nil")
 	}
@@ -230,7 +230,7 @@ func TestMockProvider_Chat_ErrorAfter(t *testing.T) {
 		req := ChatRequest{
 			Messages: []Message{{Role: RoleUser, Content: "Test"}},
 		}
-		_, err := p.Chat(ctx, req)
+		_, err := p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 		if err != nil {
 			t.Fatalf("Chat() call %d expected success, got error: %v", i+1, err)
 		}
@@ -255,7 +255,7 @@ func TestMockProvider_Chat_NoUserMessage(t *testing.T) {
 		},
 	}
 
-	resp, err := p.Chat(ctx, req)
+	resp, err := p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
@@ -273,7 +273,7 @@ func TestMockProvider_Chat_EmptyMessages(t *testing.T) {
 		Messages: []Message{},
 	}
 
-	resp, err := p.Chat(ctx, req)
+	resp, err := p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
@@ -301,13 +301,13 @@ func TestMockProvider_GetCallCount(t *testing.T) {
 	req := ChatRequest{
 		Messages: []Message{{Role: RoleUser, Content: "Test"}},
 	}
-	p.Chat(ctx, req)
+	_, err := p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 
 	if p.GetCallCount() != 1 {
 		t.Errorf("GetCallCount() after 1 call = %d, want 1", p.GetCallCount())
 	}
 
-	p.Chat(ctx, req)
+	_, err = p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if p.GetCallCount() != 2 {
 		t.Errorf("GetCallCount() after 2 calls = %d, want 2", p.GetCallCount())
 	}
@@ -320,8 +320,8 @@ func TestMockProvider_ResetCallCount(t *testing.T) {
 	req := ChatRequest{
 		Messages: []Message{{Role: RoleUser, Content: "Test"}},
 	}
-	p.Chat(ctx, req)
-	p.Chat(ctx, req)
+	_, err := p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
+	_, err = p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 
 	p.ResetCallCount()
 
@@ -342,12 +342,12 @@ func TestMockProvider_SetErrorAfter(t *testing.T) {
 	req := ChatRequest{
 		Messages: []Message{{Role: RoleUser, Content: "Test"}},
 	}
-	_, err := p.Chat(ctx, req)
+	_, err := p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err != nil {
 		t.Errorf("First call with ErrorAfter=1 should succeed, got error: %v", err)
 	}
 
-	_, err = p.Chat(ctx, req)
+	_, err = p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err == nil {
 		t.Error("Second call with ErrorAfter=1 should fail, got nil")
 	}
@@ -403,7 +403,7 @@ func TestMockProvider_Chat_UsageTracking(t *testing.T) {
 		},
 	}
 
-	resp, err := p.Chat(ctx, req)
+	resp, err := p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
@@ -886,7 +886,7 @@ func TestZAIProvider_Chat_Success(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		if err := json.NewEncoder(w).Encode(resp); err != nil { t.Fatalf("Encode failed: %v", err) }
 	}))
 	defer server.Close()
 
@@ -903,7 +903,7 @@ func TestZAIProvider_Chat_Success(t *testing.T) {
 		MaxTokens:   100,
 	}
 
-	resp, err := p.Chat(ctx, req)
+	resp, err := p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
@@ -946,7 +946,7 @@ func TestZAIProvider_Chat_Timeout(t *testing.T) {
 		Messages: []Message{{Role: RoleUser, Content: "Hello"}},
 	}
 
-	_, err = p.Chat(ctx, req)
+	_, err = p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err == nil {
 		t.Error("Chat() expected timeout error, got nil")
 	}
@@ -970,7 +970,7 @@ func TestZAIProvider_Chat_NetworkError(t *testing.T) {
 		Messages: []Message{{Role: RoleUser, Content: "Hello"}},
 	}
 
-	_, err = p.Chat(ctx, req)
+	_, err = p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err == nil {
 		t.Error("Chat() expected network error, got nil")
 	}
@@ -988,7 +988,9 @@ func TestZAIProvider_Chat_HTTPError(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"error": "invalid api key"}`))
+		if _, err := w.Write([]byte(`{"error": "invalid api key"}`)); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -1000,7 +1002,7 @@ func TestZAIProvider_Chat_HTTPError(t *testing.T) {
 		Messages: []Message{{Role: RoleUser, Content: "Hello"}},
 	}
 
-	_, err = p.Chat(ctx, req)
+	_, err = p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err == nil {
 		t.Error("Chat() expected HTTP error, got nil")
 	}
@@ -1032,7 +1034,7 @@ func TestZAIProvider_Chat_APIError(t *testing.T) {
 			},
 		}
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(resp)
+		if err := json.NewEncoder(w).Encode(resp); err != nil { t.Fatalf("Encode failed: %v", err) }
 	}))
 	defer server.Close()
 
@@ -1044,7 +1046,7 @@ func TestZAIProvider_Chat_APIError(t *testing.T) {
 		Messages: []Message{{Role: RoleUser, Content: "Hello"}},
 	}
 
-	_, err = p.Chat(ctx, req)
+	_, err = p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err == nil {
 		t.Error("Chat() expected API error, got nil")
 	}
@@ -1066,7 +1068,9 @@ func TestZAIProvider_Chat_InvalidJSON(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`invalid json`))
+		if _, err := w.Write([]byte(`invalid json`)); err != nil {
+			t.Fatalf("Write failed: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -1078,7 +1082,7 @@ func TestZAIProvider_Chat_InvalidJSON(t *testing.T) {
 		Messages: []Message{{Role: RoleUser, Content: "Hello"}},
 	}
 
-	_, err = p.Chat(ctx, req)
+	_, err = p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err == nil {
 		t.Error("Chat() expected JSON error, got nil")
 	}
@@ -1140,7 +1144,7 @@ func TestZAIProvider_Chat_ToolCalls(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		if err := json.NewEncoder(w).Encode(resp); err != nil { t.Fatalf("Encode failed: %v", err) }
 	}))
 	defer server.Close()
 
@@ -1161,7 +1165,7 @@ func TestZAIProvider_Chat_ToolCalls(t *testing.T) {
 		},
 	}
 
-	resp, err := p.Chat(ctx, req)
+	resp, err := p.Chat(ctx, req); if err != nil { t.Fatalf("Chat failed: %v", err) }
 	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
