@@ -1,12 +1,16 @@
 package cron
 
-// CronSchedulerAdapter реализует agent.CronManager
+import (
+	"github.com/aatumaykin/nexbot/internal/agent"
+)
+
+// CronSchedulerAdapter implements agent.CronManager by adapting cron.Scheduler
 type CronSchedulerAdapter struct {
 	scheduler *Scheduler
 	storage   *Storage
 }
 
-// NewCronSchedulerAdapter создает новый адаптер для cron scheduler
+// NewCronSchedulerAdapter creates a new adapter for cron scheduler
 func NewCronSchedulerAdapter(scheduler *Scheduler, storage *Storage) *CronSchedulerAdapter {
 	return &CronSchedulerAdapter{
 		scheduler: scheduler,
@@ -14,26 +18,72 @@ func NewCronSchedulerAdapter(scheduler *Scheduler, storage *Storage) *CronSchedu
 	}
 }
 
-func (a *CronSchedulerAdapter) AddJob(job Job) (string, error) {
-	return a.scheduler.AddJob(job)
+// AddJob implements agent.CronManager
+func (a *CronSchedulerAdapter) AddJob(job agent.Job) (string, error) {
+	// Convert domain model to internal model
+	cronJob := Job{
+		ID:         job.ID,
+		Type:       JobType(job.Type),
+		Schedule:   job.Schedule,
+		ExecuteAt:  job.ExecuteAt,
+		Command:    job.Command,
+		UserID:     job.UserID,
+		Metadata:   job.Metadata,
+		Executed:   job.Executed,
+		ExecutedAt: job.ExecutedAt,
+	}
+	return a.scheduler.AddJob(cronJob)
 }
 
+// RemoveJob implements agent.CronManager
 func (a *CronSchedulerAdapter) RemoveJob(jobID string) error {
 	return a.scheduler.RemoveJob(jobID)
 }
 
+// RemoveFromStorage implements agent.CronManager
 func (a *CronSchedulerAdapter) RemoveFromStorage(jobID string) error {
 	return a.storage.Remove(jobID)
 }
 
-func (a *CronSchedulerAdapter) ListJobs() []StorageJob {
-	jobs, err := a.storage.Load()
+// ListJobs implements agent.CronManager
+func (a *CronSchedulerAdapter) ListJobs() []agent.Job {
+	// Load jobs from storage
+	storageJobs, err := a.storage.Load()
 	if err != nil {
-		return []StorageJob{}
+		return []agent.Job{}
+	}
+
+	// Convert to domain model
+	jobs := make([]agent.Job, len(storageJobs))
+	for i, sj := range storageJobs {
+		jobs[i] = agent.Job{
+			ID:         sj.ID,
+			Type:       sj.Type,
+			Schedule:   sj.Schedule,
+			ExecuteAt:  sj.ExecuteAt,
+			Command:    sj.Command,
+			UserID:     sj.UserID,
+			Metadata:   sj.Metadata,
+			Executed:   sj.Executed,
+			ExecutedAt: sj.ExecutedAt,
+		}
 	}
 	return jobs
 }
 
-func (a *CronSchedulerAdapter) AppendJob(job StorageJob) error {
-	return a.storage.Append(job)
+// AppendJob implements agent.CronManager
+func (a *CronSchedulerAdapter) AppendJob(job agent.Job) error {
+	// Convert domain model to storage model
+	storageJob := StorageJob{
+		ID:         job.ID,
+		Type:       job.Type,
+		Schedule:   job.Schedule,
+		ExecuteAt:  job.ExecuteAt,
+		Command:    job.Command,
+		UserID:     job.UserID,
+		Metadata:   job.Metadata,
+		Executed:   job.Executed,
+		ExecutedAt: job.ExecutedAt,
+	}
+	return a.storage.Append(storageJob)
 }

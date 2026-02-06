@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/aatumaykin/nexbot/internal/agent"
-	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
 )
 
@@ -133,9 +132,9 @@ func (t *CronTool) addRecurring(ctx context.Context, params map[string]interface
 		return "", fmt.Errorf("user_id parameter is required for add_recurring action")
 	}
 
-	// Create job
-	job := cron.Job{
-		Type:     cron.JobTypeRecurring,
+	// Create job using domain model
+	job := agent.Job{
+		Type:     "recurring",
 		Schedule: schedule,
 		Command:  command,
 		UserID:   userID,
@@ -152,11 +151,10 @@ func (t *CronTool) addRecurring(ctx context.Context, params map[string]interface
 	}
 
 	// Save to storage
-	storageJob := cron.StorageJob{
-		ID:         job.ID,
-		Type:       string(job.Type),
+	storageJob := agent.Job{
+		ID:         jobID,
+		Type:       job.Type,
 		Schedule:   job.Schedule,
-		ExecuteAt:  job.ExecuteAt,
 		Command:    job.Command,
 		UserID:     job.UserID,
 		Metadata:   job.Metadata,
@@ -200,9 +198,9 @@ func (t *CronTool) addOneshot(ctx context.Context, params map[string]interface{}
 	// Format: second minute hour day month weekday
 	schedule := fmt.Sprintf("0 %d %d %d %d *", executeAt.Minute(), executeAt.Hour(), executeAt.Day(), executeAt.Month())
 
-	// Create job
-	job := cron.Job{
-		Type:      cron.JobTypeOneshot,
+	// Create job using domain model
+	job := agent.Job{
+		Type:      "oneshot",
 		Schedule:  schedule,
 		ExecuteAt: &executeAt,
 		Command:   command,
@@ -220,9 +218,9 @@ func (t *CronTool) addOneshot(ctx context.Context, params map[string]interface{}
 	}
 
 	// Save to storage
-	storageJob := cron.StorageJob{
-		ID:         job.ID,
-		Type:       string(job.Type),
+	storageJob := agent.Job{
+		ID:         jobID,
+		Type:       job.Type,
 		Schedule:   job.Schedule,
 		ExecuteAt:  job.ExecuteAt,
 		Command:    job.Command,
