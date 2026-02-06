@@ -360,7 +360,10 @@ func (c *Connector) handleUpdate(update telego.Update) error {
 				ChatID: telego.ChatID{ID: msg.Chat.ID},
 				Text:   "Sorry, you are not authorized to use this bot.",
 			}
-			_, _ = c.bot.SendMessage(c.ctx, &notifyParams)
+			_, err := c.bot.SendMessage(c.ctx, &notifyParams)
+			if err != nil {
+				c.logger.ErrorCtx(c.ctx, "failed to send notification", err)
+			}
 		}
 
 		return nil
