@@ -224,7 +224,7 @@ func TestApp_Initialize_AllTools(t *testing.T) {
 }
 
 func TestApp_Initialize_WorkspaceDirectories(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := shortTestDir(t, "")
 	cfg := createTestConfig(t)
 	cfg.Workspace.Path = tmpDir
 

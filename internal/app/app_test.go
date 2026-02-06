@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 	"time"
 
@@ -26,11 +27,36 @@ func createTestLogger(t *testing.T) *logger.Logger {
 	return log
 }
 
+// shortTestDir creates a short test directory path to avoid Unix socket path limitations (max 104 chars)
+func shortTestDir(t *testing.T, suffix string) string {
+	t.Helper()
+	path := "/tmp/nexbot-test-" + t.Name()
+	if suffix != "" {
+		path += "-" + suffix
+	}
+	if err := os.MkdirAll(path, 0755); err != nil {
+		t.Fatalf("Failed to create test directory: %v", err)
+	}
+	t.Cleanup(func() {
+		os.RemoveAll(path)
+	})
+	return path
+}
+
 // Helper function to create test config
 func createTestConfig(t *testing.T) *config.Config {
 	t.Helper()
 
-	tmpDir := t.TempDir()
+	// Use /tmp for workspace to avoid socket path limitation (max 104 chars for Unix sockets)
+	// t.TempDir() can generate very long paths that exceed the Unix socket path limit
+	tmpDir := "/tmp/nexbot-test-" + t.Name()
+	if err := os.MkdirAll(tmpDir, 0755); err != nil {
+		t.Fatalf("Failed to create test workspace: %v", err)
+	}
+	t.Cleanup(func() {
+		os.RemoveAll(tmpDir)
+	})
+
 	return &config.Config{
 		Workspace: config.WorkspaceConfig{
 			Path:              tmpDir,
