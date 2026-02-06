@@ -3,8 +3,8 @@ package tests
 import (
 	"sync"
 
-	"github.com/mymmrac/telego"
 	"github.com/aatumaykin/nexbot/internal/config"
+	"github.com/mymmrac/telego"
 )
 
 // testConfig creates a test configuration with default values.
