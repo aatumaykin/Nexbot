@@ -15,54 +15,6 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-const (
-	// ChannelTypeCron is the channel type for cron-scheduled messages
-	ChannelTypeCron bus.ChannelType = "cron"
-)
-
-// JobType represents the type of a cron job
-type JobType string
-
-const (
-	// JobTypeRecurring is a repeating job that runs on a schedule
-	JobTypeRecurring JobType = "recurring"
-	// JobTypeOneshot is a one-time job that runs once at the specified time
-	JobTypeOneshot JobType = "oneshot"
-)
-
-// Task represents a cron task to be submitted to worker pool
-type Task struct {
-	ID      string          // Unique task identifier
-	Type    string          // Task type: "cron"
-	Payload interface{}     // Task payload (command, user_id, metadata, etc.)
-	Context context.Context // Task-specific context for cancellation/timeout
-}
-
-// WorkerPool is an interface for worker pool operations
-type WorkerPool interface {
-	Submit(task Task)
-}
-
-// CronTaskPayload represents the payload for a cron task
-type CronTaskPayload struct {
-	Command  string            // Command to execute
-	UserID   string            // User ID
-	Metadata map[string]string // Job metadata
-}
-
-// Job represents a scheduled cron job
-type Job struct {
-	ID         string            `json:"id"`                    // Unique job identifier
-	Type       JobType           `json:"type"`                  // Job type: recurring or oneshot
-	Schedule   string            `json:"schedule"`              // Cron expression (e.g., "0 * * * *")
-	ExecuteAt  *time.Time        `json:"execute_at,omitempty"`  // Execution time for oneshot jobs
-	Command    string            `json:"command"`               // Message to send to agent when job executes
-	UserID     string            `json:"user_id"`               // User ID for the message
-	Metadata   map[string]string `json:"metadata,omitempty"`    // Additional job metadata
-	Executed   bool              `json:"executed,omitempty"`    // Whether the job has been executed
-	ExecutedAt *time.Time        `json:"executed_at,omitempty"` // When the job was executed
-}
-
 // Scheduler manages cron job scheduling and execution
 type Scheduler struct {
 	cron          *cron.Cron
@@ -159,7 +111,7 @@ func (s *Scheduler) AddJob(job Job) (string, error) {
 
 	// Generate job ID if not provided
 	if job.ID == "" {
-		job.ID = generateJobID()
+		job.ID = GenerateJobID()
 	}
 
 	var entryID cron.EntryID
@@ -173,16 +125,20 @@ func (s *Scheduler) AddJob(job Job) (string, error) {
 			s.executeJob(job)
 		}
 
-		// Add job to cron scheduler (this validates the expression)
+		// Validate cron expression first
+		if err := validateCronExpression(job.Schedule, s.parser); err != nil {
+			return "", err
+		}
+
+		// Add job to cron scheduler
 		entryID, err = s.cron.AddFunc(job.Schedule, wrappedFunc)
 		if err != nil {
 			return "", fmt.Errorf("invalid cron expression: %w", err)
 		}
 	} else if job.Schedule != "" {
 		// For non-recurring jobs, validate cron expression without adding to scheduler
-		_, err = s.parser.Parse(job.Schedule)
-		if err != nil {
-			return "", fmt.Errorf("invalid cron expression: %w", err)
+		if err := validateCronExpression(job.Schedule, s.parser); err != nil {
+			return "", err
 		}
 	}
 
@@ -217,7 +173,7 @@ func (s *Scheduler) AddJob(job Job) (string, error) {
 	// This is important for testing and ensures jobs don't get missed
 	if job.Type == JobTypeOneshot && !job.Executed && job.ExecuteAt != nil {
 		now := time.Now()
-		if job.ExecuteAt.Before(now) || job.ExecuteAt.Equal(now) {
+		if validateOneshotJobExecution(job.ExecuteAt, now) {
 			// Execute job first (with Executed=false)
 			s.executeJob(job)
 			s.logger.Info("executed oneshot job immediately on add",
@@ -334,227 +290,9 @@ func (s *Scheduler) GetJob(jobID string) (Job, error) {
 	return job, nil
 }
 
-// executeJob executes a cron job by submitting it to the worker pool
-func (s *Scheduler) executeJob(job Job) {
-	defer func() {
-		if r := recover(); r != nil {
-			s.logger.Error("cron job panic recovered", fmt.Errorf("panic: %v", r),
-				logger.Field{Key: "job_id", Value: job.ID})
-		}
-	}()
-
-	// Skip execution if oneshot job was already executed
-	if job.Type == JobTypeOneshot && job.Executed {
-		return
-	}
-
-	// Submit to worker pool if available
-	if s.workerPool != nil {
-		// Prepare task payload
-		taskPayload := CronTaskPayload{
-			Command:  job.Command,
-			UserID:   job.UserID,
-			Metadata: job.Metadata,
-		}
-
-		// Create task ID
-		taskID := fmt.Sprintf("cron_%s_%d", job.ID, time.Now().UnixNano())
-
-		// Create and submit task
-		task := Task{
-			ID:      taskID,
-			Type:    "cron",
-			Payload: taskPayload,
-			Context: s.ctx,
-		}
-
-		s.workerPool.Submit(task)
-
-		s.logger.Info("cron job submitted to worker pool",
-			logger.Field{Key: "job_id", Value: job.ID},
-			logger.Field{Key: "task_id", Value: taskID},
-			logger.Field{Key: "command", Value: job.Command})
-	} else {
-		// Fallback to message bus if no worker pool
-		s.fallbackToMessageBus(job)
-	}
-}
-
-// fallbackToMessageBus sends the job to the message bus as before
-func (s *Scheduler) fallbackToMessageBus(job Job) {
-	// Prepare metadata for the message
-	metadata := make(map[string]any)
-	metadata["cron_job_id"] = job.ID
-	metadata["cron_schedule"] = job.Schedule
-	for k, v := range job.Metadata {
-		metadata[k] = v
-	}
-
-	// Create inbound message
-	msg := bus.NewInboundMessage(
-		ChannelTypeCron,
-		job.UserID,
-		generateSessionID(job.ID),
-		job.Command,
-		metadata,
-	)
-
-	// Publish to message bus
-	if err := s.bus.PublishInbound(*msg); err != nil {
-		s.logger.Error("failed to publish cron job message", err,
-			logger.Field{Key: "job_id", Value: job.ID})
-		return
-	}
-
-	s.logger.Info("cron job executed via message bus",
-		logger.Field{Key: "job_id", Value: job.ID},
-		logger.Field{Key: "command", Value: job.Command})
-}
-
 // IsStarted returns true if the scheduler is started
 func (s *Scheduler) IsStarted() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.started
-}
-
-// generateJobID generates a unique job ID
-func generateJobID() string {
-	return fmt.Sprintf("job_%d", time.Now().UnixNano())
-}
-
-// generateSessionID generates a session ID for a cron job
-func generateSessionID(jobID string) string {
-	return fmt.Sprintf("cron_%s", jobID)
-}
-
-// GenerateJobID генерирует уникальный ID для job (экспортируемый метод)
-func (s *Scheduler) GenerateJobID() string {
-	return generateJobID()
-}
-
-// oneshotTicker starts a ticker that checks for oneshot jobs every minute.
-func (s *Scheduler) oneshotTicker() {
-	s.ticker = time.NewTicker(1 * time.Minute)
-	go func() {
-		for {
-			select {
-			case <-s.ctx.Done():
-				return
-			case <-s.ticker.C:
-				s.checkAndExecuteOneshots(time.Now())
-			}
-		}
-	}()
-}
-
-// checkAndExecuteOneshots checks for and executes overdue oneshot jobs.
-// It loads all jobs from storage and executes those that are overdue.
-func (s *Scheduler) checkAndExecuteOneshots(now time.Time) {
-	// Load all jobs from storage
-	storageJobs, err := s.storage.Load()
-	if err != nil {
-		s.logger.Error("failed to load jobs for oneshot check", err)
-		return
-	}
-
-	updated := false
-	for _, storageJob := range storageJobs {
-		// Only check oneshot jobs
-		if storageJob.Type != string(JobTypeOneshot) {
-			continue
-		}
-
-		// Check if job should execute now
-		if storageJob.ExecuteAt == nil {
-			s.logger.Warn("oneshot job has no execute_at", logger.Field{Key: "job_id", Value: storageJob.ID})
-			continue
-		}
-
-		if storageJob.ExecuteAt.After(now) || storageJob.Executed {
-			continue
-		}
-
-		// Submit job to worker pool BEFORE marking as executed
-		job := Job{
-			ID:         storageJob.ID,
-			Type:       JobType(storageJob.Type),
-			Schedule:   storageJob.Schedule,
-			ExecuteAt:  storageJob.ExecuteAt,
-			Command:    storageJob.Command,
-			UserID:     storageJob.UserID,
-			Metadata:   storageJob.Metadata,
-			Executed:   false, // Not yet executed - executeJob will skip if already executed
-			ExecutedAt: nil,
-		}
-		s.executeJob(job)
-
-		// Mark as executed AFTER submission
-		storageJob.Executed = true
-		storageJob.ExecutedAt = &now
-		updated = true
-
-		s.logger.Info("executed oneshot job",
-			logger.Field{Key: "job_id", Value: storageJob.ID},
-			logger.Field{Key: "execute_at", Value: storageJob.ExecuteAt})
-	}
-
-	// Save updated jobs to storage
-	if updated {
-		if err := s.storage.Save(storageJobs); err != nil {
-			s.logger.Error("failed to save jobs after oneshot execution", err)
-		}
-	}
-}
-
-// executedCleanup starts a ticker that cleans up executed oneshot jobs every 24 hours.
-func (s *Scheduler) executedCleanup() {
-	s.cleanupTicker = time.NewTicker(24 * time.Hour)
-	go func() {
-		for {
-			select {
-			case <-s.ctx.Done():
-				return
-			case <-s.cleanupTicker.C:
-				s.CleanupExecutedOneshots()
-			}
-		}
-	}()
-}
-
-// CleanupExecutedOneshots removes all executed oneshot jobs from storage.
-// It reloads the jobs map from storage to reflect the changes.
-// This method is public and can be called manually.
-func (s *Scheduler) CleanupExecutedOneshots() {
-	// Load all jobs before cleanup to identify which ones to remove
-	allJobs, err := s.storage.Load()
-	if err != nil {
-		s.logger.Error("failed to load jobs before cleanup", err)
-		return
-	}
-
-	// Identify executed oneshot jobs to remove
-	var oneshotJobsToRemove []string
-	for _, job := range allJobs {
-		if job.Type == string(JobTypeOneshot) && job.Executed {
-			oneshotJobsToRemove = append(oneshotJobsToRemove, job.ID)
-		}
-	}
-
-	// Remove executed oneshots from storage
-	if err := s.storage.RemoveExecutedOneshots(); err != nil {
-		s.logger.Error("failed to remove executed oneshots", err)
-		return
-	}
-
-	// Update in-memory jobs map - remove only executed oneshots
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	for _, jobID := range oneshotJobsToRemove {
-		delete(s.jobs, jobID)
-	}
-
-	s.logger.Info("cleaned up executed oneshot jobs",
-		logger.Field{Key: "remaining_jobs", Value: len(s.jobs)})
 }
