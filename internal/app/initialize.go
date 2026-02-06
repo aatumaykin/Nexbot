@@ -192,7 +192,6 @@ func (a *App) Initialize(ctx context.Context) error {
 			a.config.Channels.Telegram,
 			a.logger,
 			a.messageBus,
-			provider,
 		)
 		if err := a.telegram.Start(a.ctx); err != nil {
 			return fmt.Errorf("failed to start telegram connector: %w", err)

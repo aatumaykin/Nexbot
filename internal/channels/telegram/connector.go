@@ -19,7 +19,6 @@ import (
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/constants"
-	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/mymmrac/telego"
 )
@@ -29,7 +28,6 @@ type Connector struct {
 	cfg          config.TelegramConfig
 	logger       *logger.Logger
 	bus          *bus.MessageBus
-	provider     llm.Provider
 	bot          *telego.Bot
 	ctx          context.Context
 	cancel       context.CancelFunc
@@ -40,12 +38,11 @@ type Connector struct {
 }
 
 // New creates a new Telegram connector
-func New(cfg config.TelegramConfig, log *logger.Logger, msgBus *bus.MessageBus, provider llm.Provider) *Connector {
+func New(cfg config.TelegramConfig, log *logger.Logger, msgBus *bus.MessageBus) *Connector {
 	return &Connector{
 		cfg:          cfg,
 		logger:       log,
 		bus:          msgBus,
-		provider:     provider,
 		typingCancel: make(map[string]context.CancelFunc),
 	}
 }

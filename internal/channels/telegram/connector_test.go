@@ -9,7 +9,6 @@ import (
 	"github.com/aatumaykin/nexbot/internal/agent/loop"
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/config"
-	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/mymmrac/telego"
 	"github.com/stretchr/testify/require"
@@ -33,7 +32,7 @@ func TestConnector_New(t *testing.T) {
 		Token:   "test-token",
 	}
 
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 
 	if conn == nil {
 		t.Fatal("New() returned nil")
@@ -66,7 +65,7 @@ func TestConnector_Start_Disabled(t *testing.T) {
 		Enabled: false,
 	}
 
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	ctx := context.Background()
 
 	err := conn.Start(ctx)
@@ -94,7 +93,7 @@ func TestConnector_Start_ValidationError(t *testing.T) {
 		Token:   "", // Empty token
 	}
 
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	ctx := context.Background()
 
 	err := conn.Start(ctx)
@@ -155,7 +154,7 @@ func TestConnector_isAllowedUser(t *testing.T) {
 				AllowedUsers: tt.allowed,
 			}
 
-			conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+			conn := New(cfg, log, msgBus)
 			result := conn.isAllowedUser(tt.userID)
 
 			if result != tt.shouldPass {
@@ -177,7 +176,7 @@ func TestConnector_handleUpdate_NilMessage(t *testing.T) {
 	ctx := context.Background()
 
 	cfg := config.TelegramConfig{}
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	conn.ctx = ctx
 
 	// Create an update without a message
@@ -202,7 +201,7 @@ func TestConnector_handleUpdate_NilText(t *testing.T) {
 	ctx := context.Background()
 
 	cfg := config.TelegramConfig{}
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	conn.ctx = ctx
 
 	// Create an update with message but no text
@@ -248,7 +247,7 @@ func TestConnector_handleUpdate_Success(t *testing.T) {
 		AllowedUsers: []string{"123456789"},
 	}
 
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	conn.ctx = ctx
 
 	// Subscribe to inbound messages
@@ -340,7 +339,7 @@ func TestConnector_handleUpdate_WhitelistBlocked(t *testing.T) {
 		AllowedUsers: []string{"123"}, // User 456 is not in the list
 	}
 
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	conn.ctx = ctx
 
 	// Create a minimal mock bot to avoid nil pointer
@@ -402,7 +401,7 @@ func TestConnector_Stop(t *testing.T) {
 		Token:   "test-token",
 	}
 
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 
 	ctx := context.Background()
 	conn.ctx, conn.cancel = context.WithCancel(ctx)
@@ -440,7 +439,7 @@ func TestConnector_handleOutbound_Basic(t *testing.T) {
 
 	cfg := config.TelegramConfig{}
 
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	conn.ctx = ctx
 
 	// Create outbound channel
@@ -483,7 +482,7 @@ func TestConnector_handleOutbound_NonTelegramMessage(t *testing.T) {
 
 	cfg := config.TelegramConfig{}
 
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	conn.ctx = ctx
 
 	// Create outbound channel
@@ -533,7 +532,7 @@ func TestConnector_handleUpdate_NewCommand(t *testing.T) {
 		AllowedUsers: []string{"123456789"},
 	}
 
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	conn.ctx = ctx
 
 	// Subscribe to inbound messages
@@ -629,7 +628,7 @@ func TestConnector_handleUpdate_NewCommand_Unauthorized(t *testing.T) {
 		AllowedUsers: []string{"123"}, // User 456 is not in the list
 	}
 
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	conn.ctx = ctx
 
 	// Subscribe to inbound messages
@@ -691,7 +690,7 @@ func TestConnector_handleUpdate_NewCommand_ThenRegularMessage(t *testing.T) {
 		AllowedUsers: []string{"123456789"},
 	}
 
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	conn.ctx = ctx
 
 	// Subscribe to inbound messages
@@ -780,7 +779,7 @@ func TestConnector_handleEvents(t *testing.T) {
 	defer cancel()
 
 	cfg := config.TelegramConfig{}
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	conn.ctx = ctx
 
 	// Create event channel
@@ -831,7 +830,7 @@ func TestConnector_handleEvents_NonTelegram(t *testing.T) {
 	defer cancel()
 
 	cfg := config.TelegramConfig{}
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	conn.ctx = ctx
 
 	// Create event channel
@@ -870,7 +869,7 @@ func TestConnector_sendTypingIndicator_NilBot(t *testing.T) {
 	msgBus := bus.New(100, log)
 
 	cfg := config.TelegramConfig{}
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	conn.ctx = context.Background()
 	conn.bot = nil // Set bot to nil
 
@@ -897,7 +896,7 @@ func TestConnector_sendTypingIndicator_InvalidSessionID(t *testing.T) {
 	msgBus := bus.New(100, log)
 
 	cfg := config.TelegramConfig{}
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	conn.ctx = context.Background()
 
 	// Send typing indicator event with invalid session ID
@@ -945,7 +944,7 @@ func TestConnector_validateConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			conn := New(tt.cfg, log, msgBus, llm.NewEchoProvider())
+			conn := New(tt.cfg, log, msgBus)
 			err := conn.validateConfig()
 
 			if (err != nil) != tt.expectErr {
@@ -966,7 +965,7 @@ func TestConnector_registerCommands(t *testing.T) {
 	msgBus := bus.New(100, log)
 
 	cfg := config.TelegramConfig{}
-	conn := New(cfg, log, msgBus, llm.NewEchoProvider())
+	conn := New(cfg, log, msgBus)
 	conn.ctx = context.Background()
 
 	// Test with nil bot - should return error without panic
