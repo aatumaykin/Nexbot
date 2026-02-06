@@ -158,6 +158,37 @@ func TestMatchPattern(t *testing.T) {
 			pattern:  "git*",
 			expected: false,
 		},
+		// Security - unsafe patterns
+		{
+			name:     "unsafe pattern - pipe",
+			command:  "echo hello",
+			pattern:  "echo | cat",
+			expected: false,
+		},
+		{
+			name:     "unsafe pattern - ampersand",
+			command:  "echo hello",
+			pattern:  "echo &",
+			expected: false,
+		},
+		{
+			name:     "unsafe pattern - semicolon",
+			command:  "echo hello",
+			pattern:  "echo ;",
+			expected: false,
+		},
+		{
+			name:     "unsafe pattern - command substitution",
+			command:  "echo hello",
+			pattern:  "echo `whoami`",
+			expected: false,
+		},
+		{
+			name:     "unsafe pattern - dollar sign",
+			command:  "echo hello",
+			pattern:  "echo $(whoami)",
+			expected: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -342,4 +373,79 @@ func findSubstring(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func TestValidateCommand_PathTraversal(t *testing.T) {
+	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+
+	cfg := &config.Config{
+		Workspace: config.WorkspaceConfig{
+			Path: "/tmp/test",
+		},
+		Tools: config.ToolsConfig{
+			Shell: config.ShellToolConfig{
+				Enabled:         true,
+				AllowedCommands: []string{"ls", "cat"},
+			},
+		},
+	}
+	tool := NewShellExecTool(cfg, log)
+
+	tests := []struct {
+		name          string
+		command       string
+		expectedError bool
+		errorContains string
+	}{
+		{
+			name:          "path traversal in argument - single dot-dot",
+			command:       "cat ../secret.txt",
+			expectedError: true,
+			errorContains: "path traversal",
+		},
+		{
+			name:          "path traversal in argument - multiple dot-dot",
+			command:       "ls ../../etc",
+			expectedError: true,
+			errorContains: "path traversal",
+		},
+		{
+			name:          "path traversal in quoted path",
+			command:       "cat \"../secret.txt\"",
+			expectedError: true,
+			errorContains: "path traversal",
+		},
+		{
+			name:          "no path traversal - valid command",
+			command:       "ls -la",
+			expectedError: false,
+		},
+		{
+			name:          "no path traversal - cat file",
+			command:       "cat test.txt",
+			expectedError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tool.validateCommand(tt.command)
+
+			if tt.expectedError {
+				if err == nil {
+					t.Errorf("validateCommand(%q) expected error, got nil", tt.command)
+				} else if tt.errorContains != "" {
+					errStr := err.Error()
+					if !containsSubstring(errStr, tt.errorContains) {
+						t.Errorf("validateCommand(%q) error = %q, expected to contain %q",
+							tt.command, errStr, tt.errorContains)
+					}
+				}
+			} else {
+				if err != nil {
+					t.Errorf("validateCommand(%q) expected no error, got: %v", tt.command, err)
+				}
+			}
+		})
+	}
 }

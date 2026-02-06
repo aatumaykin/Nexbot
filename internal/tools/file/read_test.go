@@ -311,6 +311,7 @@ func TestReadFileTool_Execute_InvalidJSON(t *testing.T) {
 
 func TestReadFileTool_Execute_AbsolutePath(t *testing.T) {
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
 	testFile := filepath.Join(tmpDir, "test.txt")
 	content := "absolute path test"
@@ -319,7 +320,10 @@ func TestReadFileTool_Execute_AbsolutePath(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	tool := NewReadFileTool(nil, testConfig())
+	// Create config with whitelist_dirs
+	cfg := testConfig()
+	cfg.Tools.File.WhitelistDirs = []string{tmpDir}
+	tool := NewReadFileTool(ws, cfg)
 
 	args := fmt.Sprintf(`{"path": "%s"}`, testFile)
 	result, err := tool.Execute(args)
@@ -543,5 +547,61 @@ func TestReadFileTool_SchemaToJSON(t *testing.T) {
 	// Verify structure is preserved
 	if unmarshaled["type"] != "object" {
 		t.Error("Schema type should be preserved after JSON round-trip")
+	}
+}
+
+func TestReadFileTool_Execute_PathTraversal(t *testing.T) {
+	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+
+	// Create config with whitelist_dirs
+	cfg := testConfig()
+	cfg.Tools.File.WhitelistDirs = []string{tmpDir}
+	tool := NewReadFileTool(ws, cfg)
+
+	// Test relative path traversal
+	args := `{"path": "../test.txt"}`
+	_, err := tool.Execute(args)
+	if err == nil {
+		t.Error("Expected error for path traversal")
+	}
+
+	// Test absolute path traversal outside whitelist_dirs
+	parentDir := filepath.Dir(tmpDir)
+	parentFile := filepath.Join(parentDir, "test.txt")
+	args = fmt.Sprintf(`{"path": "%s"}`, parentFile)
+	_, err = tool.Execute(args)
+	if err == nil {
+		t.Error("Expected error for absolute path outside whitelist_dirs")
+	}
+
+	if !contains(err.Error(), "not in whitelist_dirs") {
+		t.Errorf("Expected error to mention 'whitelist_dirs', got: %v", err)
+	}
+}
+
+func TestReadFileTool_Execute_AbsolutePathWithTraversal(t *testing.T) {
+	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+
+	// Create config with whitelist_dirs
+	cfg := testConfig()
+	cfg.Tools.File.WhitelistDirs = []string{tmpDir}
+	tool := NewReadFileTool(ws, cfg)
+
+	// Test absolute path with .. that resolves outside whitelist_dirs
+	// After cleaning, /tmp/xxx/../../test.txt becomes /tmp/test.txt
+	// which is outside tmpDir whitelist
+	traversalPath := filepath.Join(tmpDir, "..", "..", "test.txt")
+	args := fmt.Sprintf(`{"path": "%s"}`, traversalPath)
+	_, err := tool.Execute(args)
+	if err == nil {
+		t.Error("Expected error for absolute path outside whitelist_dirs")
+	}
+
+	// Error should be about whitelist_dirs, not directory traversal
+	// because filepath.Clean() removes ".." first, and then we check whitelist
+	if !contains(err.Error(), "whitelist_dirs") {
+		t.Errorf("Expected error to mention 'whitelist_dirs', got: %v", err)
 	}
 }

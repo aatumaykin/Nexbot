@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/workspace"
@@ -111,8 +112,25 @@ func (t *ReadFileTool) Execute(args string) (string, error) {
 	var err error
 
 	if filepath.IsAbs(fileArgs.Path) {
-		// Absolute path - use as-is
-		fullPath = fileArgs.Path
+		// Clean the path first to normalize it
+		cleanPath := filepath.Clean(fileArgs.Path)
+		// Check for directory traversal attempts
+		if strings.Contains(cleanPath, "..") {
+			return "", fmt.Errorf("path contains directory traversal attempt")
+		}
+		// Check whitelist_dirs on the clean path
+		allowed := false
+		for _, allowedDir := range t.cfg.Tools.File.WhitelistDirs {
+			// Exact check: path must either be equal to allowedDir or start with allowedDir + separator
+			if cleanPath == allowedDir || strings.HasPrefix(cleanPath, allowedDir+string(filepath.Separator)) {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return "", fmt.Errorf("absolute path is not in whitelist_dirs")
+		}
+		fullPath = cleanPath
 	} else {
 		// Relative path - resolve against workspace
 		if t.workspace == nil {

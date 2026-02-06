@@ -135,6 +135,13 @@ func (t *ShellExecTool) validateCommand(command string) error {
 	askCommands := t.cfg.Tools.Shell.AskCommands
 	allowedCommands := t.cfg.Tools.Shell.AllowedCommands
 
+	// Step 0: Check for path traversal in arguments
+	for _, arg := range strings.Fields(command) {
+		if strings.Contains(arg, "..") {
+			return fmt.Errorf("argument contains path traversal: %s", arg)
+		}
+	}
+
 	// Step 1: Check deny_commands - if command matches, deny immediately
 	for _, denyPattern := range denyCommands {
 		if t.matchPattern(command, denyPattern) {
@@ -210,6 +217,11 @@ func (t *ShellExecTool) matchPattern(command, pattern string) bool {
 	if strings.HasSuffix(pattern, "*") {
 		prefix := strings.TrimSuffix(pattern, "*")
 		prefix = strings.TrimSpace(prefix)
+		// Validate prefix doesn't contain dangerous characters
+		if prefix != "" && strings.ContainsAny(prefix, "|&;<>`$()") {
+			// Unsafe pattern - reject to prevent command injection
+			return false
+		}
 		// Command must start with the prefix
 		if prefix != "" && strings.HasPrefix(command, prefix) {
 			// Ensure the prefix is followed by whitespace or nothing
