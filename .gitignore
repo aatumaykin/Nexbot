@@ -36,6 +36,8 @@ Thumbs.db
 tmp/
 *.tmp
 *.log
+*.bak
+*.old
 
 # Workspace
 workspace/sessions/
