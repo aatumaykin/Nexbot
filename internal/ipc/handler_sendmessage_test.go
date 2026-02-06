@@ -1,0 +1,216 @@
+package ipc
+
+import (
+	"context"
+	"encoding/json"
+	"net"
+	"testing"
+	"time"
+
+	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/logger"
+)
+
+// Test 3: Обработка send_message запроса
+func TestHandleSendMessage(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	tempDir := t.TempDir()
+	log, err := logger.New(logger.Config{Level: "info", Format: "text", Output: "stdout"})
+	if err != nil {
+		t.Fatalf("Failed to create logger: %v", err)
+	}
+	messageBus := bus.New(100, log)
+	if err := messageBus.Start(ctx); err != nil {
+		t.Fatalf("Failed to start message bus: %v", err)
+	}
+	defer func() {
+		if err := messageBus.Stop(); err != nil {
+			t.Logf("Failed to stop message bus: %v", err)
+		}
+	}()
+
+	handler, err := NewHandler(log, tempDir, messageBus)
+	if err != nil {
+		t.Fatalf("Failed to create handler: %v", err)
+	}
+
+	socketPath := tempDir + "/test.sock"
+
+	// Подписаться на outbound сообщения
+	outboundCh := messageBus.SubscribeOutbound(ctx)
+
+	// Запуск сервера
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- handler.Start(ctx, socketPath)
+	}()
+
+	// Дать время на запуск
+	time.Sleep(100 * time.Millisecond)
+
+	// Подготовить запрос
+	request := Request{
+		Type:      "send_message",
+		UserID:    "user123",
+		Channel:   "telegram",
+		SessionID: "session456",
+		Content:   "test message",
+	}
+
+	reqData, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("Failed to marshal request: %v", err)
+	}
+
+	// Создать pipe для имитации соединения
+	server, client := net.Pipe()
+	defer server.Close()
+	defer client.Close()
+
+	// Отправить запрос от клиента
+	go func() {
+		_, _ = client.Write(reqData)
+		// Читаем ответ
+		response := make([]byte, 1024)
+		_, _ = client.Read(response)
+	}()
+
+	// Обработать соединение в горутине
+	go handler.handleConnection(server)
+
+	// Дать время на обработку
+	time.Sleep(100 * time.Millisecond)
+
+	// Проверить, что сообщение отправлено в bus
+	select {
+	case msg := <-outboundCh:
+		if msg.ChannelType != bus.ChannelTypeTelegram {
+			t.Errorf("Unexpected channel type: %s", msg.ChannelType)
+		}
+		if msg.UserID != "user123" {
+			t.Errorf("Unexpected user ID: %s", msg.UserID)
+		}
+		if msg.Content != "test message" {
+			t.Errorf("Unexpected content: %s", msg.Content)
+		}
+	case <-time.After(1 * time.Second):
+		t.Error("No message sent to bus")
+	}
+
+	// Остановка
+	cancel()
+	<-errCh
+
+	// Очистка
+	_ = handler.Stop()
+}
+
+// Test 4: Валидация каналов через запрос с невалидным каналом
+// Примечание: текущая реализация validateChannel разрешает все каналы (возвращает nil)
+// Тест проверяет текущее поведение - сообщение будет отправлено даже с любым каналом
+func TestHandleSendMessageWithAnyChannel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	tempDir := t.TempDir()
+	log, err := logger.New(logger.Config{Level: "info", Format: "text", Output: "stdout"})
+	if err != nil {
+		t.Fatalf("Failed to create logger: %v", err)
+	}
+	messageBus := bus.New(100, log)
+	if err := messageBus.Start(ctx); err != nil {
+		t.Fatalf("Failed to start message bus: %v", err)
+	}
+	defer func() {
+		if err := messageBus.Stop(); err != nil {
+			t.Logf("Failed to stop message bus: %v", err)
+		}
+	}()
+
+	handler, err := NewHandler(log, tempDir, messageBus)
+	if err != nil {
+		t.Fatalf("Failed to create handler: %v", err)
+	}
+
+	socketPath := tempDir + "/test.sock"
+
+	// Подписаться на outbound сообщения
+	outboundCh := messageBus.SubscribeOutbound(ctx)
+
+	// Запуск сервера
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- handler.Start(ctx, socketPath)
+	}()
+
+	// Дать время на запуск
+	time.Sleep(100 * time.Millisecond)
+
+	// Подготовить запрос с произвольным каналом (текущая реализация разрешает все)
+	request := Request{
+		Type:      "send_message",
+		UserID:    "user123",
+		Channel:   "custom_channel",
+		SessionID: "session456",
+		Content:   "test message",
+	}
+
+	reqData, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("Failed to marshal request: %v", err)
+	}
+
+	// Создать pipe для имитации соединения
+	server, client := net.Pipe()
+	defer server.Close()
+	defer client.Close()
+
+	// Отправить запрос от клиента и получить ответ
+	responseCh := make(chan []byte, 1)
+	go func() {
+		_, _ = client.Write(reqData)
+		// Читаем ответ
+		response := make([]byte, 1024)
+		n, _ := client.Read(response)
+		responseCh <- response[:n]
+	}()
+
+	// Обработать соединение в горутине
+	go handler.handleConnection(server)
+
+	// Дать время на обработку
+	time.Sleep(100 * time.Millisecond)
+
+	// Проверить, что сообщение отправлено в bus (текущая реализация разрешает все каналы)
+	select {
+	case msg := <-outboundCh:
+		if msg.ChannelType != "custom_channel" {
+			t.Errorf("Unexpected channel type: %s", msg.ChannelType)
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Error("Message was not sent to bus (expected with current implementation)")
+	}
+
+	// Проверить, что получен успешный ответ
+	select {
+	case response := <-responseCh:
+		var resp Response
+		if err := json.Unmarshal(response, &resp); err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		}
+		if !resp.Success {
+			t.Error("Expected success response (current implementation accepts all channels)")
+		}
+	case <-time.After(1 * time.Second):
+		t.Error("No response received")
+	}
+
+	// Остановка
+	cancel()
+	<-errCh
+
+	// Очистка
+	_ = handler.Stop()
+}
