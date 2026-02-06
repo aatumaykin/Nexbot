@@ -6,7 +6,7 @@ import (
 
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/constants"
-	"github.com/aatumaykin/nexbot/internal/messages"
+	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -24,28 +24,42 @@ var configValidateCmd = &cobra.Command{
 	Long:  `Validate the configuration file and check for errors.`,
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		// Initialize a minimal logger for this command
+		log, err := logger.New(logger.Config{
+			Level:  "info",
+			Format: "text",
+			Output: "stdout",
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
+			os.Exit(1)
+		}
+
 		configPath := constants.DefaultConfigPath
 		if len(args) > 0 {
 			configPath = args[0]
 		}
 
-		fmt.Printf(constants.MsgConfigValidating, configPath)
+		log.Info("Validating configuration", logger.Field{Key: "path", Value: configPath})
 
 		// Load configuration
 		cfg, err := config.Load(configPath)
 		if err != nil {
-			fmt.Println(messages.FormatConfigLoadError(err))
+			log.Error("Failed to load config", err)
 			os.Exit(1)
 		}
 
 		// Validate configuration
 		errors := cfg.Validate()
 		if len(errors) > 0 {
-			fmt.Println(messages.FormatValidationErrors(errors))
+			log.Error("Config validation failed", fmt.Errorf("%d errors", len(errors)))
+			for _, e := range errors {
+				log.Error("Validation error", e)
+			}
 			os.Exit(1)
 		}
 
-		fmt.Println(constants.MsgConfigValid)
+		log.Info("Configuration is valid")
 	},
 }
 

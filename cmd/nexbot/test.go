@@ -52,40 +52,40 @@ Example usage:
 			configPath = constants.DefaultConfigPath
 		}
 
-		// Load configuration
-		fmt.Printf(constants.TestMsgLoadingConfig, configPath)
-		cfg, err := config.Load(configPath)
+		// Initialize a minimal logger for this command
+		log, err := logger.New(logger.Config{
+			Level:  "info",
+			Format: "text",
+			Output: "stdout",
+		})
 		if err != nil {
-			fmt.Printf(constants.MsgConfigLoadError, err)
+			fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
 			os.Exit(1)
 		}
 
-		fmt.Println(constants.TestMsgConfigLoaded)
+		// Load configuration
+		log.Info("Loading configuration", logger.Field{Key: "path", Value: configPath})
+		cfg, err := config.Load(configPath)
+		if err != nil {
+			log.Error("Failed to load config", err)
+			os.Exit(1)
+		}
+
+		log.Info("Configuration loaded")
 
 		// Validate LLM configuration
 		if cfg.Agent.Provider != "zai" {
-			fmt.Printf(constants.TestMsgProviderNotSupported, cfg.Agent.Provider)
+			log.Error("Provider not supported", fmt.Errorf("provider: %s", cfg.Agent.Provider))
 			os.Exit(1)
 		}
 
 		if cfg.LLM.ZAI.APIKey == "" {
-			fmt.Println(constants.TestMsgAPIKeyNotConfigured)
-			os.Exit(1)
-		}
-
-		// Initialize logger
-		log, err := logger.New(logger.Config{
-			Level:  cfg.Logging.Level,
-			Format: cfg.Logging.Format,
-			Output: cfg.Logging.Output,
-		})
-		if err != nil {
-			fmt.Printf(constants.TestMsgFailedToInitLogger, err)
+			log.Error("API key not configured", nil)
 			os.Exit(1)
 		}
 
 		// Create LLM provider
-		fmt.Printf(constants.TestMsgInitializingProvider)
+		log.Info("Initializing LLM provider")
 
 		// Determine model to use
 		model := modelOverride
@@ -100,13 +100,12 @@ Example usage:
 			APIKey: cfg.LLM.ZAI.APIKey,
 		}, log)
 
-		fmt.Printf(constants.TestMsgProviderInitialized, model)
+		log.Info("Provider initialized", logger.Field{Key: "model", Value: model})
 
 		// Prepare test request
 		testMessage := constants.TestMessage
 
-		fmt.Printf(constants.TestMsgSendingRequest)
-		fmt.Printf(constants.TestMsgSendingRequestMessage, testMessage)
+		log.Info("Sending test request", logger.Field{Key: "message", Value: testMessage})
 
 		// Measure latency
 		startTime := time.Now()
@@ -137,63 +136,51 @@ Example usage:
 		latency := time.Since(startTime)
 
 		if err != nil {
-			fmt.Printf(constants.TestMsgRequestFailed, err)
-
-			// Provide friendly error messages
-			fmt.Print(constants.TestMsgPossibleCauses)
-			fmt.Print(constants.TestMsgCauseAPIKey)
-			fmt.Print(constants.TestMsgCauseNetwork)
-			fmt.Print(constants.TestMsgCauseUnavail)
-			fmt.Print(constants.TestMsgCauseRateLimit)
-			fmt.Print(constants.TestMsgTroubleshooting)
-			fmt.Print(constants.TestMsgStepVerifyAPIKey)
-			fmt.Print(constants.TestMsgCheckConnection)
-			fmt.Print(constants.TestMsgTryAgain)
-			fmt.Print(constants.TestMsgCheckStatus)
+			log.Error("Request failed", err)
 			os.Exit(1)
 		}
 
 		// Display success message
-		fmt.Printf(constants.TestMsgRequestSuccessful)
+		log.Info("Request successful")
 
 		// Display response details
-		fmt.Printf(constants.TestMsgResponseDetails)
-		fmt.Printf(constants.TestMsgResponseModel, resp.Model)
-		fmt.Printf(constants.TestMsgResponseLatency, latency)
-		fmt.Printf(constants.TestMsgFinishReason, resp.FinishReason)
+		log.Info("Response details",
+			logger.Field{Key: "model", Value: resp.Model},
+			logger.Field{Key: "latency", Value: latency},
+			logger.Field{Key: "finish_reason", Value: resp.FinishReason})
 
 		// Display response content
-		fmt.Printf(constants.TestMsgResponseContent)
-		fmt.Printf(constants.TestMsgResponseContentText, resp.Content)
+		log.Info("Response content", logger.Field{Key: "content", Value: resp.Content})
 
 		// Display token usage
-		fmt.Printf(constants.TestMsgTokenUsage)
-		fmt.Printf(constants.TestMsgPromptTokens, resp.Usage.PromptTokens)
-		fmt.Printf(constants.TestMsgCompletionTokens, resp.Usage.CompletionTokens)
-		fmt.Printf(constants.TestMsgTotalTokens, resp.Usage.TotalTokens)
+		log.Info("Token usage",
+			logger.Field{Key: "prompt_tokens", Value: resp.Usage.PromptTokens},
+			logger.Field{Key: "completion_tokens", Value: resp.Usage.CompletionTokens},
+			logger.Field{Key: "total_tokens", Value: resp.Usage.TotalTokens})
 
 		// Display tool calls if any
 		if len(resp.ToolCalls) > 0 {
-			fmt.Printf(constants.TestMsgToolCalls, len(resp.ToolCalls))
+			log.Info("Tool calls", logger.Field{Key: "count", Value: len(resp.ToolCalls)})
 			for i, tc := range resp.ToolCalls {
-				fmt.Printf(constants.TestMsgToolCallItem, i+1, tc.Name, tc.Arguments)
+				log.Info(fmt.Sprintf("Tool call %d", i+1),
+					logger.Field{Key: "name", Value: tc.Name},
+					logger.Field{Key: "arguments", Value: tc.Arguments})
 			}
-			fmt.Println()
 		}
 
 		// Check finish reason
 		switch resp.FinishReason {
 		case llm.FinishReasonStop:
-			fmt.Println(constants.TestMsgStopNormal)
+			log.Info("Stop reason: normal")
 		case llm.FinishReasonLength:
-			fmt.Println(constants.TestMsgStopLength)
+			log.Info("Stop reason: max tokens reached")
 		case llm.FinishReasonToolCalls:
-			fmt.Println(constants.TestMsgStopToolCalls)
+			log.Info("Stop reason: tool calls")
 		case llm.FinishReasonError:
-			fmt.Println(constants.TestMsgStopError)
+			log.Error("Stop reason: error", nil)
 		}
 
-		fmt.Println(constants.TestMsgAllPassed)
+		log.Info("All tests passed")
 	},
 }
 

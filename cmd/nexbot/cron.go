@@ -8,6 +8,7 @@ import (
 
 	"github.com/aatumaykin/nexbot/internal/constants"
 	"github.com/aatumaykin/nexbot/internal/cron"
+	"github.com/aatumaykin/nexbot/internal/logger"
 )
 
 var cronCmd = &cobra.Command{
@@ -39,10 +40,21 @@ func runCronAdd(cmd *cobra.Command, args []string) {
 	schedule := args[0]
 	command := args[1]
 
+	// Initialize a minimal logger for this command
+	log, err := logger.New(logger.Config{
+		Level:  "info",
+		Format: "text",
+		Output: "stdout",
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Load existing jobs
 	jobs, err := cron.LoadJobs(constants.DefaultWorkDir)
 	if err != nil && !os.IsNotExist(err) {
-		fmt.Fprintf(os.Stderr, constants.MsgErrorLoadingJobs, err)
+		log.Error("Failed to load jobs", err)
 		os.Exit(1)
 	}
 
@@ -62,70 +74,92 @@ func runCronAdd(cmd *cobra.Command, args []string) {
 
 	// Save jobs
 	if err := cron.SaveJobs(constants.DefaultWorkDir, jobs); err != nil {
-		fmt.Fprintf(os.Stderr, constants.MsgErrorSavingJobs, err)
+		log.Error("Failed to save jobs", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf(constants.MsgJobAdded)
-	fmt.Printf(constants.MsgJobID, job.ID)
-	fmt.Printf(constants.MsgJobSchedule, schedule)
-	fmt.Printf(constants.MsgJobCommand, command)
-	fmt.Printf(constants.MsgJobRemoveNote)
+	log.Info("Job added")
+	log.Info("Job ID", logger.Field{Key: "id", Value: job.ID})
+	log.Info("Job Schedule", logger.Field{Key: "schedule", Value: schedule})
+	log.Info("Job Command", logger.Field{Key: "command", Value: command})
+	log.Info("Note: remove job with: nexbot cron remove <job-id>")
 }
 
 func runCronList(cmd *cobra.Command, args []string) {
+	// Initialize a minimal logger for this command
+	log, err := logger.New(logger.Config{
+		Level:  "info",
+		Format: "text",
+		Output: "stdout",
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Load jobs
 	jobs, err := cron.LoadJobs(constants.DefaultWorkDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Print(constants.MsgJobsNotFound)
+			log.Info("No jobs found")
 			return
 		}
-		fmt.Fprintf(os.Stderr, constants.MsgErrorLoadingJobs, err)
+		log.Error("Failed to load jobs", err)
 		os.Exit(1)
 	}
 
 	if len(jobs) == 0 {
-		fmt.Print(constants.MsgJobsNotFound)
+		log.Info("No jobs found")
 		return
 	}
 
 	// Print jobs
-	fmt.Print(constants.MsgJobsListHeader)
+	log.Info("Scheduled jobs:")
 	for _, job := range jobs {
-		fmt.Printf(constants.MsgJobID, job.ID)
-		fmt.Printf(constants.MsgJobSchedule, job.Schedule)
-		fmt.Printf(constants.MsgJobCommand, job.Command)
+		log.Info("Job",
+			logger.Field{Key: "id", Value: job.ID},
+			logger.Field{Key: "schedule", Value: job.Schedule},
+			logger.Field{Key: "command", Value: job.Command})
 		if len(job.Metadata) > 0 {
-			fmt.Print(constants.MsgJobsMetadata)
+			log.Info("Metadata")
 			for k, v := range job.Metadata {
-				fmt.Printf("%s=%s ", k, v)
+				log.Info("Metadata", logger.Field{Key: k, Value: v})
 			}
-			fmt.Println()
 		}
-		fmt.Printf(constants.MsgJobsListSep)
+		log.Info("---")
 	}
-	fmt.Printf(constants.MsgJobsTotal, len(jobs))
+	log.Info("Total jobs", logger.Field{Key: "count", Value: len(jobs)})
 }
 
 func runCronRemove(cmd *cobra.Command, args []string) {
 	jobID := args[0]
 
+	// Initialize a minimal logger for this command
+	log, err := logger.New(logger.Config{
+		Level:  "info",
+		Format: "text",
+		Output: "stdout",
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Load jobs
 	jobs, err := cron.LoadJobs(constants.DefaultWorkDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Fprintf(os.Stderr, constants.MsgErrorNoJobsFound)
+			log.Error("No jobs found", nil)
 			os.Exit(1)
 		}
-		fmt.Fprintf(os.Stderr, constants.MsgErrorLoadingJobs, err)
+		log.Error("Failed to load jobs", err)
 		os.Exit(1)
 	}
 
 	// Check if job exists
 	if _, exists := jobs[jobID]; !exists {
-		fmt.Fprintf(os.Stderr, constants.MsgErrorJobNotFound, jobID)
-		fmt.Printf(constants.MsgJobNotFoundHint)
+		log.Error("Job not found", fmt.Errorf("job ID: %s", jobID))
+		log.Info("List jobs with: nexbot cron list")
 		os.Exit(1)
 	}
 
@@ -134,11 +168,11 @@ func runCronRemove(cmd *cobra.Command, args []string) {
 
 	// Save jobs
 	if err := cron.SaveJobs(constants.DefaultWorkDir, jobs); err != nil {
-		fmt.Fprintf(os.Stderr, constants.MsgErrorSavingJobs, err)
+		log.Error("Failed to save jobs", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf(constants.MsgJobRemoved, jobID)
+	log.Info("Job removed", logger.Field{Key: "job_id", Value: jobID})
 }
 
 func init() {

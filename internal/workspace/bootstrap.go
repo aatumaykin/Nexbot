@@ -23,8 +23,6 @@
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-//
-//	fmt.Println(content)
 package workspace
 
 import (

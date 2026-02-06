@@ -16,9 +16,6 @@
 //	if err := ws.EnsureDir(); err != nil {
 //	    log.Fatal(err)
 //	}
-//
-//	fmt.Println("Workspace:", ws.Path())
-//	fmt.Println("Memory:", ws.Subpath("memory"))
 package workspace
 
 import (

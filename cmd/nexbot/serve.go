@@ -11,7 +11,6 @@ import (
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/constants"
 	"github.com/aatumaykin/nexbot/internal/logger"
-	"github.com/aatumaykin/nexbot/internal/messages"
 	"github.com/spf13/cobra"
 )
 
@@ -33,9 +32,19 @@ The serve command is the main entry point for running Nexbot.`,
 }
 
 func serveHandler(cmd *cobra.Command, args []string) {
+	// Initialize a temporary logger for early messages
+	tempLogger, err := logger.New(logger.Config{
+		Level:  "info",
+		Format: "text",
+		Output: "stdout",
+	})
+	if err == nil {
+		logger.SetDefault(tempLogger)
+	}
+
 	// Load .env
 	if err := config.LoadEnvOptional(constants.DefaultEnvPath); err != nil {
-		fmt.Printf("Warning: failed to load .env file: %v\n", err)
+		logger.Default().Warn("Failed to load .env file", logger.Field{Key: "error", Value: err})
 	}
 
 	// Load config
@@ -45,7 +54,7 @@ func serveHandler(cmd *cobra.Command, args []string) {
 	}
 	cfg, err := config.Load(configPath)
 	if err != nil {
-		fmt.Println(messages.FormatConfigLoadError(err))
+		logger.Default().Error("Failed to load config", err)
 		os.Exit(1)
 	}
 
@@ -56,7 +65,10 @@ func serveHandler(cmd *cobra.Command, args []string) {
 
 	// Validate config
 	if errors := cfg.Validate(); len(errors) > 0 {
-		fmt.Println(messages.FormatValidationErrors(errors))
+		logger.Default().Error("Config validation failed", fmt.Errorf("%d errors", len(errors)))
+		for _, e := range errors {
+			logger.Default().Error("Validation error", e)
+		}
 		os.Exit(1)
 	}
 
@@ -67,7 +79,7 @@ func serveHandler(cmd *cobra.Command, args []string) {
 		Output: cfg.Logging.Output,
 	})
 	if err != nil {
-		fmt.Printf("Failed to initialize logger: %v\n", err)
+		logger.Default().Error("Failed to initialize logger", err)
 		os.Exit(1)
 	}
 	logger.SetDefault(log)
