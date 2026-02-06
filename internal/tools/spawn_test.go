@@ -358,7 +358,9 @@ func TestSpawnTool_RegistryIntegration(t *testing.T) {
 
 	registry := NewRegistry()
 	tool := NewSpawnTool(mock.Spawn)
-	registry.Register(tool)
+	if err := registry.Register(tool); err != nil {
+		t.Fatalf("Failed to register spawn tool: %v", err)
+	}
 
 	// Generate schemas
 	schemas := registry.ToSchema()

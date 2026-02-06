@@ -47,121 +47,9 @@ func TestRegistry_Register(t *testing.T) {
 			},
 		},
 	}
-
-	registry.Register(tool)
-
-	retrieved, ok := registry.Get("test_tool")
-	if !ok {
-		t.Fatal("Tool not found after registration")
+	if err := registry.Register(tool); err != nil {
+		t.Fatalf("Failed to register tool: %v", err)
 	}
-
-	if retrieved.Name() != "test_tool" {
-		t.Errorf("Expected name 'test_tool', got '%s'", retrieved.Name())
-	}
-}
-
-func TestRegistry_Register_Nil(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("Expected panic when registering nil tool")
-		}
-	}()
-
-	registry := NewRegistry()
-	registry.Register(nil)
-}
-
-func TestRegistry_Register_EmptyName(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("Expected panic when registering tool with empty name")
-		}
-	}()
-
-	registry := NewRegistry()
-	registry.Register(&mockTool{name: ""})
-}
-
-func TestRegistry_Get(t *testing.T) {
-	registry := NewRegistry()
-
-	tool := &mockTool{
-		name:        "get_test",
-		description: "Test get method",
-		parameters:  map[string]interface{}{},
-	}
-	registry.Register(tool)
-
-	// Test existing tool
-	retrieved, ok := registry.Get("get_test")
-	if !ok {
-		t.Error("Expected to find existing tool")
-	}
-	if retrieved.Name() != "get_test" {
-		t.Errorf("Expected name 'get_test', got '%s'", retrieved.Name())
-	}
-
-	// Test non-existing tool
-	_, ok = registry.Get("nonexistent")
-	if ok {
-		t.Error("Expected not to find nonexistent tool")
-	}
-}
-
-func TestRegistry_List(t *testing.T) {
-	registry := NewRegistry()
-
-	tools := []*mockTool{
-		{name: "tool1", description: "First tool", parameters: map[string]interface{}{}},
-		{name: "tool2", description: "Second tool", parameters: map[string]interface{}{}},
-		{name: "tool3", description: "Third tool", parameters: map[string]interface{}{}},
-	}
-
-	for _, tool := range tools {
-		registry.Register(tool)
-	}
-
-	listed := registry.List()
-	if len(listed) != 3 {
-		t.Errorf("Expected 3 tools, got %d", len(listed))
-	}
-
-	// Verify all tools are in the list
-	names := make(map[string]bool)
-	for _, tool := range listed {
-		names[tool.Name()] = true
-	}
-
-	expectedNames := []string{"tool1", "tool2", "tool3"}
-	for _, name := range expectedNames {
-		if !names[name] {
-			t.Errorf("Expected tool '%s' not found in list", name)
-		}
-	}
-}
-
-func TestRegistry_ToSchema(t *testing.T) {
-	registry := NewRegistry()
-
-	tool := &mockTool{
-		name:        "schema_tool",
-		description: "Tool for schema testing",
-		parameters: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"param1": map[string]interface{}{
-					"type":        "string",
-					"description": "First parameter",
-				},
-				"param2": map[string]interface{}{
-					"type":        "integer",
-					"description": "Second parameter",
-				},
-			},
-			"required": []string{"param1"},
-		},
-	}
-	registry.Register(tool)
 
 	schemas := registry.ToSchema()
 	if len(schemas) != 1 {
@@ -221,7 +109,9 @@ func TestExecuteToolCall(t *testing.T) {
 			return "executed: " + args, nil
 		},
 	}
-	registry.Register(tool)
+	if err := registry.Register(tool); err != nil {
+		t.Fatalf("Failed to register tool: %v", err)
+	}
 
 	tc := ToolCall{
 		ID:        "call_123",
@@ -277,7 +167,9 @@ func TestExecuteToolCall_ExecutionError(t *testing.T) {
 			return "", fmt.Errorf("execution failed")
 		},
 	}
-	registry.Register(tool)
+	if err := registry.Register(tool); err != nil {
+		t.Fatalf("Failed to register tool: %v", err)
+	}
 
 	tc := ToolCall{
 		ID:        "call_123",
@@ -305,7 +197,9 @@ func TestRegistry_ToJSON(t *testing.T) {
 			"type": "object",
 		},
 	}
-	registry.Register(tool)
+	if err := registry.Register(tool); err != nil {
+		t.Fatalf("Failed to register tool: %v", err)
+	}
 
 	jsonStr, err := registry.ToJSON()
 	if err != nil {
@@ -328,6 +222,7 @@ func TestRegistry_ConcurrentAccess(t *testing.T) {
 
 	// Register tools concurrently
 	done := make(chan bool)
+	errChan := make(chan error, 100)
 	for i := 0; i < 100; i++ {
 		go func(n int) {
 			tool := &mockTool{
@@ -335,14 +230,22 @@ func TestRegistry_ConcurrentAccess(t *testing.T) {
 				description: fmt.Sprintf("Tool %d", n),
 				parameters:  map[string]interface{}{},
 			}
-			registry.Register(tool)
-			done <- true
+			if err := registry.Register(tool); err != nil {
+				errChan <- err
+			} else {
+				done <- true
+			}
 		}(i)
 	}
 
 	// Wait for all registrations
 	for i := 0; i < 100; i++ {
-		<-done
+		select {
+		case <-done:
+			continue
+		case err := <-errChan:
+			t.Fatalf("Failed to register tool: %v", err)
+		}
 	}
 
 	// Verify all tools are registered

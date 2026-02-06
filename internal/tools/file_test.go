@@ -11,15 +11,27 @@ import (
 	"github.com/aatumaykin/nexbot/internal/workspace"
 )
 
+// testConfig creates a test configuration with default values.
+func testConfig() *config.Config {
+	return &config.Config{
+		Tools: config.ToolsConfig{
+			File: config.FileToolConfig{
+				Enabled:       true,
+				WhitelistDirs: []string{},
+			},
+		},
+	}
+}
+
 func TestReadFileTool_Name(t *testing.T) {
-	tool := NewReadFileTool(nil)
+	tool := NewReadFileTool(nil, testConfig())
 	if tool.Name() != "read_file" {
 		t.Errorf("Expected name 'read_file', got '%s'", tool.Name())
 	}
 }
 
 func TestReadFileTool_Description(t *testing.T) {
-	tool := NewReadFileTool(nil)
+	tool := NewReadFileTool(nil, testConfig())
 	desc := tool.Description()
 	if desc == "" {
 		t.Error("Description should not be empty")
@@ -32,7 +44,7 @@ func TestReadFileTool_Description(t *testing.T) {
 }
 
 func TestReadFileTool_Parameters(t *testing.T) {
-	tool := NewReadFileTool(nil)
+	tool := NewReadFileTool(nil, testConfig())
 	params := tool.Parameters()
 
 	if params == nil {
@@ -100,7 +112,7 @@ func TestReadFileTool_Execute_Success(t *testing.T) {
 	}
 
 	// Create tool
-	tool := NewReadFileTool(ws)
+	tool := NewReadFileTool(ws, testConfig())
 
 	// Execute
 	args := `{"path": "test.txt"}`
@@ -131,7 +143,7 @@ func TestReadFileTool_Execute_WithOffset(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	tool := NewReadFileTool(ws)
+	tool := NewReadFileTool(ws, testConfig())
 
 	// Read from line 2
 	args := `{"path": "test.txt", "offset": 1}`
@@ -162,7 +174,7 @@ func TestReadFileTool_Execute_WithLimit(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	tool := NewReadFileTool(ws)
+	tool := NewReadFileTool(ws, testConfig())
 
 	// Read only 2 lines
 	args := `{"path": "test.txt", "limit": 2}`
@@ -186,7 +198,7 @@ func TestReadFileTool_Execute_NotFound(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
-	tool := NewReadFileTool(ws)
+	tool := NewReadFileTool(ws, testConfig())
 
 	args := `{"path": "nonexistent.txt"}`
 	_, err := tool.Execute(args)
@@ -210,7 +222,7 @@ func TestReadFileTool_Execute_Directory(t *testing.T) {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 
-	tool := NewReadFileTool(ws)
+	tool := NewReadFileTool(ws, testConfig())
 
 	args := `{"path": "subdir"}`
 	_, err = tool.Execute(args)
@@ -227,7 +239,7 @@ func TestReadFileTool_Execute_EscapeAttempt(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
-	tool := NewReadFileTool(ws)
+	tool := NewReadFileTool(ws, testConfig())
 
 	// Try to escape workspace
 	args := `{"path": "../etc/passwd"}`
@@ -242,7 +254,7 @@ func TestReadFileTool_Execute_EscapeAttempt(t *testing.T) {
 }
 
 func TestReadFileTool_Execute_MissingPath(t *testing.T) {
-	tool := NewReadFileTool(nil)
+	tool := NewReadFileTool(nil, testConfig())
 
 	args := `{}`
 	_, err := tool.Execute(args)
@@ -265,7 +277,7 @@ func TestReadFileTool_Execute_UnsupportedEncoding(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	tool := NewReadFileTool(ws)
+	tool := NewReadFileTool(ws, testConfig())
 
 	args := `{"path": "test.txt", "encoding": "iso-8859-1"}`
 	_, err = tool.Execute(args)
@@ -279,7 +291,7 @@ func TestReadFileTool_Execute_UnsupportedEncoding(t *testing.T) {
 }
 
 func TestReadFileTool_Execute_InvalidJSON(t *testing.T) {
-	tool := NewReadFileTool(nil)
+	tool := NewReadFileTool(nil, testConfig())
 
 	args := `{invalid json}`
 	_, err := tool.Execute(args)
@@ -302,7 +314,7 @@ func TestReadFileTool_Execute_AbsolutePath(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	tool := NewReadFileTool(nil)
+	tool := NewReadFileTool(nil, testConfig())
 
 	args := fmt.Sprintf(`{"path": "%s"}`, testFile)
 	result, err := tool.Execute(args)
@@ -326,7 +338,7 @@ func TestReadFileTool_Execute_BeyondFileLength(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	tool := NewReadFileTool(ws)
+	tool := NewReadFileTool(ws, testConfig())
 
 	// Try to read from beyond file length
 	args := `{"path": "test.txt", "offset": 10}`
@@ -352,7 +364,7 @@ func TestReadFileTool_Execute_CRLF(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	tool := NewReadFileTool(ws)
+	tool := NewReadFileTool(ws, testConfig())
 
 	args := `{"path": "test.txt"}`
 	result, err := tool.Execute(args)
@@ -376,7 +388,7 @@ func TestReadFileTool_Execute_EmptyFile(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	tool := NewReadFileTool(ws)
+	tool := NewReadFileTool(ws, testConfig())
 
 	args := `{"path": "test.txt"}`
 	result, err := tool.Execute(args)
@@ -401,7 +413,7 @@ func TestReadFileTool_Execute_LargeOffset(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	tool := NewReadFileTool(ws)
+	tool := NewReadFileTool(ws, testConfig())
 
 	// Negative offset should be treated as 0
 	args := `{"path": "test.txt", "offset": -5}`
@@ -417,7 +429,7 @@ func TestReadFileTool_Execute_LargeOffset(t *testing.T) {
 }
 
 func TestReadFileTool_SchemaGeneration(t *testing.T) {
-	tool := NewReadFileTool(nil)
+	tool := NewReadFileTool(nil, testConfig())
 
 	schema := tool.Parameters()
 
@@ -507,7 +519,7 @@ func TestReadFileTool_SchemaGeneration(t *testing.T) {
 }
 
 func TestReadFileTool_SchemaToJSON(t *testing.T) {
-	tool := NewReadFileTool(nil)
+	tool := NewReadFileTool(nil, testConfig())
 
 	schema := tool.Parameters()
 
@@ -534,8 +546,10 @@ func TestReadFileTool_RegistryIntegration(t *testing.T) {
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
 	registry := NewRegistry()
-	tool := NewReadFileTool(ws)
-	registry.Register(tool)
+	tool := NewReadFileTool(ws, testConfig())
+	if err := registry.Register(tool); err != nil {
+		t.Fatalf("Failed to register read file tool: %v", err)
+	}
 
 	// Generate schemas
 	schemas := registry.ToSchema()

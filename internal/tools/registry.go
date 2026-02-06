@@ -54,9 +54,9 @@ func NewRegistry() *Registry {
 
 // Register adds a tool to the registry.
 // If a tool with the same name already exists, it will be replaced.
-func (r *Registry) Register(tool Tool) {
+func (r *Registry) Register(tool Tool) error {
 	if tool == nil {
-		panic("cannot register nil tool")
+		return fmt.Errorf("cannot register nil tool")
 	}
 
 	r.mu.Lock()
@@ -64,10 +64,11 @@ func (r *Registry) Register(tool Tool) {
 
 	name := tool.Name()
 	if name == "" {
-		panic("tool name cannot be empty")
+		return fmt.Errorf("tool name cannot be empty")
 	}
 
 	r.tools[name] = tool
+	return nil
 }
 
 // Get retrieves a tool by its name.

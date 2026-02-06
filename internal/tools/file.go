@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/workspace"
 )
 
@@ -14,6 +15,7 @@ import (
 // It reads a file from the workspace and returns its content.
 type ReadFileTool struct {
 	workspace *workspace.Workspace
+	cfg       *config.Config
 }
 
 // ReadFileArgs represents the arguments for the read_file tool.
@@ -26,9 +28,11 @@ type ReadFileArgs struct {
 
 // NewReadFileTool creates a new ReadFileTool instance.
 // The workspace parameter is used for resolving relative paths.
-func NewReadFileTool(ws *workspace.Workspace) *ReadFileTool {
+// The config parameter provides the file tool configuration (whitelist_dirs, etc.).
+func NewReadFileTool(ws *workspace.Workspace, cfg *config.Config) *ReadFileTool {
 	return &ReadFileTool{
 		workspace: ws,
+		cfg:       cfg,
 	}
 }
 
@@ -208,6 +212,7 @@ func splitLines(s string) []string {
 // It writes content to a file in the workspace.
 type WriteFileTool struct {
 	workspace *workspace.Workspace
+	cfg       *config.Config
 }
 
 // WriteFileArgs represents the arguments for the write_file tool.
@@ -219,9 +224,11 @@ type WriteFileArgs struct {
 
 // NewWriteFileTool creates a new WriteFileTool instance.
 // The workspace parameter is used for resolving relative paths.
-func NewWriteFileTool(ws *workspace.Workspace) *WriteFileTool {
+// The config parameter provides the file tool configuration (whitelist_dirs, etc.).
+func NewWriteFileTool(ws *workspace.Workspace, cfg *config.Config) *WriteFileTool {
 	return &WriteFileTool{
 		workspace: ws,
+		cfg:       cfg,
 	}
 }
 
@@ -310,8 +317,19 @@ func (t *WriteFileTool) Execute(args string) (string, error) {
 
 	// Check for directory traversal attempts
 	if filepath.IsAbs(fileArgs.Path) {
-		// For absolute paths, verify it doesn't escape allowed directories
-		// (This is a simplified check - in production you'd want more robust validation)
+		// Проверка whitelist_dirs
+		allowed := false
+		for _, allowedDir := range t.cfg.Tools.File.WhitelistDirs {
+			// Точная проверка: путь должен либо быть равен allowedDir, либо начинаться с allowedDir + "/"
+			if fullPath == allowedDir || strings.HasPrefix(fullPath, allowedDir+string(filepath.Separator)) {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return "", fmt.Errorf("absolute paths are not allowed")
+		}
+		// Дополнительная проверка на directory traversal
 		if strings.Contains(cleanPath, "..") {
 			return "", fmt.Errorf("path contains directory traversal attempt")
 		}
@@ -381,6 +399,7 @@ func (t *WriteFileTool) Execute(args string) (string, error) {
 // It lists files and directories in a workspace directory.
 type ListDirTool struct {
 	workspace *workspace.Workspace
+	cfg       *config.Config
 }
 
 // ListDirArgs represents the arguments for the list_dir tool.
@@ -392,9 +411,11 @@ type ListDirArgs struct {
 
 // NewListDirTool creates a new ListDirTool instance.
 // The workspace parameter is used for resolving relative paths.
-func NewListDirTool(ws *workspace.Workspace) *ListDirTool {
+// The config parameter provides the file tool configuration (whitelist_dirs, etc.).
+func NewListDirTool(ws *workspace.Workspace, cfg *config.Config) *ListDirTool {
 	return &ListDirTool{
 		workspace: ws,
+		cfg:       cfg,
 	}
 }
 

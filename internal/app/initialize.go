@@ -155,25 +155,35 @@ func (a *App) Initialize(ctx context.Context) error {
 	// 7. Register tools
 	// Register SendMessageTool
 	sendMessageTool := tools.NewSendMessageTool(a.messageBus, a.logger)
-	a.agentLoop.RegisterTool(sendMessageTool)
+	if err := a.agentLoop.RegisterTool(sendMessageTool); err != nil {
+		return fmt.Errorf("failed to register send message tool: %w", err)
+	}
 	a.logger.Info("Send message tool registered")
 
 	// Register shell tool if enabled
 	if a.config.Tools.Shell.Enabled {
 		shellTool := tools.NewShellExecTool(a.config, a.logger)
-		a.agentLoop.RegisterTool(shellTool)
+		if err := a.agentLoop.RegisterTool(shellTool); err != nil {
+			return fmt.Errorf("failed to register shell tool: %w", err)
+		}
 	}
 
 	// Register file tools if enabled
 	if a.config.Tools.File.Enabled {
-		readFileTool := tools.NewReadFileTool(ws)
-		a.agentLoop.RegisterTool(readFileTool)
+		readFileTool := tools.NewReadFileTool(ws, a.config)
+		if err := a.agentLoop.RegisterTool(readFileTool); err != nil {
+			return fmt.Errorf("failed to register read file tool: %w", err)
+		}
 
-		writeFileTool := tools.NewWriteFileTool(ws)
-		a.agentLoop.RegisterTool(writeFileTool)
+		writeFileTool := tools.NewWriteFileTool(ws, a.config)
+		if err := a.agentLoop.RegisterTool(writeFileTool); err != nil {
+			return fmt.Errorf("failed to register write file tool: %w", err)
+		}
 
-		listDirTool := tools.NewListDirTool(ws)
-		a.agentLoop.RegisterTool(listDirTool)
+		listDirTool := tools.NewListDirTool(ws, a.config)
+		if err := a.agentLoop.RegisterTool(listDirTool); err != nil {
+			return fmt.Errorf("failed to register list dir tool: %w", err)
+		}
 	}
 
 	// 8. Initialize telegram connector if enabled
@@ -233,7 +243,9 @@ func (a *App) Initialize(ctx context.Context) error {
 
 		// Register CronTool
 		cronTool := tools.NewCronTool(a.cronScheduler, cronStorage, a.logger)
-		a.agentLoop.RegisterTool(cronTool)
+		if err := a.agentLoop.RegisterTool(cronTool); err != nil {
+			return fmt.Errorf("failed to register cron tool: %w", err)
+		}
 	}
 
 	// 10. Initialize heartbeat checker if enabled

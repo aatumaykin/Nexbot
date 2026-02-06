@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,7 +16,7 @@ import (
 func TestWriteFileTool_Name(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	tool := NewWriteFileTool(ws)
+	tool := NewWriteFileTool(ws, testConfig())
 
 	if tool.Name() != "write_file" {
 		t.Errorf("Expected name 'write_file', got '%s'", tool.Name())
@@ -25,7 +26,7 @@ func TestWriteFileTool_Name(t *testing.T) {
 func TestWriteFileTool_Description(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	tool := NewWriteFileTool(ws)
+	tool := NewWriteFileTool(ws, testConfig())
 	desc := tool.Description()
 
 	if desc == "" {
@@ -40,7 +41,7 @@ func TestWriteFileTool_Description(t *testing.T) {
 func TestWriteFileTool_Parameters(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	tool := NewWriteFileTool(ws)
+	tool := NewWriteFileTool(ws, testConfig())
 	params := tool.Parameters()
 
 	if params == nil {
@@ -100,7 +101,7 @@ func TestWriteFileTool_Parameters(t *testing.T) {
 func TestWriteFileTool_Execute_CreateMode(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	tool := NewWriteFileTool(ws)
+	tool := NewWriteFileTool(ws, testConfig())
 
 	args := `{"path": "test.txt", "content": "Hello, World!"}`
 	result, err := tool.Execute(args)
@@ -128,7 +129,7 @@ func TestWriteFileTool_Execute_CreateMode(t *testing.T) {
 func TestWriteFileTool_Execute_AppendMode(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	tool := NewWriteFileTool(ws)
+	tool := NewWriteFileTool(ws, testConfig())
 
 	// Create file first
 	filePath := filepath.Join(tmpDir, "test.txt")
@@ -162,7 +163,7 @@ func TestWriteFileTool_Execute_AppendMode(t *testing.T) {
 func TestWriteFileTool_Execute_OverwriteMode(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	tool := NewWriteFileTool(ws)
+	tool := NewWriteFileTool(ws, testConfig())
 
 	// Create file first
 	filePath := filepath.Join(tmpDir, "test.txt")
@@ -196,7 +197,7 @@ func TestWriteFileTool_Execute_OverwriteMode(t *testing.T) {
 func TestWriteFileTool_Execute_CreateExistingFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	tool := NewWriteFileTool(ws)
+	tool := NewWriteFileTool(ws, testConfig())
 
 	// Create file first
 	filePath := filepath.Join(tmpDir, "test.txt")
@@ -220,7 +221,7 @@ func TestWriteFileTool_Execute_CreateExistingFile(t *testing.T) {
 func TestWriteFileTool_Execute_AppendNonExisting(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	tool := NewWriteFileTool(ws)
+	tool := NewWriteFileTool(ws, testConfig())
 
 	// Try to append to non-existent file
 	args := `{"path": "nonexistent.txt", "mode": "append", "content": "Content"}`
@@ -238,7 +239,7 @@ func TestWriteFileTool_Execute_AppendNonExisting(t *testing.T) {
 func TestWriteFileTool_Execute_CreateDirectories(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	tool := NewWriteFileTool(ws)
+	tool := NewWriteFileTool(ws, testConfig())
 
 	args := `{"path": "subdir/test.txt", "content": "Content"}`
 	result, err := tool.Execute(args)
@@ -267,7 +268,7 @@ func TestWriteFileTool_Execute_CreateDirectories(t *testing.T) {
 func TestWriteFileTool_Execute_InvalidMode(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	tool := NewWriteFileTool(ws)
+	tool := NewWriteFileTool(ws, testConfig())
 
 	args := `{"path": "test.txt", "content": "Content", "mode": "invalid"}`
 	_, err := tool.Execute(args)
@@ -286,7 +287,7 @@ func TestWriteFileTool_Execute_InvalidMode(t *testing.T) {
 func TestListDirTool_Name(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	tool := NewListDirTool(ws)
+	tool := NewListDirTool(ws, testConfig())
 
 	if tool.Name() != "list_dir" {
 		t.Errorf("Expected name 'list_dir', got '%s'", tool.Name())
@@ -296,7 +297,7 @@ func TestListDirTool_Name(t *testing.T) {
 func TestListDirTool_Description(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	tool := NewListDirTool(ws)
+	tool := NewListDirTool(ws, testConfig())
 	desc := tool.Description()
 
 	if desc == "" {
@@ -311,7 +312,7 @@ func TestListDirTool_Description(t *testing.T) {
 func TestListDirTool_Parameters(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	tool := NewListDirTool(ws)
+	tool := NewListDirTool(ws, testConfig())
 	params := tool.Parameters()
 
 	if params == nil {
@@ -383,7 +384,7 @@ func TestListDirTool_Execute_Flat(t *testing.T) {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
 
-	tool := NewListDirTool(ws)
+	tool := NewListDirTool(ws, testConfig())
 	args := `{"path": "."}`
 	result, err := tool.Execute(args)
 
@@ -421,7 +422,7 @@ func TestListDirTool_Execute_Recursive(t *testing.T) {
 		t.Fatalf("Failed to create nested file: %v", err)
 	}
 
-	tool := NewListDirTool(ws)
+	tool := NewListDirTool(ws, testConfig())
 	args := `{"path": ".", "recursive": true}`
 	_, err := tool.Execute(args)
 
@@ -440,7 +441,7 @@ func TestListDirTool_Execute_IncludeHidden(t *testing.T) {
 		t.Fatalf("Failed to create hidden file: %v", err)
 	}
 
-	tool := NewListDirTool(ws)
+	tool := NewListDirTool(ws, testConfig())
 
 	// Without include_hidden
 	args := `{"path": ".", "include_hidden": false}`
@@ -475,7 +476,7 @@ func TestListDirTool_Execute_NotDirectory(t *testing.T) {
 		t.Fatalf("Failed to create file: %v", err)
 	}
 
-	tool := NewListDirTool(ws)
+	tool := NewListDirTool(ws, testConfig())
 	args := `{"path": "notadir.txt"}`
 	_, err := tool.Execute(args)
 
@@ -885,5 +886,51 @@ func TestShellExecTool_Execute_AllListsEmpty(t *testing.T) {
 
 	if !contains(result, "test") {
 		t.Errorf("Expected command to execute, got: %s", result)
+	}
+}
+
+func TestWriteFileTool_WhitelistAbsolutePaths(t *testing.T) {
+	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+
+	// Создадим временный каталог для whitelist
+	whitelistDir := t.TempDir()
+
+	// Конфигурация с whitelist
+	cfg := &config.Config{
+		Tools: config.ToolsConfig{
+			File: config.FileToolConfig{
+				Enabled:       true,
+				WhitelistDirs: []string{whitelistDir},
+			},
+		},
+	}
+
+	tool := NewWriteFileTool(ws, cfg)
+
+	// Тест 1: Абсолютный путь внутри whitelist должен работать
+	allowedFile := filepath.Join(whitelistDir, "allowed.txt")
+	args := fmt.Sprintf(`{"path": "%s", "content": "test content", "mode": "create"}`, allowedFile)
+	_, err := tool.Execute(args)
+	if err != nil {
+		t.Errorf("Expected absolute path in whitelist to be allowed, got error: %v", err)
+	}
+
+	// Тест 2: Абсолютный путь вне whitelist должен быть запрещён
+	forbiddenFile := "/tmp/forbidden.txt"
+	args = fmt.Sprintf(`{"path": "%s", "content": "test content", "mode": "create"}`, forbiddenFile)
+	_, err = tool.Execute(args)
+	if err == nil {
+		t.Error("Expected absolute path outside whitelist to be rejected")
+	}
+	if err != nil && !contains(err.Error(), "absolute paths are not allowed") {
+		t.Errorf("Expected 'absolute paths are not allowed' error, got: %v", err)
+	}
+
+	// Тест 3: Относительные пути должны работать (они относятся к workspace)
+	args = `{"path": "relative.txt", "content": "test content", "mode": "create"}`
+	_, err = tool.Execute(args)
+	if err != nil {
+		t.Errorf("Expected relative path to work, got error: %v", err)
 	}
 }

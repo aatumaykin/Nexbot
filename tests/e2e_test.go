@@ -18,6 +18,18 @@ import (
 	"sync"
 )
 
+// testConfig creates a test configuration with default values.
+func testConfig() *config.Config {
+	return &config.Config{
+		Tools: config.ToolsConfig{
+			File: config.FileToolConfig{
+				Enabled:       true,
+				WhitelistDirs: []string{},
+			},
+		},
+	}
+}
+
 // MockTelegramBot is a mock implementation of telego.Bot for testing
 type MockTelegramBot struct {
 	sentMessages []MockSentMessage
@@ -207,9 +219,15 @@ func TestE2E_TelegramToAgentWithToolCalls(t *testing.T) {
 
 	// Register tools
 	wsForTools := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
-	agentLoop.RegisterTool(tools.NewReadFileTool(wsForTools))
-	agentLoop.RegisterTool(tools.NewWriteFileTool(wsForTools))
-	agentLoop.RegisterTool(tools.NewListDirTool(wsForTools))
+	if err := agentLoop.RegisterTool(tools.NewReadFileTool(wsForTools, testConfig())); err != nil {
+		t.Fatalf("Failed to register read file tool: %v", err)
+	}
+	if err := agentLoop.RegisterTool(tools.NewWriteFileTool(wsForTools, testConfig())); err != nil {
+		t.Fatalf("Failed to register write file tool: %v", err)
+	}
+	if err := agentLoop.RegisterTool(tools.NewListDirTool(wsForTools, testConfig())); err != nil {
+		t.Fatalf("Failed to register list dir tool: %v", err)
+	}
 
 	// Setup config for shell tool
 	cfg := &config.Config{
@@ -221,7 +239,9 @@ func TestE2E_TelegramToAgentWithToolCalls(t *testing.T) {
 			},
 		},
 	}
-	agentLoop.RegisterTool(tools.NewShellExecTool(cfg, log))
+	if err := agentLoop.RegisterTool(tools.NewShellExecTool(cfg, log)); err != nil {
+		t.Fatalf("Failed to register shell tool: %v", err)
+	}
 
 	// Create a test file in workspace
 	testFile := filepath.Join(workspaceDir, "test.txt")
@@ -364,8 +384,12 @@ func TestE2E_MultipleToolCalls(t *testing.T) {
 	})
 
 	wsForTools := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
-	agentLoop.RegisterTool(tools.NewReadFileTool(wsForTools))
-	agentLoop.RegisterTool(tools.NewListDirTool(wsForTools))
+	if err := agentLoop.RegisterTool(tools.NewReadFileTool(wsForTools, testConfig())); err != nil {
+		t.Fatal(err)
+	}
+	if err := agentLoop.RegisterTool(tools.NewListDirTool(wsForTools, testConfig())); err != nil {
+		t.Fatal(err)
+	}
 
 	// Create test file
 	if err := os.WriteFile(filepath.Join(workspaceDir, "test.txt"), []byte("Test content"), 0644); err != nil {
@@ -451,7 +475,9 @@ func TestE2E_ToolErrorHandling(t *testing.T) {
 	})
 
 	wsForTools := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
-	agentLoop.RegisterTool(tools.NewReadFileTool(wsForTools))
+	if err := agentLoop.RegisterTool(tools.NewReadFileTool(wsForTools, testConfig())); err != nil {
+		t.Fatal(err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -528,7 +554,9 @@ func TestE2E_ShellExecTool(t *testing.T) {
 	})
 
 	wsForTools := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
-	agentLoop.RegisterTool(tools.NewReadFileTool(wsForTools))
+	if err := agentLoop.RegisterTool(tools.NewReadFileTool(wsForTools, testConfig())); err != nil {
+		t.Fatal(err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

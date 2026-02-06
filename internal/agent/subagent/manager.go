@@ -37,8 +37,8 @@ type Subagent struct {
 type Manager struct {
 	subagents   map[string]*Subagent
 	mu          sync.RWMutex
-	loopFactory func() *loop.Loop // Factory for creating new loops
-	sessionMgr  *session.Manager  // Session manager for subagent sessions
+	loopFactory func() (*loop.Loop, error) // Factory for creating new loops
+	sessionMgr  *session.Manager           // Session manager for subagent sessions
 	logger      *logger.Logger
 }
 
@@ -75,13 +75,13 @@ func NewManager(cfg Config) (*Manager, error) {
 		subagents:  make(map[string]*Subagent),
 		sessionMgr: sessionMgr,
 		logger:     cfg.Logger,
-		loopFactory: func() *loop.Loop {
+		loopFactory: func() (*loop.Loop, error) {
 			cfg.LoopConfig.SessionDir = subagentDir
 			l, err := loop.NewLoop(cfg.LoopConfig)
 			if err != nil {
-				panic(fmt.Sprintf("failed to create loop: %v", err))
+				return nil, fmt.Errorf("failed to create loop: %w", err)
 			}
-			return l
+			return l, nil
 		},
 	}, nil
 }
@@ -101,7 +101,11 @@ func (m *Manager) Spawn(ctx context.Context, parentSession string, task string) 
 	subagentCtx, cancel := context.WithCancel(ctx)
 
 	// Create new loop for this subagent
-	subagentLoop := m.loopFactory()
+	subagentLoop, err := m.loopFactory()
+	if err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to create loop for subagent: %w", err)
+	}
 
 	// Create subagent
 	subagent := &Subagent{

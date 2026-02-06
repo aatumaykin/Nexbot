@@ -14,6 +14,18 @@ import (
 	"github.com/aatumaykin/nexbot/internal/workspace"
 )
 
+// testConfig creates a test configuration with default values.
+func testConfig() *config.Config {
+	return &config.Config{
+		Tools: config.ToolsConfig{
+			File: config.FileToolConfig{
+				Enabled:       true,
+				WhitelistDirs: []string{},
+			},
+		},
+	}
+}
+
 // TestLoop_ToolCalling tests the tool calling integration.
 func TestLoop_ToolCalling(t *testing.T) {
 	ctx := context.Background()
@@ -73,8 +85,10 @@ func TestLoop_ToolCalling(t *testing.T) {
 
 	// Register read_file tool
 	ws := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
-	readFileTool := tools.NewReadFileTool(ws)
-	looper.RegisterTool(readFileTool)
+	readFileTool := tools.NewReadFileTool(ws, testConfig())
+	if err := looper.RegisterTool(readFileTool); err != nil {
+		t.Fatalf("Failed to register tool: %v", err)
+	}
 
 	// Process message
 	sessionID := "tool-test-session"

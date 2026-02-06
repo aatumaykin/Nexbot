@@ -64,7 +64,9 @@ func TestSpawnToolIntegration(t *testing.T) {
 
 	// Register tool in registry
 	registry := NewRegistry()
-	registry.Register(tool)
+	if err := registry.Register(tool); err != nil {
+		t.Fatalf("Failed to register spawn tool: %v", err)
+	}
 
 	// Verify tool is registered
 	schemas := registry.ToSchema()
@@ -101,7 +103,9 @@ func TestSpawnToolIntegrationMultipleCalls(t *testing.T) {
 	mockMgr := newMockSpawnManager()
 	tool := NewSpawnTool(mockMgr.Spawn)
 	registry := NewRegistry()
-	registry.Register(tool)
+	if err := registry.Register(tool); err != nil {
+		t.Fatalf("Failed to register spawn tool: %v", err)
+	}
 
 	// Spawn multiple subagents
 	for i := 1; i <= 5; i++ {
@@ -127,7 +131,9 @@ func TestSpawnToolIntegrationWithTimeout(t *testing.T) {
 	mockMgr := newMockSpawnManager()
 	tool := NewSpawnTool(mockMgr.Spawn)
 	registry := NewRegistry()
-	registry.Register(tool)
+	if err := registry.Register(tool); err != nil {
+		t.Fatalf("Failed to register spawn tool: %v", err)
+	}
 
 	toolCall := ToolCall{
 		ID:   "timeout-test-call",
@@ -153,7 +159,9 @@ func TestSpawnToolIntegrationErrorHandling(t *testing.T) {
 
 	tool := NewSpawnTool(errorSpawnFunc)
 	registry := NewRegistry()
-	registry.Register(tool)
+	if err := registry.Register(tool); err != nil {
+		t.Fatalf("Failed to register spawn tool: %v", err)
+	}
 
 	// Test invalid JSON
 	toolCall := ToolCall{
@@ -194,7 +202,9 @@ func TestSpawnToolIntegrationSchema(t *testing.T) {
 	mockMgr := newMockSpawnManager()
 	tool := NewSpawnTool(mockMgr.Spawn)
 	registry := NewRegistry()
-	registry.Register(tool)
+	if err := registry.Register(tool); err != nil {
+		t.Fatalf("Failed to register spawn tool: %v", err)
+	}
 
 	// Get schema
 	schemas := registry.ToSchema()
@@ -235,7 +245,9 @@ func TestSpawnToolIntegrationEmptyTask(t *testing.T) {
 	mockMgr := newMockSpawnManager()
 	tool := NewSpawnTool(mockMgr.Spawn)
 	registry := NewRegistry()
-	registry.Register(tool)
+	if err := registry.Register(tool); err != nil {
+		t.Fatalf("Failed to register spawn tool: %v", err)
+	}
 
 	toolCall := ToolCall{
 		ID:        "empty-task-call",

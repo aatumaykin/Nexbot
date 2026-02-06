@@ -336,10 +336,13 @@ func (l *Loop) GetSessionMaxTokens(sessionID string) int {
 }
 
 // RegisterTool registers a tool with the loop's tool registry.
-func (l *Loop) RegisterTool(tool tools.Tool) {
-	l.tools.Register(tool)
+func (l *Loop) RegisterTool(tool tools.Tool) error {
+	if err := l.tools.Register(tool); err != nil {
+		return fmt.Errorf("failed to register tool %s: %w", tool.Name(), err)
+	}
 	l.logger.DebugCtx(stdcontext.Background(), "Tool registered",
 		logger.Field{Key: "tool_name", Value: tool.Name()})
+	return nil
 }
 
 // GetTools returns the tool registry.

@@ -58,7 +58,9 @@ func newMockAgentLoop(manager *Manager, logger *logger.Logger) *mockAgentLoop {
 
 	// Register spawn tool with adapter
 	spawnTool := tools.NewSpawnTool(spawnAdapter(manager))
-	m.toolReg.Register(spawnTool)
+	if err := m.toolReg.Register(spawnTool); err != nil {
+		panic(fmt.Sprintf("Failed to register spawn tool: %v", err))
+	}
 
 	return m
 }
