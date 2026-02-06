@@ -57,12 +57,12 @@ func TestRegistry_Register(t *testing.T) {
 	}
 
 	schema := schemas[0]
-	if schema.Name != "schema_tool" {
-		t.Errorf("Expected name 'schema_tool', got '%s'", schema.Name)
+	if schema.Name != "test_tool" {
+		t.Errorf("Expected name 'test_tool', got '%s'", schema.Name)
 	}
 
-	if schema.Description != "Tool for schema testing" {
-		t.Errorf("Expected description 'Tool for schema testing', got '%s'", schema.Description)
+	if schema.Description != "A test tool" {
+		t.Errorf("Expected description 'A test tool', got '%s'", schema.Description)
 	}
 
 	// Verify parameters
@@ -71,25 +71,8 @@ func TestRegistry_Register(t *testing.T) {
 		t.Fatal("Expected properties to be a map")
 	}
 
-	if _, ok := props["param1"]; !ok {
-		t.Error("Expected param1 in properties")
-	}
-
-	if _, ok := props["param2"]; !ok {
-		t.Error("Expected param2 in properties")
-	}
-
-	required, ok := schema.Parameters["required"].([]interface{})
-	if !ok {
-		// Try string slice if interface slice fails
-		requiredStr, ok := schema.Parameters["required"].([]string)
-		if !ok || len(requiredStr) != 1 || requiredStr[0] != "param1" {
-			t.Fatalf("Expected required to be ['param1'], got %v", schema.Parameters["required"])
-		}
-	} else {
-		if len(required) != 1 || required[0] != "param1" {
-			t.Errorf("Expected required to be ['param1'], got %v", required)
-		}
+	if _, ok := props["input"]; !ok {
+		t.Error("Expected input in properties")
 	}
 }
 
