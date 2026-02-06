@@ -4,22 +4,7 @@ import (
 	"context"
 	"testing"
 	"time"
-
-	"github.com/aatumaykin/nexbot/internal/logger"
 )
-
-func createTestLogger(t *testing.T) *logger.Logger {
-	cfg := logger.Config{
-		Level:  "info",
-		Format: "text",
-		Output: "stdout",
-	}
-	log, err := logger.New(cfg)
-	if err != nil {
-		t.Fatalf("Failed to create logger: %v", err)
-	}
-	return log
-}
 
 func TestMessageBus_PublishInbound(t *testing.T) {
 	log := createTestLogger(t)

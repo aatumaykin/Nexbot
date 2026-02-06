@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -44,7 +43,7 @@ func serveHandler(cmd *cobra.Command, args []string) {
 
 	// Load .env
 	if err := config.LoadEnvOptional(constants.DefaultEnvPath); err != nil {
-		logger.Default().Warn("Failed to load .env file", logger.Field{Key: "error", Value: err})
+		logger.Default().Warn("Failed to load .env file", "error", err)
 	}
 
 	// Load config
@@ -54,7 +53,7 @@ func serveHandler(cmd *cobra.Command, args []string) {
 	}
 	cfg, err := config.Load(configPath)
 	if err != nil {
-		logger.Default().Error("Failed to load config", err)
+		logger.Default().Error("Failed to load config", "error", err)
 		os.Exit(1)
 	}
 
@@ -65,9 +64,9 @@ func serveHandler(cmd *cobra.Command, args []string) {
 
 	// Validate config
 	if errors := cfg.Validate(); len(errors) > 0 {
-		logger.Default().Error("Config validation failed", fmt.Errorf("%d errors", len(errors)))
+		logger.Default().Error("Config validation failed", "errors", len(errors))
 		for _, e := range errors {
-			logger.Default().Error("Validation error", e)
+			logger.Default().Error("Validation error", "error", e)
 		}
 		os.Exit(1)
 	}
@@ -79,7 +78,7 @@ func serveHandler(cmd *cobra.Command, args []string) {
 		Output: cfg.Logging.Output,
 	})
 	if err != nil {
-		logger.Default().Error("Failed to initialize logger", err)
+		logger.Default().Error("Failed to initialize logger", "error", err)
 		os.Exit(1)
 	}
 	logger.SetDefault(log)

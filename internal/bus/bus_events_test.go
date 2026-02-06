@@ -4,8 +4,6 @@ import (
 	"context"
 	"testing"
 	"time"
-
-	"github.com/aatumaykin/nexbot/internal/logger"
 )
 
 func TestMessageBus_PublishEvent(t *testing.T) {
