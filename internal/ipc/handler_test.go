@@ -61,8 +61,14 @@ func TestHandlerStartStop(t *testing.T) {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 	messageBus := bus.New(100, log)
-	if err := messageBus.Start(ctx); err != nil { t.Fatalf("Failed to start message bus: %v", err) }
-	defer func() { if err := messageBus.Stop(); err != nil { t.Logf("Failed to stop message bus: %v", err) } }()
+	if err := messageBus.Start(ctx); err != nil {
+		t.Fatalf("Failed to start message bus: %v", err)
+	}
+	defer func() {
+		if err := messageBus.Stop(); err != nil {
+			t.Logf("Failed to stop message bus: %v", err)
+		}
+	}()
 
 	handler, err := NewHandler(log, tempDir, messageBus)
 	if err != nil {
@@ -108,8 +114,14 @@ func TestHandlerAcceptConnection(t *testing.T) {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 	messageBus := bus.New(100, log)
-	if err := messageBus.Start(ctx); err != nil { t.Fatalf("Failed to start message bus: %v", err) }
-	defer func() { if err := messageBus.Stop(); err != nil { t.Logf("Failed to stop message bus: %v", err) } }()
+	if err := messageBus.Start(ctx); err != nil {
+		t.Fatalf("Failed to start message bus: %v", err)
+	}
+	defer func() {
+		if err := messageBus.Stop(); err != nil {
+			t.Logf("Failed to stop message bus: %v", err)
+		}
+	}()
 
 	handler, err := NewHandler(log, tempDir, messageBus)
 	if err != nil {
@@ -158,8 +170,14 @@ func TestHandleSendMessage(t *testing.T) {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 	messageBus := bus.New(100, log)
-	if err := messageBus.Start(ctx); err != nil { t.Fatalf("Failed to start message bus: %v", err) }
-	defer func() { if err := messageBus.Stop(); err != nil { t.Logf("Failed to stop message bus: %v", err) } }()
+	if err := messageBus.Start(ctx); err != nil {
+		t.Fatalf("Failed to start message bus: %v", err)
+	}
+	defer func() {
+		if err := messageBus.Stop(); err != nil {
+			t.Logf("Failed to stop message bus: %v", err)
+		}
+	}()
 
 	handler, err := NewHandler(log, tempDir, messageBus)
 	if err != nil {
@@ -250,8 +268,14 @@ func TestHandleSendMessageWithAnyChannel(t *testing.T) {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 	messageBus := bus.New(100, log)
-	if err := messageBus.Start(ctx); err != nil { t.Fatalf("Failed to start message bus: %v", err) }
-	defer func() { if err := messageBus.Stop(); err != nil { t.Logf("Failed to stop message bus: %v", err) } }()
+	if err := messageBus.Start(ctx); err != nil {
+		t.Fatalf("Failed to start message bus: %v", err)
+	}
+	defer func() {
+		if err := messageBus.Stop(); err != nil {
+			t.Logf("Failed to stop message bus: %v", err)
+		}
+	}()
 
 	handler, err := NewHandler(log, tempDir, messageBus)
 	if err != nil {
@@ -349,8 +373,14 @@ func TestHandlerGracefulShutdown(t *testing.T) {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 	messageBus := bus.New(100, log)
-	if err := messageBus.Start(ctx); err != nil { t.Fatalf("Failed to start message bus: %v", err) }
-	defer func() { if err := messageBus.Stop(); err != nil { t.Logf("Failed to stop message bus: %v", err) } }()
+	if err := messageBus.Start(ctx); err != nil {
+		t.Fatalf("Failed to start message bus: %v", err)
+	}
+	defer func() {
+		if err := messageBus.Stop(); err != nil {
+			t.Logf("Failed to stop message bus: %v", err)
+		}
+	}()
 
 	handler, err := NewHandler(log, tempDir, messageBus)
 	if err != nil {
@@ -396,8 +426,14 @@ func TestHandleAgent(t *testing.T) {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 	messageBus := bus.New(100, log)
-	if err := messageBus.Start(ctx); err != nil { t.Fatalf("Failed to start message bus: %v", err) }
-	defer func() { if err := messageBus.Stop(); err != nil { t.Logf("Failed to stop message bus: %v", err) } }()
+	if err := messageBus.Start(ctx); err != nil {
+		t.Fatalf("Failed to start message bus: %v", err)
+	}
+	defer func() {
+		if err := messageBus.Stop(); err != nil {
+			t.Logf("Failed to stop message bus: %v", err)
+		}
+	}()
 
 	handler, err := NewHandler(log, tempDir, messageBus)
 	if err != nil {
@@ -486,8 +522,14 @@ func TestHandleUnknownRequest(t *testing.T) {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 	messageBus := bus.New(100, log)
-	if err := messageBus.Start(ctx); err != nil { t.Fatalf("Failed to start message bus: %v", err) }
-	defer func() { if err := messageBus.Stop(); err != nil { t.Logf("Failed to stop message bus: %v", err) } }()
+	if err := messageBus.Start(ctx); err != nil {
+		t.Fatalf("Failed to start message bus: %v", err)
+	}
+	defer func() {
+		if err := messageBus.Stop(); err != nil {
+			t.Logf("Failed to stop message bus: %v", err)
+		}
+	}()
 
 	handler, err := NewHandler(log, tempDir, messageBus)
 	if err != nil {
@@ -573,8 +615,14 @@ func TestHandlerCleanupOldSocket(t *testing.T) {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 	messageBus := bus.New(100, log)
-	if err := messageBus.Start(ctx); err != nil { t.Fatalf("Failed to start message bus: %v", err) }
-	defer func() { if err := messageBus.Stop(); err != nil { t.Logf("Failed to stop message bus: %v", err) } }()
+	if err := messageBus.Start(ctx); err != nil {
+		t.Fatalf("Failed to start message bus: %v", err)
+	}
+	defer func() {
+		if err := messageBus.Stop(); err != nil {
+			t.Logf("Failed to stop message bus: %v", err)
+		}
+	}()
 
 	handler, err := NewHandler(log, tempDir, messageBus)
 	if err != nil {
@@ -623,8 +671,14 @@ func TestHandlerSessionCreation(t *testing.T) {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 	messageBus := bus.New(100, log)
-	if err := messageBus.Start(ctx); err != nil { t.Fatalf("Failed to start message bus: %v", err) }
-	defer func() { if err := messageBus.Stop(); err != nil { t.Logf("Failed to stop message bus: %v", err) } }()
+	if err := messageBus.Start(ctx); err != nil {
+		t.Fatalf("Failed to start message bus: %v", err)
+	}
+	defer func() {
+		if err := messageBus.Stop(); err != nil {
+			t.Logf("Failed to stop message bus: %v", err)
+		}
+	}()
 
 	handler, err := NewHandler(log, tempDir, messageBus)
 	if err != nil {

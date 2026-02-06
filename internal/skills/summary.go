@@ -2,6 +2,7 @@ package skills
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -298,14 +299,8 @@ func (b *SummaryBuilder) sortedCategories(categories map[string][]*Skill) []stri
 		names = append(names, name)
 	}
 
-	// Simple alphabetical sort
-	for i := 0; i < len(names); i++ {
-		for j := i + 1; j < len(names); j++ {
-			if names[i] > names[j] {
-				names[i], names[j] = names[j], names[i]
-			}
-		}
-	}
+	// Use efficient O(n log n) sort from Go 1.21+
+	slices.Sort(names)
 
 	return names
 }
