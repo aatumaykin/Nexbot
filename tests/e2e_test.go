@@ -12,6 +12,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
+	"github.com/aatumaykin/nexbot/internal/testutil"
 	"github.com/aatumaykin/nexbot/internal/tools"
 	"github.com/aatumaykin/nexbot/internal/tools/file"
 	"github.com/aatumaykin/nexbot/internal/workspace"
@@ -181,7 +182,7 @@ func TestE2E_TelegramToAgentWithToolCalls(t *testing.T) {
 	}
 
 	// Setup message bus
-	msgBus := bus.New(100, log)
+	msgBus := testutil.NewTestMessageBus(log)
 
 	// Setup LLM provider with tool calling
 	mockLLMResponses := []MockResponse{
@@ -354,7 +355,7 @@ func TestE2E_MultipleToolCalls(t *testing.T) {
 	createTestBootstrapFiles(t, ws)
 
 	log, _ := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
-	msgBus := bus.New(100, log)
+	msgBus := testutil.NewTestMessageBus(log)
 
 	// Setup mock provider with multiple tool call responses
 	mockLLMResponses := []MockResponse{
@@ -456,7 +457,7 @@ func TestE2E_ToolErrorHandling(t *testing.T) {
 	createTestBootstrapFiles(t, ws)
 
 	log, _ := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
-	msgBus := bus.New(100, log)
+	msgBus := testutil.NewTestMessageBus(log)
 
 	// Setup mock provider with simple response (no tool call)
 	mockLLMResponses := []MockResponse{
@@ -476,7 +477,7 @@ func TestE2E_ToolErrorHandling(t *testing.T) {
 	})
 
 	wsForTools := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
-	if err := agentLoop.RegisterTool(tools.NewReadFileTool(wsForTools, testConfig())); err != nil {
+	if err := agentLoop.RegisterTool(file.NewReadFileTool(wsForTools, testConfig())); err != nil {
 		t.Fatal(err)
 	}
 
@@ -535,7 +536,7 @@ func TestE2E_ShellExecTool(t *testing.T) {
 	createTestBootstrapFiles(t, ws)
 
 	log, _ := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
-	msgBus := bus.New(100, log)
+	msgBus := testutil.NewTestMessageBus(log)
 
 	// Setup mock provider with shell command - echo command needs full path or just "echo"
 	mockLLMResponses := []MockResponse{
@@ -555,7 +556,7 @@ func TestE2E_ShellExecTool(t *testing.T) {
 	})
 
 	wsForTools := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
-	if err := agentLoop.RegisterTool(tools.NewReadFileTool(wsForTools, testConfig())); err != nil {
+	if err := agentLoop.RegisterTool(file.NewReadFileTool(wsForTools, testConfig())); err != nil {
 		t.Fatal(err)
 	}
 

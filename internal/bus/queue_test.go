@@ -507,7 +507,7 @@ func TestMessageBus_SubscribeEvent(t *testing.T) {
 // TestMessageBus_EventQueueFull tests event queue full scenario
 func TestMessageBus_EventQueueFull(t *testing.T) {
 	log := createTestLogger(t)
-	bus := New(1, log)
+	bus := New(2, log)
 	ctx := context.Background()
 
 	err := bus.Start(ctx)
@@ -515,8 +515,17 @@ func TestMessageBus_EventQueueFull(t *testing.T) {
 		t.Fatalf("Start() failed: %v", err)
 	}
 
-	// Subscribe to events (with a tiny channel that will block)
-	_ = bus.SubscribeEvent(ctx)
+	event := NewProcessingStartEvent(ChannelTypeTelegram, "user123", "session456", nil)
+	err = bus.PublishEvent(*event)
+	if err != nil {
+		t.Fatalf("PublishEvent() failed: %v", err)
+	}
+
+	// Test queue full
+	bus = New(1, log)
+	if err := bus.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
 
 	event1 := NewProcessingStartEvent(ChannelTypeTelegram, "user1", "session1", nil)
 	event2 := NewProcessingEndEvent(ChannelTypeTelegram, "user2", "session2", nil)
