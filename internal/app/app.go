@@ -54,8 +54,9 @@ type App struct {
 	cancel context.CancelFunc
 
 	// Thread-safety
-	mu      sync.RWMutex
-	started bool
+	mu           sync.RWMutex
+	started      bool
+	restartMutex sync.Mutex // Mutex to serialize Restart() calls
 }
 
 // New creates a new App instance with the provided configuration and logger.

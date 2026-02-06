@@ -23,6 +23,51 @@ func (a *App) Shutdown() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
+	return a.shutdownInternal()
+}
+
+// Restart performs an internal application restart without terminating the process.
+// It performs the following steps:
+//  1. Logs the restart attempt
+//  2. Calls Shutdown() to stop all components
+//  3. Creates a new context
+//  4. Reinitializes all components via Initialize()
+//  5. Restarts message processing via StartMessageProcessing()
+//
+// This method is thread-safe and can be called from any goroutine.
+// Only one restart can be in progress at a time.
+func (a *App) Restart() error {
+	// Serialize all Restart() calls to prevent race conditions
+	a.restartMutex.Lock()
+	defer a.restartMutex.Unlock()
+
+	a.logger.Info("Restarting application")
+
+	// Shutdown existing components
+	if err := a.shutdownInternal(); err != nil {
+		return fmt.Errorf("failed to shutdown: %w", err)
+	}
+
+	// Create new context
+	a.ctx, a.cancel = context.WithCancel(context.Background())
+
+	// Reinitialize all components
+	if err := a.Initialize(a.ctx); err != nil {
+		return fmt.Errorf("failed to reinitialize: %w", err)
+	}
+
+	// Restart message processing
+	if err := a.StartMessageProcessing(a.ctx); err != nil {
+		return fmt.Errorf("failed to restart message processing: %w", err)
+	}
+
+	a.logger.Info("Application restarted successfully")
+	return nil
+}
+
+// shutdownInternal performs shutdown without holding the mutex.
+// This is used by Restart() which already holds the mutex.
+func (a *App) shutdownInternal() error {
 	// If not started, nothing to do
 	if !a.started {
 		return nil
@@ -86,38 +131,4 @@ func (a *App) Shutdown() error {
 
 	// Return message bus error if occurred
 	return busErr
-}
-
-// Restart performs an internal application restart without terminating the process.
-// It performs the following steps:
-//  1. Logs the restart attempt
-//  2. Calls Shutdown() to stop all components
-//  3. Creates a new context
-//  4. Reinitializes all components via Initialize()
-//  5. Restarts message processing via StartMessageProcessing()
-//
-// This method is thread-safe and can be called from any goroutine.
-func (a *App) Restart() error {
-	a.logger.Info("Restarting application")
-
-	// Shutdown existing components
-	if err := a.Shutdown(); err != nil {
-		return fmt.Errorf("failed to shutdown: %w", err)
-	}
-
-	// Create new context
-	a.ctx, a.cancel = context.WithCancel(context.Background())
-
-	// Reinitialize all components
-	if err := a.Initialize(a.ctx); err != nil {
-		return fmt.Errorf("failed to reinitialize: %w", err)
-	}
-
-	// Restart message processing
-	if err := a.StartMessageProcessing(a.ctx); err != nil {
-		return fmt.Errorf("failed to restart message processing: %w", err)
-	}
-
-	a.logger.Info("Application restarted successfully")
-	return nil
 }
