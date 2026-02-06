@@ -15,14 +15,15 @@ import (
 // Loop manages the agent's execution loop, coordinating between
 // LLM provider, session management, and tools.
 type Loop struct {
-	workspace   string
-	sessionDir  string
-	sessionMgr  *session.Manager
-	contextBldr *agentcontext.Builder
-	provider    llm.Provider
-	logger      *logger.Logger
-	tools       *tools.Registry
-	config      Config
+	workspace    string
+	sessionDir   string
+	sessionMgr   *session.Manager
+	contextBldr  *agentcontext.Builder
+	provider     llm.Provider
+	logger       *logger.Logger
+	tools        *tools.Registry
+	toolExecutor *ToolExecutor
+	config       Config
 }
 
 // Config holds configuration for the loop.
@@ -80,15 +81,19 @@ func NewLoop(cfg Config) (*Loop, error) {
 	// Create tool registry
 	toolRegistry := tools.NewRegistry()
 
+	// Create tool executor
+	toolExecutor := NewToolExecutor(cfg.Logger, toolRegistry)
+
 	return &Loop{
-		workspace:   cfg.Workspace,
-		sessionDir:  cfg.SessionDir,
-		sessionMgr:  sessionMgr,
-		contextBldr: contextBldr,
-		provider:    cfg.LLMProvider,
-		logger:      cfg.Logger,
-		tools:       toolRegistry,
-		config:      cfg,
+		workspace:    cfg.Workspace,
+		sessionDir:   cfg.SessionDir,
+		sessionMgr:   sessionMgr,
+		contextBldr:  contextBldr,
+		provider:     cfg.LLMProvider,
+		logger:       cfg.Logger,
+		tools:        toolRegistry,
+		toolExecutor: toolExecutor,
+		config:       cfg,
 	}, nil
 }
 
@@ -197,45 +202,25 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 			logger.Field{Key: "tool_call_count", Value: len(resp.ToolCalls)},
 			logger.Field{Key: "iteration", Value: iteration})
 
+		// Add assistant message with tool calls to session
+		if err := l.AddMessageToSession(ctx, sessionID, llm.Message{
+			Role:    llm.RoleAssistant,
+			Content: resp.Content,
+		}); err != nil {
+			return "", fmt.Errorf("failed to add assistant message: %w", err)
+		}
+
+		// Prepare tool calls for execution
+		toolCalls := l.toolExecutor.PrepareToolCalls(resp.ToolCalls)
+
 		// Execute tools
-		for _, tc := range resp.ToolCalls {
-			l.logger.DebugCtx(ctx, "Executing tool",
-				logger.Field{Key: "tool_name", Value: tc.Name},
-				logger.Field{Key: "tool_call_id", Value: tc.ID},
-				logger.Field{Key: "arguments", Value: tc.Arguments})
+		results, err := l.toolExecutor.ProcessToolCalls(ctx, toolCalls)
+		if err != nil {
+			return "", fmt.Errorf("failed to execute tools: %w", err)
+		}
 
-			// Convert LLM ToolCall to tools.ToolCall
-			toolCall := tools.ToolCall{
-				ID:        tc.ID,
-				Name:      tc.Name,
-				Arguments: tc.Arguments,
-			}
-
-			result, err := tools.ExecuteToolCall(l.tools, toolCall)
-			if err != nil {
-				l.logger.ErrorCtx(ctx, "Tool execution failed", err,
-					logger.Field{Key: "tool_name", Value: tc.Name})
-				result = tools.ToolResult{
-					ToolCallID: tc.ID,
-					Error:      fmt.Sprintf("Tool execution error: %v", err),
-				}
-			}
-
-			l.logger.DebugCtx(ctx, "Tool execution result",
-				logger.Field{Key: "tool_name", Value: tc.Name},
-				logger.Field{Key: "success", Value: result.Error == ""},
-				logger.Field{Key: "result_length", Value: len(result.Content)},
-				logger.Field{Key: "error", Value: result.Error})
-
-			// Add assistant message with tool calls to session
-			if err := l.AddMessageToSession(ctx, sessionID, llm.Message{
-				Role:    llm.RoleAssistant,
-				Content: resp.Content,
-			}); err != nil {
-				return "", fmt.Errorf("failed to add assistant message: %w", err)
-			}
-
-			// Add tool result to session
+		// Add tool results to session
+		for _, result := range results {
 			content := result.Content
 			if result.Error != "" {
 				content = fmt.Sprintf("Error: %s", result.Error)
