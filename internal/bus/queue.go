@@ -230,52 +230,51 @@ func (mb *MessageBus) SubscribeOutbound(ctx context.Context) <-chan OutboundMess
 	return ch
 }
 
-// distributeInbound distributes inbound messages to all subscribers
-func (mb *MessageBus) distributeInbound() {
+// distributeMessages distributes messages of any type to all subscribers
+// This is a generic function to eliminate code duplication between
+// distributeInbound, distributeOutbound, and distributeEvents
+func distributeMessages[T any](
+	ctx context.Context,
+	logger *logger.Logger,
+	mu *sync.RWMutex,
+	ch <-chan T,
+	getSubscribers func() map[int64]chan T,
+	logMsg string,
+) {
 	for {
 		select {
-		case <-mb.ctx.Done():
+		case <-ctx.Done():
 			return
-		case msg, ok := <-mb.inboundCh:
+		case msg, ok := <-ch:
 			if !ok {
 				return
 			}
-			mb.mu.RLock()
-			for _, ch := range mb.inboundSubscribers {
+			mu.RLock()
+			for _, subCh := range getSubscribers() {
 				select {
-				case ch <- msg:
+				case subCh <- msg:
 				default:
 					// Subscriber channel is full, skip
-					mb.logger.WarnCtx(mb.ctx, "inbound subscriber channel full, skipping message")
+					logger.WarnCtx(ctx, logMsg)
 				}
 			}
-			mb.mu.RUnlock()
+			mu.RUnlock()
 		}
 	}
 }
 
+// distributeInbound distributes inbound messages to all subscribers
+func (mb *MessageBus) distributeInbound() {
+	distributeMessages(mb.ctx, mb.logger, &mb.mu, mb.inboundCh, func() map[int64]chan InboundMessage {
+		return mb.inboundSubscribers
+	}, "inbound subscriber channel full, skipping message")
+}
+
 // distributeOutbound distributes outbound messages to all subscribers
 func (mb *MessageBus) distributeOutbound() {
-	for {
-		select {
-		case <-mb.ctx.Done():
-			return
-		case msg, ok := <-mb.outboundCh:
-			if !ok {
-				return
-			}
-			mb.mu.RLock()
-			for _, ch := range mb.outboundSubscribers {
-				select {
-				case ch <- msg:
-				default:
-					// Subscriber channel is full, skip
-					mb.logger.WarnCtx(mb.ctx, "outbound subscriber channel full, skipping message")
-				}
-			}
-			mb.mu.RUnlock()
-		}
-	}
+	distributeMessages(mb.ctx, mb.logger, &mb.mu, mb.outboundCh, func() map[int64]chan OutboundMessage {
+		return mb.outboundSubscribers
+	}, "outbound subscriber channel full, skipping message")
 }
 
 // IsStarted returns true if the message bus is started
@@ -330,24 +329,7 @@ func (mb *MessageBus) SubscribeEvent(ctx context.Context) <-chan Event {
 
 // distributeEvents distributes events to all subscribers
 func (mb *MessageBus) distributeEvents() {
-	for {
-		select {
-		case <-mb.ctx.Done():
-			return
-		case event, ok := <-mb.eventCh:
-			if !ok {
-				return
-			}
-			mb.mu.RLock()
-			for _, ch := range mb.eventSubscribers {
-				select {
-				case ch <- event:
-				default:
-					// Subscriber channel is full, skip
-					mb.logger.WarnCtx(mb.ctx, "event subscriber channel full, skipping event")
-				}
-			}
-			mb.mu.RUnlock()
-		}
-	}
+	distributeMessages(mb.ctx, mb.logger, &mb.mu, mb.eventCh, func() map[int64]chan Event {
+		return mb.eventSubscribers
+	}, "event subscriber channel full, skipping event")
 }
