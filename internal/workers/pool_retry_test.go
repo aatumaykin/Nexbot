@@ -12,6 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Custom type for context key to avoid collisions
+type contextKey string
+
 func TestPool_ExecuteWithRetry_Success(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
@@ -152,12 +155,12 @@ func TestPool_ExecuteWithRetry_ContextPassed(t *testing.T) {
 		return "success", nil
 	}
 
-	testCtx := context.WithValue(context.Background(), "key", "value")
+	testCtx := context.WithValue(context.Background(), contextKey("testKey"), "value")
 	result := pool.executeWithRetry(testCtx, task, executor)
 
 	assert.Equal(t, task.ID, result.TaskID)
 	assert.NoError(t, result.Error)
 
 	assert.NotNil(t, passedCtx)
-	assert.Equal(t, "value", passedCtx.Value("key"))
+	assert.Equal(t, "value", passedCtx.Value(contextKey("testKey")))
 }

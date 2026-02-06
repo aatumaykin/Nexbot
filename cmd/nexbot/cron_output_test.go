@@ -67,13 +67,14 @@ func TestCronListCommandOutput(t *testing.T) {
 	}
 	output := buf.String()
 
-	// Verify output contains expected information
-	assert.Contains(t, output, "Scheduled Tasks:")
-	assert.Contains(t, output, "job_1")
-	assert.Contains(t, output, "command 1")
-	assert.Contains(t, output, "job_2")
-	assert.Contains(t, output, "command 2")
-	assert.Contains(t, output, "Total: 2 job(s)")
+	// Verify output contains expected information (logger structured format)
+	assert.Contains(t, output, "Scheduled jobs:")
+	assert.Contains(t, output, "id=job_1")
+	assert.Contains(t, output, "command=\"command 1\"")
+	assert.Contains(t, output, "id=job_2")
+	assert.Contains(t, output, "command=\"command 2\"")
+	assert.Contains(t, output, "Total jobs")
+	assert.Contains(t, output, "count=2")
 }
 
 func TestCronRemoveCommandOutput(t *testing.T) {
@@ -123,8 +124,9 @@ func TestCronRemoveCommandOutput(t *testing.T) {
 	}
 	output := buf.String()
 
-	// Verify output contains success message
-	assert.Contains(t, output, "✅ Job 'job_1' removed successfully")
+	// Verify output contains success message (logger structured format)
+	assert.Contains(t, output, "Job removed")
+	assert.Contains(t, output, "job_id=job_1")
 
 	// Verify job was removed
 	jobs, _ := cron.LoadJobs(tempDir)
