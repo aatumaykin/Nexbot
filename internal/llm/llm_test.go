@@ -119,9 +119,6 @@ func TestMockProvider_Chat_EchoMode(t *testing.T) {
 
 	resp, err := p.Chat(ctx, req)
 	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
-	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
 
@@ -148,9 +145,6 @@ func TestMockProvider_Chat_FixedMode(t *testing.T) {
 	}
 
 	resp, err := p.Chat(ctx, req)
-	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
 	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
@@ -185,9 +179,6 @@ func TestMockProvider_Chat_FixturesMode(t *testing.T) {
 		}
 		resp, err := p.Chat(ctx, req)
 		if err != nil {
-			t.Fatalf("Chat failed: %v", err)
-		}
-		if err != nil {
 			t.Fatalf("Chat() iteration %d error = %v", i, err)
 		}
 
@@ -201,9 +192,6 @@ func TestMockProvider_Chat_FixturesMode(t *testing.T) {
 		Messages: []Message{{Role: RoleUser, Content: "Test"}},
 	}
 	resp, err := p.Chat(ctx, req)
-	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
 	if err != nil {
 		t.Fatalf("Chat() rotation error = %v", err)
 	}
@@ -221,11 +209,8 @@ func TestMockProvider_Chat_ErrorMode(t *testing.T) {
 	}
 
 	_, err := p.Chat(ctx, req)
-	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
 	if err == nil {
-		t.Error("Chat() expected error, got nil")
+		t.Fatal("Chat() expected error, got nil")
 	}
 
 	if !strings.Contains(err.Error(), "mock provider error") {
@@ -275,9 +260,6 @@ func TestMockProvider_Chat_NoUserMessage(t *testing.T) {
 
 	resp, err := p.Chat(ctx, req)
 	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
-	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
 
@@ -295,9 +277,6 @@ func TestMockProvider_Chat_EmptyMessages(t *testing.T) {
 	}
 
 	resp, err := p.Chat(ctx, req)
-	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
 	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
@@ -380,18 +359,12 @@ func TestMockProvider_SetErrorAfter(t *testing.T) {
 	}
 	_, err := p.Chat(ctx, req)
 	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
-	if err != nil {
-		t.Errorf("First call with ErrorAfter=1 should succeed, got error: %v", err)
+		t.Fatalf("First call with ErrorAfter=1 should succeed, got error: %v", err)
 	}
 
 	_, err = p.Chat(ctx, req)
-	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
 	if err == nil {
-		t.Error("Second call with ErrorAfter=1 should fail, got nil")
+		t.Fatal("Second call with ErrorAfter=1 should fail, got nil")
 	}
 }
 
@@ -446,9 +419,6 @@ func TestMockProvider_Chat_UsageTracking(t *testing.T) {
 	}
 
 	resp, err := p.Chat(ctx, req)
-	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
 	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
@@ -952,9 +922,6 @@ func TestZAIProvider_Chat_Success(t *testing.T) {
 
 	resp, err := p.Chat(ctx, req)
 	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
-	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
 
@@ -997,11 +964,8 @@ func TestZAIProvider_Chat_Timeout(t *testing.T) {
 	}
 
 	_, err = p.Chat(ctx, req)
-	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
 	if err == nil {
-		t.Error("Chat() expected timeout error, got nil")
+		t.Fatal("Chat() expected timeout error, got nil")
 	}
 }
 
@@ -1024,11 +988,8 @@ func TestZAIProvider_Chat_NetworkError(t *testing.T) {
 	}
 
 	_, err = p.Chat(ctx, req)
-	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
 	if err == nil {
-		t.Error("Chat() expected network error, got nil")
+		t.Fatal("Chat() expected network error, got nil")
 	}
 }
 
@@ -1059,11 +1020,8 @@ func TestZAIProvider_Chat_HTTPError(t *testing.T) {
 	}
 
 	_, err = p.Chat(ctx, req)
-	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
 	if err == nil {
-		t.Error("Chat() expected HTTP error, got nil")
+		t.Fatal("Chat() expected HTTP error, got nil")
 	}
 
 	var httpErr *zaiHTTPError
@@ -1108,11 +1066,8 @@ func TestZAIProvider_Chat_APIError(t *testing.T) {
 	}
 
 	_, err = p.Chat(ctx, req)
-	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
 	if err == nil {
-		t.Error("Chat() expected API error, got nil")
+		t.Fatal("Chat() expected API error, got nil")
 	}
 
 	if !strings.Contains(err.Error(), "Rate limit exceeded") {
@@ -1147,11 +1102,8 @@ func TestZAIProvider_Chat_InvalidJSON(t *testing.T) {
 	}
 
 	_, err = p.Chat(ctx, req)
-	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
 	if err == nil {
-		t.Error("Chat() expected JSON error, got nil")
+		t.Fatal("Chat() expected JSON error, got nil")
 	}
 }
 
@@ -1235,9 +1187,6 @@ func TestZAIProvider_Chat_ToolCalls(t *testing.T) {
 	}
 
 	resp, err := p.Chat(ctx, req)
-	if err != nil {
-		t.Fatalf("Chat failed: %v", err)
-	}
 	if err != nil {
 		t.Fatalf("Chat() error = %v", err)
 	}
