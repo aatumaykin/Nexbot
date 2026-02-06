@@ -69,10 +69,8 @@ func TestHandlerSessionCreation(t *testing.T) {
 	}
 }
 
-// Test 10: validateChannel позволяет все каналы (текущая реализация)
+// Test 10: validateChannel проверяет допустимые типы каналов
 func TestValidateChannel(t *testing.T) {
-	// Текущая реализация validateChannel всегда возвращает nil
-	// Этот тест проверяет текущее поведение
 	tempDir := t.TempDir()
 	log, err := logger.New(logger.Config{Level: "info", Format: "text", Output: "stdout"})
 	if err != nil {
@@ -94,8 +92,9 @@ func TestValidateChannel(t *testing.T) {
 		{"valid slack", "slack", false},
 		{"valid web", "web", false},
 		{"valid api", "api", false},
-		{"invalid channel", "invalid_channel", false}, // Текущая реализация разрешает все
-		{"empty channel", "", false},                  // Текущая реализация разрешает пустой
+		{"valid cron", "cron", false},
+		{"invalid channel", "invalid_channel", true},
+		{"empty channel", "", true},
 	}
 
 	for _, tt := range tests {

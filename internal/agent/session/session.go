@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/aatumaykin/nexbot/internal/llm"
 )
@@ -110,7 +111,7 @@ func (s *Session) Append(msg llm.Message) error {
 
 	entry := Entry{
 		Message:   msg,
-		Timestamp: "", // TODO: Add timestamp if needed
+		Timestamp: time.Now().Format(time.RFC3339),
 		Metadata:  nil,
 	}
 

@@ -1,9 +1,11 @@
 package session
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aatumaykin/nexbot/internal/llm"
 )
@@ -47,6 +49,57 @@ func TestNewManager(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTimestamp(t *testing.T) {
+	tmpDir := t.TempDir()
+	mgr, err := NewManager(tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to create manager: %v", err)
+	}
+
+	t.Run("timestamp is saved with message", func(t *testing.T) {
+		sessionID := "test-timestamp-1"
+		session, _, err := mgr.GetOrCreate(sessionID)
+		if err != nil {
+			t.Fatalf("Failed to create session: %v", err)
+		}
+
+		msg := llm.Message{
+			Role:    llm.RoleUser,
+			Content: "Test message with timestamp",
+		}
+
+		if err := session.Append(msg); err != nil {
+			t.Fatalf("Append() error = %v", err)
+		}
+
+		// Read file content to verify timestamp
+		content, err := os.ReadFile(session.File)
+		if err != nil {
+			t.Fatalf("Failed to read file: %v", err)
+		}
+
+		// Parse the entry to verify timestamp
+		var entry Entry
+		lines := strings.Split(string(content), "\n")
+		if len(lines) < 1 || strings.TrimSpace(lines[0]) == "" {
+			t.Fatal("File is empty")
+		}
+
+		if err := json.Unmarshal([]byte(lines[0]), &entry); err != nil {
+			t.Fatalf("Failed to unmarshal entry: %v", err)
+		}
+
+		if entry.Timestamp == "" {
+			t.Error("Timestamp should not be empty")
+		}
+
+		// Verify timestamp is in RFC3339 format
+		if _, err := time.Parse(time.RFC3339, entry.Timestamp); err != nil {
+			t.Errorf("Timestamp is not in RFC3339 format: %v, error: %v", entry.Timestamp, err)
+		}
+	})
 }
 
 func TestGetOrCreate(t *testing.T) {

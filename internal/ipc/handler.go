@@ -201,7 +201,19 @@ func (h *Handler) handleAgent(req *Request, conn net.Conn) {
 
 // validateChannel проверяет валидность канала
 func (h *Handler) validateChannel(channelType string) error {
-	// TODO: реализовать валидацию канала
+	validTypes := map[string]bool{
+		"telegram": true,
+		"discord":  true,
+		"slack":    true,
+		"web":      true,
+		"api":      true,
+		"cron":     true,
+	}
+
+	if !validTypes[channelType] {
+		return fmt.Errorf("invalid channel type: %s", channelType)
+	}
+
 	return nil
 }
 

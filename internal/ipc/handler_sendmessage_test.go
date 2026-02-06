@@ -109,9 +109,8 @@ func TestHandleSendMessage(t *testing.T) {
 }
 
 // Test 4: Валидация каналов через запрос с невалидным каналом
-// Примечание: текущая реализация validateChannel разрешает все каналы (возвращает nil)
-// Тест проверяет текущее поведение - сообщение будет отправлено даже с любым каналом
-func TestHandleSendMessageWithAnyChannel(t *testing.T) {
+// Тест проверяет что недопустимый канал возвращает ошибку валидации
+func TestHandleSendMessageWithInvalidChannel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -135,25 +134,11 @@ func TestHandleSendMessageWithAnyChannel(t *testing.T) {
 		t.Fatalf("Failed to create handler: %v", err)
 	}
 
-	socketPath := tempDir + "/test.sock"
-
-	// Подписаться на outbound сообщения
-	outboundCh := messageBus.SubscribeOutbound(ctx)
-
-	// Запуск сервера
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- handler.Start(ctx, socketPath)
-	}()
-
-	// Дать время на запуск
-	time.Sleep(100 * time.Millisecond)
-
-	// Подготовить запрос с произвольным каналом (текущая реализация разрешает все)
+	// Подготовить запрос с недопустимым каналом
 	request := Request{
 		Type:      "send_message",
 		UserID:    "user123",
-		Channel:   "custom_channel",
+		Channel:   "invalid_channel",
 		SessionID: "session456",
 		Content:   "test message",
 	}
@@ -181,39 +166,22 @@ func TestHandleSendMessageWithAnyChannel(t *testing.T) {
 	// Обработать соединение в горутине
 	go handler.handleConnection(server)
 
-	// Дать время на обработку
-	time.Sleep(100 * time.Millisecond)
-
-	// Проверить, что сообщение отправлено в bus (текущая реализация разрешает все каналы)
-	select {
-	case msg := <-outboundCh:
-		if msg.ChannelType != "custom_channel" {
-			t.Errorf("Unexpected channel type: %s", msg.ChannelType)
-		}
-	case <-time.After(500 * time.Millisecond):
-		t.Error("Message was not sent to bus (expected with current implementation)")
-	}
-
-	// Проверить, что получен успешный ответ
+	// Проверить, что получен ответ с ошибкой валидации
 	select {
 	case response := <-responseCh:
 		var resp Response
 		if err := json.Unmarshal(response, &resp); err != nil {
 			t.Fatalf("Failed to unmarshal response: %v", err)
 		}
-		if !resp.Success {
-			t.Error("Expected success response (current implementation accepts all channels)")
+		if resp.Success {
+			t.Error("Expected error response for invalid channel")
+		}
+		if resp.Error == "" {
+			t.Error("Expected error message for invalid channel")
 		}
 	case <-time.After(1 * time.Second):
 		t.Error("No response received")
 	}
-
-	// Остановка
-	cancel()
-	<-errCh
-
-	// Очистка
-	_ = handler.Stop()
 }
 
 // Test 12: Обработка send_message с остановленным message bus (ошибка публикации)
