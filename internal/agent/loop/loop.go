@@ -18,6 +18,7 @@ type Loop struct {
 	workspace    string
 	sessionDir   string
 	sessionMgr   *session.Manager
+	sessionOps   *SessionOperations
 	contextBldr  *agentcontext.Builder
 	provider     llm.Provider
 	logger       *logger.Logger
@@ -84,10 +85,14 @@ func NewLoop(cfg Config) (*Loop, error) {
 	// Create tool executor
 	toolExecutor := NewToolExecutor(cfg.Logger, toolRegistry)
 
+	// Create session operations
+	sessionOps := NewSessionOperations(sessionMgr)
+
 	return &Loop{
 		workspace:    cfg.Workspace,
 		sessionDir:   cfg.SessionDir,
 		sessionMgr:   sessionMgr,
+		sessionOps:   sessionOps,
 		contextBldr:  contextBldr,
 		provider:     cfg.LLMProvider,
 		logger:       cfg.Logger,
@@ -105,7 +110,7 @@ func (l *Loop) Process(ctx stdcontext.Context, sessionID, userMessage string) (s
 		logger.Field{Key: "message_length", Value: len(userMessage)})
 
 	// Add user message to session
-	if err := l.AddMessageToSession(ctx, sessionID, llm.Message{
+	if err := l.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{
 		Role:    llm.RoleUser,
 		Content: userMessage,
 	}); err != nil {
@@ -135,7 +140,7 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 	}
 
 	// Prepare request
-	sessionHistory, err := l.GetSessionHistory(ctx, sessionID)
+	sessionHistory, err := l.sessionOps.GetSessionHistory(ctx, sessionID)
 	if err != nil {
 		return "", fmt.Errorf("failed to get session history: %w", err)
 	}
@@ -203,7 +208,7 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 			logger.Field{Key: "iteration", Value: iteration})
 
 		// Add assistant message with tool calls to session
-		if err := l.AddMessageToSession(ctx, sessionID, llm.Message{
+		if err := l.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{
 			Role:    llm.RoleAssistant,
 			Content: resp.Content,
 		}); err != nil {
@@ -225,7 +230,7 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 			if result.Error != "" {
 				content = fmt.Sprintf("Error: %s", result.Error)
 			}
-			if err := l.AddMessageToSession(ctx, sessionID, llm.Message{
+			if err := l.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{
 				Role:       llm.RoleTool,
 				Content:    content,
 				ToolCallID: result.ToolCallID,
@@ -244,7 +249,7 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 	l.logger.DebugCtx(ctx, "Returning final response",
 		logger.Field{Key: "response_length", Value: len(resp.Content)},
 		logger.Field{Key: "iteration", Value: iteration})
-	if err := l.AddMessageToSession(ctx, sessionID, llm.Message{
+	if err := l.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{
 		Role:    llm.RoleAssistant,
 		Content: resp.Content,
 	}); err != nil {
@@ -260,39 +265,27 @@ func (l *Loop) buildSystemPrompt() (string, error) {
 }
 
 // AddMessageToSession adds a message to the session history.
+// This is a public wrapper for compatibility.
 func (l *Loop) AddMessageToSession(ctx stdcontext.Context, sessionID string, message llm.Message) error {
-	sess, _, err := l.sessionMgr.GetOrCreate(sessionID)
-	if err != nil {
-		return fmt.Errorf("failed to get or create session: %w", err)
-	}
-	return sess.Append(message)
+	return l.sessionOps.AddMessageToSession(ctx, sessionID, message)
 }
 
 // GetSessionHistory returns the message history for a session.
+// This is a public wrapper for compatibility.
 func (l *Loop) GetSessionHistory(ctx stdcontext.Context, sessionID string) ([]llm.Message, error) {
-	sess, _, err := l.sessionMgr.GetOrCreate(sessionID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get or create session: %w", err)
-	}
-	return sess.Read()
+	return l.sessionOps.GetSessionHistory(ctx, sessionID)
 }
 
 // ClearSession clears all messages from a session.
+// This is a public wrapper for compatibility.
 func (l *Loop) ClearSession(ctx stdcontext.Context, sessionID string) error {
-	sess, _, err := l.sessionMgr.GetOrCreate(sessionID)
-	if err != nil {
-		return fmt.Errorf("failed to get or create session: %w", err)
-	}
-	return sess.Clear()
+	return l.sessionOps.ClearSession(ctx, sessionID)
 }
 
 // DeleteSession deletes a session entirely.
+// This is a public wrapper for compatibility.
 func (l *Loop) DeleteSession(ctx stdcontext.Context, sessionID string) error {
-	sess, _, err := l.sessionMgr.GetOrCreate(sessionID)
-	if err != nil {
-		return fmt.Errorf("failed to get or create session: %w", err)
-	}
-	return sess.Delete()
+	return l.sessionOps.DeleteSession(ctx, sessionID)
 }
 
 // GetContextBuilder returns the context builder.
@@ -367,33 +360,9 @@ func (l *Loop) ProcessHeartbeatCheck(ctx stdcontext.Context) (string, error) {
 }
 
 // GetSessionStatus returns status information about a session.
+// This is a public wrapper for compatibility.
 func (l *Loop) GetSessionStatus(ctx stdcontext.Context, sessionID string) (map[string]any, error) {
-	sess, _, err := l.sessionMgr.GetOrCreate(sessionID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get session: %w", err)
-	}
-
-	// Get message count
-	msgCount, err := sess.MessageCount()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get message count: %w", err)
-	}
-
-	// Get session file size
-	fileSize := int64(0)
-	if fileInfo, err := getFileInfo(sess.File); err == nil {
-		fileSize = fileInfo.Size()
-	}
-
-	return map[string]any{
-		"session_id":      sessionID,
-		"message_count":   msgCount,
-		"file_size":       fileSize,
-		"file_size_human": formatBytes(fileSize),
-		"model":           l.config.Model,
-		"temperature":     l.config.Temperature,
-		"max_tokens":      l.config.MaxTokens,
-	}, nil
+	return l.sessionOps.GetSessionStatus(ctx, sessionID, l)
 }
 
 func getFileInfo(path string) (os.FileInfo, error) {
