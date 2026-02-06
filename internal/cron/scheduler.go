@@ -72,6 +72,7 @@ type Scheduler struct {
 	storage       *Storage     // Persistent storage for jobs
 	ticker        *time.Ticker // Ticker for oneshot job checking
 	cleanupTicker *time.Ticker // Ticker for executed cleanup
+	parser        cron.Parser  // Parser for validating cron expressions
 	ctx           context.Context
 	cancel        context.CancelFunc
 	started       bool
@@ -91,6 +92,7 @@ func NewScheduler(logger *logger.Logger, messageBus *bus.MessageBus, workerPool 
 		bus:         messageBus,
 		workerPool:  workerPool,
 		storage:     storage,
+		parser:      cron.NewParser(cron.SecondOptional | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor),
 		jobs:        make(map[string]Job),
 		jobIDs:      make(map[cron.EntryID]string),
 		jobEntryIDs: make(map[string]cron.EntryID),
@@ -160,21 +162,36 @@ func (s *Scheduler) AddJob(job Job) (string, error) {
 		job.ID = generateJobID()
 	}
 
-	// Wrap job execution with error handling and logging
-	wrappedFunc := func() {
-		s.executeJob(job)
-	}
+	var entryID cron.EntryID
+	var err error
 
-	// Add job to cron scheduler (this validates the expression)
-	entryID, err := s.cron.AddFunc(job.Schedule, wrappedFunc)
-	if err != nil {
-		return "", fmt.Errorf("invalid cron expression: %w", err)
+	// Only add to cron scheduler for recurring jobs
+	// Empty type defaults to recurring for backward compatibility
+	if job.Type == JobTypeRecurring || job.Type == "" {
+		// Wrap job execution with error handling and logging
+		wrappedFunc := func() {
+			s.executeJob(job)
+		}
+
+		// Add job to cron scheduler (this validates the expression)
+		entryID, err = s.cron.AddFunc(job.Schedule, wrappedFunc)
+		if err != nil {
+			return "", fmt.Errorf("invalid cron expression: %w", err)
+		}
+	} else if job.Schedule != "" {
+		// For non-recurring jobs, validate cron expression without adding to scheduler
+		_, err = s.parser.Parse(job.Schedule)
+		if err != nil {
+			return "", fmt.Errorf("invalid cron expression: %w", err)
+		}
 	}
 
 	// Store job in registry
 	s.jobs[job.ID] = job
-	s.jobIDs[entryID] = job.ID
-	s.jobEntryIDs[job.ID] = entryID
+	if job.Type == JobTypeRecurring || job.Type == "" {
+		s.jobIDs[entryID] = job.ID
+		s.jobEntryIDs[job.ID] = entryID
+	}
 
 	// Persist job to storage
 	if s.storage != nil {
@@ -196,10 +213,53 @@ func (s *Scheduler) AddJob(job Job) (string, error) {
 		}
 	}
 
-	s.logger.Info("cron job added",
-		logger.Field{Key: "job_id", Value: job.ID},
-		logger.Field{Key: "schedule", Value: job.Schedule},
-		logger.Field{Key: "entry_id", Value: entryID})
+	// For oneshot jobs, execute immediately if time has already passed
+	// This is important for testing and ensures jobs don't get missed
+	if job.Type == JobTypeOneshot && !job.Executed && job.ExecuteAt != nil {
+		now := time.Now()
+		if job.ExecuteAt.Before(now) || job.ExecuteAt.Equal(now) {
+			// Execute job first (with Executed=false)
+			s.executeJob(job)
+			s.logger.Info("executed oneshot job immediately on add",
+				logger.Field{Key: "job_id", Value: job.ID})
+
+			// Then mark as executed
+			storageJob := StorageJob{
+				ID:         job.ID,
+				Type:       string(job.Type),
+				Schedule:   job.Schedule,
+				ExecuteAt:  job.ExecuteAt,
+				Command:    job.Command,
+				UserID:     job.UserID,
+				Metadata:   job.Metadata,
+				Executed:   true,
+				ExecutedAt: &now,
+			}
+			if s.storage != nil {
+				if err := s.storage.UpsertJob(storageJob); err != nil {
+					s.logger.Error("failed to update oneshot job as executed", err,
+						logger.Field{Key: "job_id", Value: job.ID})
+				}
+			}
+			// Update in-memory job
+			job.Executed = true
+			job.ExecutedAt = &now
+			s.jobs[job.ID] = job
+		}
+	}
+
+	// Log job addition
+	if job.Type == JobTypeRecurring {
+		s.logger.Info("cron job added",
+			logger.Field{Key: "job_id", Value: job.ID},
+			logger.Field{Key: "schedule", Value: job.Schedule},
+			logger.Field{Key: "entry_id", Value: entryID})
+	} else {
+		s.logger.Info("cron job added",
+			logger.Field{Key: "job_id", Value: job.ID},
+			logger.Field{Key: "job_type", Value: job.Type},
+			logger.Field{Key: "execute_at", Value: job.ExecuteAt})
+	}
 
 	return job.ID, nil
 }
@@ -209,15 +269,21 @@ func (s *Scheduler) RemoveJob(jobID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	entryID, exists := s.jobEntryIDs[jobID]
+	job, exists := s.jobs[jobID]
 	if !exists {
 		return fmt.Errorf("job not found: %s", jobID)
 	}
 
-	s.cron.Remove(entryID)
+	// Only remove from cron scheduler for recurring jobs
+	// Empty type defaults to recurring for backward compatibility
+	if job.Type == JobTypeRecurring || job.Type == "" {
+		if entryID, ok := s.jobEntryIDs[jobID]; ok {
+			s.cron.Remove(entryID)
+			delete(s.jobIDs, entryID)
+			delete(s.jobEntryIDs, jobID)
+		}
+	}
 	delete(s.jobs, jobID)
-	delete(s.jobIDs, entryID)
-	delete(s.jobEntryIDs, jobID)
 
 	// Remove from storage
 	if s.storage != nil {
@@ -228,9 +294,18 @@ func (s *Scheduler) RemoveJob(jobID string) error {
 		}
 	}
 
-	s.logger.Info("cron job removed",
-		logger.Field{Key: "job_id", Value: jobID},
-		logger.Field{Key: "entry_id", Value: entryID})
+	// Log removal with entry ID for recurring jobs
+	if job.Type == JobTypeRecurring {
+		if entryID, ok := s.jobEntryIDs[jobID]; ok {
+			s.logger.Info("cron job removed",
+				logger.Field{Key: "job_id", Value: jobID},
+				logger.Field{Key: "entry_id", Value: entryID})
+		}
+	} else {
+		s.logger.Info("cron job removed",
+			logger.Field{Key: "job_id", Value: jobID},
+			logger.Field{Key: "job_type", Value: job.Type})
+	}
 
 	return nil
 }
@@ -267,6 +342,11 @@ func (s *Scheduler) executeJob(job Job) {
 				logger.Field{Key: "job_id", Value: job.ID})
 		}
 	}()
+
+	// Skip execution if oneshot job was already executed
+	if job.Type == JobTypeOneshot && job.Executed {
+		return
+	}
 
 	// Submit to worker pool if available
 	if s.workerPool != nil {
@@ -395,12 +475,7 @@ func (s *Scheduler) checkAndExecuteOneshots(now time.Time) {
 			continue
 		}
 
-		// Mark as executed and update
-		storageJob.Executed = true
-		storageJob.ExecutedAt = &now
-		updated = true
-
-		// Submit job to worker pool
+		// Submit job to worker pool BEFORE marking as executed
 		job := Job{
 			ID:         storageJob.ID,
 			Type:       JobType(storageJob.Type),
@@ -409,10 +484,15 @@ func (s *Scheduler) checkAndExecuteOneshots(now time.Time) {
 			Command:    storageJob.Command,
 			UserID:     storageJob.UserID,
 			Metadata:   storageJob.Metadata,
-			Executed:   storageJob.Executed,
-			ExecutedAt: storageJob.ExecutedAt,
+			Executed:   false, // Not yet executed - executeJob will skip if already executed
+			ExecutedAt: nil,
 		}
 		s.executeJob(job)
+
+		// Mark as executed AFTER submission
+		storageJob.Executed = true
+		storageJob.ExecutedAt = &now
+		updated = true
 
 		s.logger.Info("executed oneshot job",
 			logger.Field{Key: "job_id", Value: storageJob.ID},
@@ -446,37 +526,33 @@ func (s *Scheduler) executedCleanup() {
 // It reloads the jobs map from storage to reflect the changes.
 // This method is public and can be called manually.
 func (s *Scheduler) CleanupExecutedOneshots() {
+	// Load all jobs before cleanup to identify which ones to remove
+	allJobs, err := s.storage.Load()
+	if err != nil {
+		s.logger.Error("failed to load jobs before cleanup", err)
+		return
+	}
+
+	// Identify executed oneshot jobs to remove
+	var oneshotJobsToRemove []string
+	for _, job := range allJobs {
+		if job.Type == string(JobTypeOneshot) && job.Executed {
+			oneshotJobsToRemove = append(oneshotJobsToRemove, job.ID)
+		}
+	}
+
 	// Remove executed oneshots from storage
 	if err := s.storage.RemoveExecutedOneshots(); err != nil {
 		s.logger.Error("failed to remove executed oneshots", err)
 		return
 	}
 
-	// Reload jobs from storage
-	storageJobs, err := s.storage.Load()
-	if err != nil {
-		s.logger.Error("failed to reload jobs after cleanup", err)
-		return
-	}
-
-	// Update in-memory jobs map
+	// Update in-memory jobs map - remove only executed oneshots
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.jobs = make(map[string]Job)
-	for _, storageJob := range storageJobs {
-		job := Job{
-			ID:         storageJob.ID,
-			Type:       JobType(storageJob.Type),
-			Schedule:   storageJob.Schedule,
-			ExecuteAt:  storageJob.ExecuteAt,
-			Command:    storageJob.Command,
-			UserID:     storageJob.UserID,
-			Metadata:   storageJob.Metadata,
-			Executed:   storageJob.Executed,
-			ExecutedAt: storageJob.ExecutedAt,
-		}
-		s.jobs[job.ID] = job
+	for _, jobID := range oneshotJobsToRemove {
+		delete(s.jobs, jobID)
 	}
 
 	s.logger.Info("cleaned up executed oneshot jobs",

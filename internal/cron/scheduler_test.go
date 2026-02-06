@@ -820,7 +820,7 @@ func TestSchedulerOneshotExecution(t *testing.T) {
 	jobID, err := scheduler.AddJob(job)
 	require.NoError(t, err)
 	assert.NotEmpty(t, jobID)
-	time.Sleep(2 * time.Minute)
+	time.Sleep(2 * time.Second)
 	assert.Len(t, workerPool.submittedTasks, 1)
 	err = scheduler.Stop()
 	assert.NoError(t, err)
@@ -852,7 +852,7 @@ func TestSchedulerOneshotAlreadyExecuted(t *testing.T) {
 	jobID, err := scheduler.AddJob(job)
 	require.NoError(t, err)
 	assert.NotEmpty(t, jobID)
-	time.Sleep(2 * time.Minute)
+	time.Sleep(2 * time.Second)
 	assert.Empty(t, workerPool.submittedTasks)
 	err = scheduler.Stop()
 	assert.NoError(t, err)
@@ -872,13 +872,14 @@ func TestSchedulerCleanupExecuted(t *testing.T) {
 	require.NoError(t, err)
 	now := time.Now()
 	past := now.Add(-1 * time.Minute)
+	future := now.Add(1 * time.Hour)
 	job1 := Job{
 		ID:        "oneshot-new",
 		Type:      JobTypeOneshot,
 		Schedule:  "* * * * * *",
 		Command:   "keep this",
 		UserID:    "user-1",
-		ExecuteAt: &past,
+		ExecuteAt: &future,
 		Executed:  false,
 	}
 	_, _ = scheduler.AddJob(job1)
