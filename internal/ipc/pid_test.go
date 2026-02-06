@@ -222,3 +222,79 @@ func TestGetSocketPath(t *testing.T) {
 		t.Errorf("Socket path mismatch: got %s, want %s", actualPath, expectedPath)
 	}
 }
+
+// Test 13: WritePID с ошибкой при создании директории (для покрытия)
+func TestWritePIDInvalidPath(t *testing.T) {
+	// Попытка записать PID в недопустимый путь
+	// Например, путь который заканчивается на имя файла, а не директорию
+	pid := os.Getpid()
+	err := WritePID("/dev/null/test.pid", pid)
+	if err == nil {
+		t.Error("Expected error when writing PID to invalid path")
+	}
+}
+
+// Test 14: WritePID перезаписывает существующий файл
+func TestWritePIDOverwrite(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Создать PID файл первым PID
+	firstPID := 12345
+	err := WritePID(tmpDir, firstPID)
+	if err != nil {
+		t.Fatalf("WritePID failed: %v", err)
+	}
+
+	// Переписать другим PID
+	secondPID := 67890
+	err = WritePID(tmpDir, secondPID)
+	if err != nil {
+		t.Errorf("WritePID overwrite failed: %v", err)
+	}
+
+	// Проверить, что PID обновился
+	pid, err := ReadPID(tmpDir)
+	if err != nil {
+		t.Fatalf("ReadPID failed: %v", err)
+	}
+
+	if pid != secondPID {
+		t.Errorf("PID not overwritten: got %d, want %d", pid, secondPID)
+	}
+}
+
+// Test 15: ReadPID с некорректным содержимым
+func TestReadPIDInvalidContent(t *testing.T) {
+	tmpDir := t.TempDir()
+	pidPath := GetPIDPath(tmpDir)
+
+	// Создать файл с некорректным содержимым
+	err := os.WriteFile(pidPath, []byte("not a number\n"), 0600)
+	if err != nil {
+		t.Fatalf("Failed to create PID file: %v", err)
+	}
+
+	// Читать PID
+	_, err = ReadPID(tmpDir)
+	if err == nil {
+		t.Error("Expected error when reading invalid PID content")
+	}
+}
+
+// Test 18: ReadPID с пустым файлом
+func TestReadPIDEmptyFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	pidPath := GetPIDPath(tmpDir)
+
+	// Создать пустой файл
+	err := os.WriteFile(pidPath, []byte(""), 0600)
+	if err != nil {
+		t.Fatalf("Failed to create PID file: %v", err)
+	}
+
+	// Читать PID
+	_, err = ReadPID(tmpDir)
+	if err == nil {
+		t.Error("Expected error when reading empty PID file")
+	}
+}
