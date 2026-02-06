@@ -68,8 +68,10 @@ func TestNewStore(t *testing.T) {
 				}
 
 				// Verify default format is set
-				if tt.config.Format == "" && store.format != FormatJSONL {
-					t.Errorf("Expected default format JSONL, got %v", store.format)
+				if tt.config.Format == "" {
+					if _, ok := store.format.(*JSONLFormat); !ok {
+						t.Errorf("Expected default format JSONL, got %T", store.format)
+					}
 				}
 
 				// Verify directory was created
@@ -625,7 +627,7 @@ func TestFormatValidation(t *testing.T) {
 		}
 
 		// Read file directly
-		filePath := filepath.Join(tmpDir, sessionID+".markdown")
+		filePath := filepath.Join(tmpDir, sessionID+store.format.FileExtension())
 		content, err := os.ReadFile(filePath)
 		if err != nil {
 			t.Fatalf("Failed to read file: %v", err)
