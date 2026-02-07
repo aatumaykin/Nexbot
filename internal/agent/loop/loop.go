@@ -226,10 +226,18 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 
 		// Add tool results to session
 		for _, result := range results {
-			content := result.Content
-			if result.Error != "" {
-				content = fmt.Sprintf("Error: %s", result.Error)
+			var content string
+			if result.Error != nil {
+				// Структурированное описание ошибки для LLM
+				if result.TimedOut {
+					content = fmt.Sprintf("❌ Tool execution timed out\n\n%s", result.Error.ToLLMContext())
+				} else {
+					content = fmt.Sprintf("❌ Tool execution failed\n\n%s", result.Error.ToLLMContext())
+				}
+			} else {
+				content = result.Content
 			}
+
 			if err := l.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{
 				Role:       llm.RoleTool,
 				Content:    content,

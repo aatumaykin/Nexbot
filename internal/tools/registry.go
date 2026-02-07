@@ -8,6 +8,39 @@ import (
 	"time"
 )
 
+// Error codes for tool execution
+const (
+	// Validation errors
+	ErrCodeRequiredField = "required_field"
+	ErrCodeInvalidFormat = "invalid_format"
+	ErrCodeInvalidValue  = "invalid_value"
+	ErrCodePathTraversal = "path_traversal"
+
+	// Permission errors
+	ErrCodePermissionDenied = "permission_denied"
+	ErrCodeReadOnly         = "read_only"
+
+	// Not found errors
+	ErrCodeFileNotFound = "file_not_found"
+	ErrCodeDirNotFound  = "dir_not_found"
+	ErrCodeToolNotFound = "tool_not_found"
+
+	// Execution errors
+	ErrCodeExecutionFailed = "execution_failed"
+	ErrCodeTimeout         = "timeout"
+	ErrCodeCancelled       = "cancelled"
+
+	// Rate limit errors
+	ErrCodeRateLimitExceeded = "rate_limit_exceeded"
+
+	// Storage errors
+	ErrCodeStorageWriteFailed = "storage_write_failed"
+	ErrCodeStorageReadFailed  = "storage_read_failed"
+
+	// Disabled errors
+	ErrCodeToolDisabled = "tool_disabled"
+)
+
 // Tool defines the interface that all tools must implement.
 // A tool represents a function that can be called by the LLM agent.
 type Tool interface {
@@ -131,10 +164,12 @@ type ToolCall struct {
 
 // ToolResult represents the result of executing a tool.
 type ToolResult struct {
-	ToolCallID string `json:"tool_call_id"`
-	Content    string `json:"content"`
-	Error      string `json:"error,omitempty"`
-	TimedOut   bool   `json:"timed_out,omitempty"`
+	ToolCallID string         `json:"tool_call_id"`
+	Content    string         `json:"content"`
+	Error      *ToolError     `json:"error,omitempty"`
+	TimedOut   bool           `json:"timed_out,omitempty"`
+	ExitCode   int            `json:"exit_code,omitempty"`
+	Details    map[string]any `json:"details,omitempty"`
 }
 
 // ExecutionConfig represents the configuration for tool execution.
@@ -164,7 +199,10 @@ func ExecuteToolCallWithContext(registry *Registry, tc ToolCall, ctx context.Con
 	if !ok {
 		return ToolResult{
 			ToolCallID: tc.ID,
-			Error:      fmt.Sprintf("tool not found: %s", tc.Name),
+			Error: NewNotFoundError(
+				ErrCodeToolNotFound,
+				fmt.Sprintf("tool not found: %s", tc.Name),
+				""),
 		}, nil
 	}
 
@@ -186,11 +224,11 @@ func ExecuteToolCallWithContext(registry *Registry, tc ToolCall, ctx context.Con
 	}
 
 	// Create a channel for the result
-	type toolResult struct {
+	type executionResult struct {
 		result string
 		err    error
 	}
-	resultChan := make(chan toolResult, 1)
+	resultChan := make(chan executionResult, 1)
 
 	// Execute the tool
 	go func() {
@@ -205,7 +243,7 @@ func ExecuteToolCallWithContext(registry *Registry, tc ToolCall, ctx context.Con
 			res, err = tool.Execute(tc.Arguments)
 		}
 
-		resultChan <- toolResult{result: res, err: err}
+		resultChan <- executionResult{result: res, err: err}
 	}()
 
 	// Wait for result or timeout
@@ -214,7 +252,11 @@ func ExecuteToolCallWithContext(registry *Registry, tc ToolCall, ctx context.Con
 		if res.err != nil {
 			return ToolResult{
 				ToolCallID: tc.ID,
-				Error:      res.err.Error(),
+				Error: NewExecutionError(
+					ErrCodeExecutionFailed,
+					res.err.Error(),
+					"",
+					0),
 			}, nil
 		}
 
@@ -228,15 +270,21 @@ func ExecuteToolCallWithContext(registry *Registry, tc ToolCall, ctx context.Con
 		if execCtx.Err() == context.DeadlineExceeded {
 			return ToolResult{
 				ToolCallID: tc.ID,
-				Error:      fmt.Sprintf("tool execution timed out after %v", timeout),
-				TimedOut:   true,
+				Error: NewTimeoutError(
+					ErrCodeTimeout,
+					fmt.Sprintf("tool execution timed out after %v", timeout),
+					map[string]any{"arguments": tc.Arguments}),
+				TimedOut: true,
 			}, nil
 		}
 
 		// Other context errors
 		return ToolResult{
 			ToolCallID: tc.ID,
-			Error:      fmt.Sprintf("tool execution cancelled: %v", execCtx.Err()),
+			Error: NewTimeoutError(
+				ErrCodeCancelled,
+				fmt.Sprintf("tool execution cancelled: %v", execCtx.Err()),
+				map[string]any{"arguments": tc.Arguments}),
 		}, nil
 	}
 }

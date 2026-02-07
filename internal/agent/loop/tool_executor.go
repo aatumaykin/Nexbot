@@ -2,7 +2,7 @@ package loop
 
 import (
 	"context"
-	"fmt"
+	"time"
 
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
@@ -55,26 +55,28 @@ func (te *ToolExecutor) ProcessToolCalls(ctx context.Context, toolCalls []tools.
 
 // ExecuteToolCall executes a single tool call with context and logging.
 func (te *ToolExecutor) ExecuteToolCall(ctx context.Context, toolCall tools.ToolCall) tools.ToolResult {
-	te.logger.DebugCtx(ctx, "Executing tool",
+	te.logger.DebugCtx(ctx, "executing tool",
 		logger.Field{Key: "tool_name", Value: toolCall.Name},
-		logger.Field{Key: "tool_call_id", Value: toolCall.ID},
-		logger.Field{Key: "arguments", Value: toolCall.Arguments})
+		logger.Field{Key: "tool_call_id", Value: toolCall.ID})
 
-	result, err := tools.ExecuteToolCallWithContext(te.tools, toolCall, ctx, nil)
-	if err != nil {
-		te.logger.ErrorCtx(ctx, "Tool execution failed", err,
-			logger.Field{Key: "tool_name", Value: toolCall.Name})
-		return tools.ToolResult{
-			ToolCallID: toolCall.ID,
-			Error:      fmt.Sprintf("Tool execution error: %v", err),
-		}
+	start := time.Now()
+	result, _ := tools.ExecuteToolCallWithContext(te.tools, toolCall, ctx, nil)
+
+	duration := time.Since(start)
+
+	// Логируем результат
+	if result.Error != nil {
+		te.logger.ErrorCtx(ctx, "tool execution failed", result.Error,
+			logger.Field{Key: "tool_name", Value: toolCall.Name},
+			logger.Field{Key: "tool_call_id", Value: toolCall.ID},
+			logger.Field{Key: "duration_ms", Value: duration.Milliseconds()},
+			logger.Field{Key: "timed_out", Value: result.TimedOut})
+	} else {
+		te.logger.DebugCtx(ctx, "tool execution completed",
+			logger.Field{Key: "tool_name", Value: toolCall.Name},
+			logger.Field{Key: "tool_call_id", Value: toolCall.ID},
+			logger.Field{Key: "duration_ms", Value: duration.Milliseconds()})
 	}
-
-	te.logger.DebugCtx(ctx, "Tool execution result",
-		logger.Field{Key: "tool_name", Value: toolCall.Name},
-		logger.Field{Key: "success", Value: result.Error == ""},
-		logger.Field{Key: "result_length", Value: len(result.Content)},
-		logger.Field{Key: "error", Value: result.Error})
 
 	return result
 }
