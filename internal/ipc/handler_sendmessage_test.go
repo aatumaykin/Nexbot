@@ -54,9 +54,7 @@ func TestHandleSendMessage(t *testing.T) {
 	// Подготовить запрос
 	request := Request{
 		Type:      "send_message",
-		UserID:    "user123",
-		Channel:   "telegram",
-		SessionID: "session456",
+		SessionID: "telegram:user123",
 		Content:   "test message",
 	}
 
@@ -137,9 +135,7 @@ func TestHandleSendMessageWithInvalidChannel(t *testing.T) {
 	// Подготовить запрос с недопустимым каналом
 	request := Request{
 		Type:      "send_message",
-		UserID:    "user123",
-		Channel:   "invalid_channel",
-		SessionID: "session456",
+		SessionID: "invalid_channel:user123",
 		Content:   "test message",
 	}
 
@@ -216,9 +212,7 @@ func TestHandleSendMessagePublishError(t *testing.T) {
 	// Подготовить запрос
 	request := Request{
 		Type:      "send_message",
-		UserID:    "user123",
-		Channel:   "telegram",
-		SessionID: "session456",
+		SessionID: "telegram:user123",
 		Content:   "test message",
 	}
 

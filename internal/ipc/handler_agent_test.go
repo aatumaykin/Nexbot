@@ -53,9 +53,7 @@ func TestHandleAgent(t *testing.T) {
 	// Подготовить запрос
 	request := Request{
 		Type:      "agent",
-		UserID:    "user123",
-		Channel:   "telegram",
-		SessionID: "session456",
+		SessionID: "telegram:user123",
 		Content:   "agent request",
 	}
 
@@ -146,9 +144,7 @@ func TestHandleUnknownRequest(t *testing.T) {
 	// Подготовить запрос с неизвестным типом
 	request := Request{
 		Type:      "unknown_type",
-		UserID:    "user123",
-		Channel:   "telegram",
-		SessionID: "session456",
+		SessionID: "telegram:user123",
 		Content:   "test message",
 	}
 
@@ -232,9 +228,7 @@ func TestHandleAgentPublishError(t *testing.T) {
 	// Подготовить запрос
 	request := Request{
 		Type:      "agent",
-		UserID:    "user123",
-		Channel:   "telegram",
-		SessionID: "session456",
+		SessionID: "telegram:user123",
 		Content:   "agent request",
 	}
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 
 	"github.com/aatumaykin/nexbot/internal/agent/session"
 	"github.com/aatumaykin/nexbot/internal/bus"
@@ -15,9 +16,7 @@ import (
 // Request структура запроса от CLI
 type Request struct {
 	Type      string `json:"type"`
-	Channel   string `json:"channel"`
 	SessionID string `json:"session_id"`
-	UserID    string `json:"user_id"`
 	Content   string `json:"content"`
 }
 
@@ -119,18 +118,44 @@ func (h *Handler) handleConnection(conn net.Conn) {
 	}
 }
 
+// parseSessionID парсит session ID в формате "channel:chat_id"
+// и возвращает channel, chatID
+func parseSessionID(sessionID string) (channel, chatID string, err error) {
+	parts := strings.SplitN(sessionID, ":", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid session ID format, expected 'channel:chat_id', got: %s", sessionID)
+	}
+
+	if parts[0] == "" {
+		return "", "", fmt.Errorf("channel part cannot be empty in session ID: %s", sessionID)
+	}
+
+	if parts[1] == "" {
+		return "", "", fmt.Errorf("chat_id part cannot be empty in session ID: %s", sessionID)
+	}
+
+	return parts[0], parts[1], nil
+}
+
 // handleSendMessage обрабатывает запрос отправки сообщения
 func (h *Handler) handleSendMessage(req *Request, conn net.Conn) {
+	// Парсим session ID
+	channel, userID, err := parseSessionID(req.SessionID)
+	if err != nil {
+		h.sendErrorResponse(conn, err.Error())
+		return
+	}
+
 	// Валидация канала
-	if err := h.validateChannel(req.Channel); err != nil {
+	if err := h.validateChannel(channel); err != nil {
 		h.sendErrorResponse(conn, fmt.Sprintf("channel validation failed: %v", err))
 		return
 	}
 
 	// Создаем outbound сообщение
 	outboundMsg := bus.NewOutboundMessage(
-		bus.ChannelType(req.Channel),
-		req.UserID,
+		bus.ChannelType(channel),
+		userID,
 		req.SessionID,
 		req.Content,
 		"",  // correlationID (not used for IPC)
@@ -141,15 +166,15 @@ func (h *Handler) handleSendMessage(req *Request, conn net.Conn) {
 	if err := h.messageBus.PublishOutbound(*outboundMsg); err != nil {
 		h.sendErrorResponse(conn, fmt.Sprintf("failed to publish message: %v", err))
 		h.logger.Error("failed to publish outbound message", err,
-			logger.Field{Key: "channel", Value: req.Channel},
-			logger.Field{Key: "user_id", Value: req.UserID},
+			logger.Field{Key: "channel", Value: channel},
+			logger.Field{Key: "user_id", Value: userID},
 			logger.Field{Key: "session_id", Value: req.SessionID})
 		return
 	}
 
 	h.logger.Info("send_message request processed",
-		logger.Field{Key: "channel", Value: req.Channel},
-		logger.Field{Key: "user_id", Value: req.UserID},
+		logger.Field{Key: "channel", Value: channel},
+		logger.Field{Key: "user_id", Value: userID},
 		logger.Field{Key: "session_id", Value: req.SessionID},
 		logger.Field{Key: "content", Value: req.Content})
 
@@ -165,10 +190,17 @@ func (h *Handler) handleSendMessage(req *Request, conn net.Conn) {
 
 // handleAgent обрабатывает запрос к агенту
 func (h *Handler) handleAgent(req *Request, conn net.Conn) {
+	// Парсим session ID
+	channel, userID, err := parseSessionID(req.SessionID)
+	if err != nil {
+		h.sendErrorResponse(conn, err.Error())
+		return
+	}
+
 	// Публикуем inbound сообщение для обработки агентом
 	inboundMsg := bus.NewInboundMessage(
-		bus.ChannelType(req.Channel),
-		req.UserID,
+		bus.ChannelType(channel),
+		userID,
 		req.SessionID,
 		req.Content,
 		nil,
@@ -178,15 +210,15 @@ func (h *Handler) handleAgent(req *Request, conn net.Conn) {
 	if err := h.messageBus.PublishInbound(*inboundMsg); err != nil {
 		h.sendErrorResponse(conn, fmt.Sprintf("failed to publish message: %v", err))
 		h.logger.Error("failed to publish inbound message", err,
-			logger.Field{Key: "channel", Value: req.Channel},
-			logger.Field{Key: "user_id", Value: req.UserID},
+			logger.Field{Key: "channel", Value: channel},
+			logger.Field{Key: "user_id", Value: userID},
 			logger.Field{Key: "session_id", Value: req.SessionID})
 		return
 	}
 
 	h.logger.Info("agent request processed",
-		logger.Field{Key: "channel", Value: req.Channel},
-		logger.Field{Key: "user_id", Value: req.UserID},
+		logger.Field{Key: "channel", Value: channel},
+		logger.Field{Key: "user_id", Value: userID},
 		logger.Field{Key: "session_id", Value: req.SessionID},
 		logger.Field{Key: "content", Value: req.Content})
 
