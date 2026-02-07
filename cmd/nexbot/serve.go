@@ -115,6 +115,6 @@ func serveHandler(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	serveCmd.Flags().StringVarP(&serveConfigPath, "config", "c", "", "Path to configuration file (default: ./config.toml)")
+	serveCmd.Flags().StringVarP(&serveConfigPath, "config", "c", "", "Path to configuration file (default: ~/.config/nexbot/config.toml)")
 	serveCmd.Flags().StringVarP(&serveLogLevel, "log-level", "l", "", "Override log level (debug, info, warn, error)")
 }

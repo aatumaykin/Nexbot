@@ -11,6 +11,7 @@ import (
 // устанавливает переменные через os.Setenv().
 // Возвращает ошибку если файл не существует или не может быть прочитан.
 func LoadEnv(path string) error {
+	path = expandHome(path)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -48,6 +49,7 @@ func LoadEnv(path string) error {
 // Если файл существует - вызывает LoadEnv(path).
 // Если файл не существует - возвращает nil (без ошибки).
 func LoadEnvOptional(path string) error {
+	path = expandHome(path)
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
 			return nil

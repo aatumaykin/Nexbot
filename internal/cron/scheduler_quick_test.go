@@ -30,7 +30,6 @@ func TestSchedulerOneshotAlreadyExecutedQuick(t *testing.T) {
 	job := Job{
 		ID:        "oneshot-already-executed",
 		Type:      JobTypeOneshot,
-		Schedule:  "* * * * * *",
 		Command:   "test command",
 		UserID:    "user-1",
 		ExecuteAt: &past,
@@ -50,7 +49,6 @@ func TestSchedulerOneshotAlreadyExecutedQuick(t *testing.T) {
 	job2 := Job{
 		ID:        "oneshot-not-executed",
 		Type:      JobTypeOneshot,
-		Schedule:  "* * * * * *",
 		Command:   "test command 2",
 		UserID:    "user-1",
 		ExecuteAt: &past,

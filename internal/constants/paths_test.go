@@ -33,13 +33,13 @@ func TestPathConstants(t *testing.T) {
 }
 
 func TestDefaultEnvPath(t *testing.T) {
-	if DefaultEnvPath != "./.env" {
-		t.Errorf("DefaultEnvPath = %s, want './.env'", DefaultEnvPath)
+	if DefaultEnvPath != "~/.config/nexbot/.env" {
+		t.Errorf("DefaultEnvPath = %s, want '~/.config/nexbot/.env'", DefaultEnvPath)
 	}
 
-	// Check that path starts with ./ (relative path)
-	if len(DefaultEnvPath) < 2 || DefaultEnvPath[0:2] != "./" {
-		t.Errorf("DefaultEnvPath should be a relative path starting with './', got: %s", DefaultEnvPath)
+	// Check that path starts with ~/ (home directory)
+	if len(DefaultEnvPath) < 2 || DefaultEnvPath[0:2] != "~/" {
+		t.Errorf("DefaultEnvPath should start with '~/', got: %s", DefaultEnvPath)
 	}
 
 	// Check that it has .env extension
@@ -49,13 +49,13 @@ func TestDefaultEnvPath(t *testing.T) {
 }
 
 func TestDefaultConfigPath(t *testing.T) {
-	if DefaultConfigPath != "./config.toml" {
-		t.Errorf("DefaultConfigPath = %s, want './config.toml'", DefaultConfigPath)
+	if DefaultConfigPath != "~/.config/nexbot/config.toml" {
+		t.Errorf("DefaultConfigPath = %s, want '~/.config/nexbot/config.toml'", DefaultConfigPath)
 	}
 
-	// Check that path starts with ./ (relative path)
-	if len(DefaultConfigPath) < 2 || DefaultConfigPath[0:2] != "./" {
-		t.Errorf("DefaultConfigPath should be a relative path starting with './', got: %s", DefaultConfigPath)
+	// Check that path starts with ~/ (home directory)
+	if len(DefaultConfigPath) < 2 || DefaultConfigPath[0:2] != "~/" {
+		t.Errorf("DefaultConfigPath should start with '~/', got: %s", DefaultConfigPath)
 	}
 
 	// Check that it has .toml extension
@@ -107,9 +107,9 @@ func TestPathConsistency(t *testing.T) {
 	paths := []string{DefaultEnvPath, DefaultConfigPath}
 
 	for i, path := range paths {
-		// All paths should start with ./ (relative paths from current directory)
-		if len(path) >= 2 && path[0:2] != "./" {
-			t.Errorf("Path at index %d should start with './', got: %s", i, path)
+		// All paths should start with ~/ (home directory)
+		if len(path) >= 2 && path[0:2] != "~/" {
+			t.Errorf("Path at index %d should start with '~/', got: %s", i, path)
 		}
 	}
 }

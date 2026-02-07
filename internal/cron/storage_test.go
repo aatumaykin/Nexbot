@@ -123,7 +123,7 @@ func TestStorage_Remove(t *testing.T) {
 	// Append multiple jobs
 	job1 := StorageJob{ID: "job-1", Type: "recurring", Schedule: "* * * * *", Command: "cmd1", UserID: "user-1"}
 	job2 := StorageJob{ID: "job-2", Type: "recurring", Schedule: "* * * * *", Command: "cmd2", UserID: "user-2"}
-	job3 := StorageJob{ID: "job-3", Type: "oneshot", Schedule: "* * * * *", Command: "cmd3", UserID: "user-3"}
+	job3 := StorageJob{ID: "job-3", Type: "oneshot", Command: "cmd3", UserID: "user-3"}
 
 	require.NoError(t, storage.Append(job1))
 	require.NoError(t, storage.Append(job2))
@@ -262,4 +262,28 @@ func TestStorage_RemoveExecutedOneshots(t *testing.T) {
 	// Executed oneshots should be removed
 	assert.False(t, jobIDs["oneshot-done"])
 	assert.False(t, jobIDs["oneshot-done-2"])
+}
+
+func TestStorageUpsertJobNormalizeOneshot(t *testing.T) {
+	tempDir := t.TempDir()
+	log := testLogger()
+	storage := NewStorage(tempDir, log)
+
+	// Add oneshot job with schedule (should be normalized)
+	now := time.Now()
+	job := StorageJob{
+		ID:        "job-1",
+		Type:      "oneshot",
+		Schedule:  "* * * * *", // Should be removed by normalization
+		ExecuteAt: &now,
+	}
+
+	err := storage.UpsertJob(job)
+	require.NoError(t, err)
+
+	// Load and verify schedule was removed
+	jobs, err := storage.Load()
+	require.NoError(t, err)
+	assert.Len(t, jobs, 1)
+	assert.Empty(t, jobs[0].Schedule, "Oneshot job schedule should be normalized to empty")
 }

@@ -336,3 +336,70 @@ func TestScheduler_GracefulShutdown(t *testing.T) {
 	// Scheduler should be stopped
 	assert.False(t, scheduler.IsStarted())
 }
+
+func TestScheduler_AddJobInvalidOneshotWithSchedule(t *testing.T) {
+	log := testLogger()
+	msgBus := bus.New(100, log)
+	err := msgBus.Start(context.Background())
+	require.NoError(t, err)
+	defer stopMessageBus(msgBus)
+
+	scheduler := NewScheduler(log, msgBus, nil, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	err = scheduler.Start(ctx)
+	require.NoError(t, err)
+	defer stopScheduler(scheduler)
+
+	now := time.Now()
+	past := now.Add(-1 * time.Minute)
+	job := Job{
+		ID:        "test-oneshot",
+		Type:      JobTypeOneshot,
+		Schedule:  "* * * * * *", // Should NOT be allowed for oneshot
+		ExecuteAt: &past,
+		Command:   "test",
+		UserID:    "test-user",
+	}
+
+	_, err = scheduler.AddJob(job)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "oneshot jobs cannot have schedule field")
+}
+
+func TestScheduler_AddJobNormalizeToolCommand(t *testing.T) {
+	log := testLogger()
+	msgBus := bus.New(100, log)
+	err := msgBus.Start(context.Background())
+	require.NoError(t, err)
+	defer stopMessageBus(msgBus)
+
+	tempDir := t.TempDir()
+	storage := NewStorage(tempDir, log)
+	scheduler := NewScheduler(log, msgBus, nil, storage)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	err = scheduler.Start(ctx)
+	require.NoError(t, err)
+	defer stopScheduler(scheduler)
+
+	now := time.Now()
+	past := now.Add(-1 * time.Minute)
+	job := Job{
+		ID:        "test-tool",
+		Type:      JobTypeOneshot,
+		Tool:      "send_message",
+		Command:   "test", // Should be removed by normalization
+		Payload:   map[string]any{"message": "hello"},
+		SessionID: "telegram:123",
+		ExecuteAt: &past,
+	}
+
+	jobID, err := scheduler.AddJob(job)
+	require.NoError(t, err)
+
+	// Verify command was normalized
+	storedJob, err := scheduler.GetJob(jobID)
+	require.NoError(t, err)
+	assert.Empty(t, storedJob.Command, "Command should be empty when tool is set")
+}

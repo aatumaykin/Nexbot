@@ -35,6 +35,15 @@ func (a *CronSchedulerAdapter) AddJob(job agent.Job) (string, error) {
 		Executed:   job.Executed,
 		ExecutedAt: job.ExecutedAt,
 	}
+
+	// Normalize job data
+	if cronJob.Type == JobTypeOneshot {
+		cronJob.Schedule = ""
+	}
+	if cronJob.Tool != "" {
+		cronJob.Command = ""
+	}
+
 	return a.scheduler.AddJob(cronJob)
 }
 
@@ -59,6 +68,14 @@ func (a *CronSchedulerAdapter) ListJobs() []agent.Job {
 	// Convert to domain model
 	jobs := make([]agent.Job, len(storageJobs))
 	for i, sj := range storageJobs {
+		// Normalize loaded jobs
+		if sj.Type == string(JobTypeOneshot) {
+			sj.Schedule = ""
+		}
+		if sj.Tool != "" {
+			sj.Command = ""
+		}
+
 		jobs[i] = agent.Job{
 			ID:         sj.ID,
 			Type:       sj.Type,
@@ -94,5 +111,14 @@ func (a *CronSchedulerAdapter) AppendJob(job agent.Job) error {
 		Executed:   job.Executed,
 		ExecutedAt: job.ExecutedAt,
 	}
+
+	// Normalize job data
+	if storageJob.Type == string(JobTypeOneshot) {
+		storageJob.Schedule = ""
+	}
+	if storageJob.Tool != "" {
+		storageJob.Command = ""
+	}
+
 	return a.storage.Append(storageJob)
 }

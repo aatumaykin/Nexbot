@@ -15,6 +15,7 @@ const (
 
 // Load загружает конфигурацию из TOML файла
 func Load(path string) (*Config, error) {
+	path = expandHome(path)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)

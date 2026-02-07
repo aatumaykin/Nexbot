@@ -18,7 +18,8 @@ func TestScheduler_JobExecution(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus, nil, nil)
+	workerPool := &mockWorkerPool{}
+	scheduler := NewScheduler(log, msgBus, workerPool, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -27,17 +28,10 @@ func TestScheduler_JobExecution(t *testing.T) {
 	require.NoError(t, err)
 	defer stopScheduler(scheduler)
 
-	// Subscribe to inbound messages
-	inboundCh := msgBus.SubscribeInbound(ctx)
-	defer func() {
-		// Wait a bit for message to be received
-		time.Sleep(100 * time.Millisecond)
-	}()
-
-	// Add a job that runs every 100ms
+	// Add a job that runs every 30 seconds
 	job := Job{
 		ID:       "test-job",
-		Schedule: "*/1 * * * * *", // Every second
+		Schedule: "*/30 * * * * *", // Every 30 seconds
 		Command:  "cron test command",
 		UserID:   "cron-user",
 		Metadata: map[string]string{
@@ -48,20 +42,24 @@ func TestScheduler_JobExecution(t *testing.T) {
 	_, err = scheduler.AddJob(job)
 	require.NoError(t, err)
 
-	// Wait for job to execute
-	select {
-	case msg := <-inboundCh:
-		assert.Equal(t, ChannelTypeCron, msg.ChannelType)
-		assert.Equal(t, "cron-user", msg.UserID)        // UserID from job is used
-		assert.Equal(t, "cron_test-job", msg.SessionID) // Generated session ID
-		assert.Equal(t, "cron test command", msg.Content)
-		assert.NotNil(t, msg.Metadata)
-		assert.Equal(t, "test-job", msg.Metadata["cron_job_id"])
-		assert.Equal(t, job.Schedule, msg.Metadata["cron_schedule"])
-		assert.Equal(t, "test_value", msg.Metadata["test_key"])
-	case <-time.After(2 * time.Second):
-		t.Fatal("timeout waiting for cron job to execute")
-	}
+	// Wait for job to execute (schedule is every 30 seconds, wait 35s to ensure it executes once)
+	time.Sleep(35 * time.Second)
+
+	// Verify job was submitted to worker pool
+	assert.Len(t, workerPool.submittedTasks, 1, "Job should be submitted to worker pool")
+
+	// Verify job details
+	task := workerPool.submittedTasks[0]
+	assert.Equal(t, "cron", task.Type)
+
+	// Verify command is in payload (deprecated field)
+	payload, ok := task.Payload.(CronTaskPayload)
+	require.True(t, ok)
+	assert.Equal(t, "cron test command", payload.Command)
+	assert.Equal(t, "cron-user", payload.Metadata["user_id"])
+	assert.Equal(t, "test-job", payload.Metadata["cron_job_id"])
+	assert.Equal(t, job.Schedule, payload.Metadata["cron_schedule"])
+	assert.Equal(t, "test_value", payload.Metadata["test_key"])
 }
 
 func TestScheduler_JobExecutionWithMetadata(t *testing.T) {
@@ -72,7 +70,8 @@ func TestScheduler_JobExecutionWithMetadata(t *testing.T) {
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
 
-	scheduler := NewScheduler(log, msgBus, nil, nil)
+	workerPool := &mockWorkerPool{}
+	scheduler := NewScheduler(log, msgBus, workerPool, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -81,15 +80,9 @@ func TestScheduler_JobExecutionWithMetadata(t *testing.T) {
 	require.NoError(t, err)
 	defer stopScheduler(scheduler)
 
-	// Subscribe to inbound messages
-	inboundCh := msgBus.SubscribeInbound(ctx)
-	defer func() {
-		time.Sleep(100 * time.Millisecond)
-	}()
-
 	job := Job{
 		ID:       "metadata-job",
-		Schedule: "*/1 * * * * *",
+		Schedule: "*/30 * * * * *", // Every 30 seconds
 		Command:  "test",
 		UserID:   "test-user",
 		Metadata: map[string]string{
@@ -101,11 +94,16 @@ func TestScheduler_JobExecutionWithMetadata(t *testing.T) {
 	_, err = scheduler.AddJob(job)
 	require.NoError(t, err)
 
-	select {
-	case msg := <-inboundCh:
-		assert.Equal(t, "production", msg.Metadata["env"])
-		assert.Equal(t, "devops", msg.Metadata["team"])
-	case <-time.After(2 * time.Second):
-		t.Fatal("timeout waiting for cron job")
-	}
+	// Wait for job to execute
+	time.Sleep(35 * time.Second)
+
+	// Verify job was submitted to worker pool
+	assert.Len(t, workerPool.submittedTasks, 1, "Job should be submitted to worker pool")
+
+	// Verify metadata is preserved
+	task := workerPool.submittedTasks[0]
+	payload, ok := task.Payload.(CronTaskPayload)
+	require.True(t, ok)
+	assert.Equal(t, "production", payload.Metadata["env"])
+	assert.Equal(t, "devops", payload.Metadata["team"])
 }

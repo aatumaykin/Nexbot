@@ -99,7 +99,6 @@ func TestFullWorkflow(t *testing.T) {
 	oneshotJob := Job{
 		ID:        "oneshot-test-job",
 		Type:      JobTypeOneshot,
-		Schedule:  "* * * * * *", // Placeholder for oneshot
 		Command:   "oneshot test command",
 		UserID:    "oneshot-user",
 		ExecuteAt: &pastTime,
@@ -107,7 +106,6 @@ func TestFullWorkflow(t *testing.T) {
 			"job_type": "oneshot",
 		},
 	}
-
 	oneshotJobID, err := scheduler.AddJob(oneshotJob)
 	require.NoError(t, err, "Failed to add oneshot job")
 	assert.Equal(t, "oneshot-test-job", oneshotJobID, "Oneshot job ID should match")
@@ -346,7 +344,6 @@ func TestFullWorkflowWithMultipleJobs(t *testing.T) {
 		{
 			ID:        "oneshot-1",
 			Type:      JobTypeOneshot,
-			Schedule:  "* * * * * *",
 			Command:   "oneshot command 1",
 			UserID:    "user-1",
 			ExecuteAt: &pastTime,
@@ -354,7 +351,6 @@ func TestFullWorkflowWithMultipleJobs(t *testing.T) {
 		{
 			ID:        "oneshot-2",
 			Type:      JobTypeOneshot,
-			Schedule:  "* * * * * *",
 			Command:   "oneshot command 2",
 			UserID:    "user-2",
 			ExecuteAt: &pastTime,
@@ -460,7 +456,6 @@ func TestFullWorkflowPersistenceAcrossRestarts(t *testing.T) {
 	oneshotJob := Job{
 		ID:        "persistent-oneshot",
 		Type:      JobTypeOneshot,
-		Schedule:  "* * * * * *",
 		Command:   "oneshot command",
 		UserID:    "persistent-user",
 		ExecuteAt: &pastTime,

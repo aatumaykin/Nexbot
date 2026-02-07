@@ -37,7 +37,6 @@ func TestSchedulerOneshotExecution(t *testing.T) {
 	job := Job{
 		ID:        "oneshot-1",
 		Type:      JobTypeOneshot,
-		Schedule:  "* * * * * *",
 		Command:   "test command",
 		UserID:    "user-1",
 		ExecuteAt: &past,
@@ -46,7 +45,10 @@ func TestSchedulerOneshotExecution(t *testing.T) {
 	jobID, err := scheduler.AddJob(job)
 	require.NoError(t, err)
 	assert.NotEmpty(t, jobID)
-	time.Sleep(2 * time.Second)
+
+	// Force check by calling checkAndExecuteOneshots directly
+	scheduler.checkAndExecuteOneshots(time.Now())
+
 	assert.Len(t, workerPool.submittedTasks, 1)
 	err = scheduler.Stop()
 	assert.NoError(t, err)
@@ -69,7 +71,6 @@ func TestSchedulerOneshotAlreadyExecuted(t *testing.T) {
 	job := Job{
 		ID:        "oneshot-2",
 		Type:      JobTypeOneshot,
-		Schedule:  "* * * * * *",
 		Command:   "test command",
 		UserID:    "user-1",
 		ExecuteAt: &past,
@@ -102,7 +103,6 @@ func TestSchedulerCleanupExecuted(t *testing.T) {
 	job1 := Job{
 		ID:        "oneshot-new",
 		Type:      JobTypeOneshot,
-		Schedule:  "* * * * * *",
 		Command:   "keep this",
 		UserID:    "user-1",
 		ExecuteAt: &future,
@@ -112,7 +112,6 @@ func TestSchedulerCleanupExecuted(t *testing.T) {
 	job2 := Job{
 		ID:         "oneshot-executed",
 		Type:       JobTypeOneshot,
-		Schedule:   "* * * * * *",
 		Command:    "remove this",
 		UserID:     "user-1",
 		ExecuteAt:  &past,
@@ -133,8 +132,6 @@ func TestSchedulerCleanupExecuted(t *testing.T) {
 	assert.Equal(t, "oneshot-new", remainingJobs[0].ID)
 	err = scheduler.Stop()
 	assert.NoError(t, err)
-	_, _ = scheduler.AddJob(job1)
-	_, _ = scheduler.AddJob(job2)
 }
 
 func TestSchedulerStorageIntegration(t *testing.T) {
@@ -166,7 +163,6 @@ func TestSchedulerStorageIntegration(t *testing.T) {
 	job2 := Job{
 		ID:        "oneshot-1",
 		Type:      JobTypeOneshot,
-		Schedule:  "* * * * * *",
 		Command:   "oneshot command",
 		UserID:    "user-1",
 		ExecuteAt: &future,
@@ -211,4 +207,61 @@ func TestSchedulerStorageIntegration(t *testing.T) {
 	}
 	require.NotNil(t, recurringJob)
 	_ = recurringJob.ExecuteAt
+}
+
+func TestSchedulerOneshotNotExecutedTwice(t *testing.T) {
+	tempDir := t.TempDir()
+	log, err := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	require.NoError(t, err)
+	messageBus := bus.New(100, log)
+	workerPool := &mockWorkerPool{}
+	storage := NewStorage(tempDir, log)
+	scheduler := NewScheduler(log, messageBus, workerPool, storage)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	err = scheduler.Start(ctx)
+	require.NoError(t, err)
+	now := time.Now()
+	past := now.Add(-1 * time.Minute)
+
+	// Add oneshot job with tool
+	job := Job{
+		ID:        "oneshot-tool-test",
+		Type:      JobTypeOneshot,
+		Tool:      "send_message",
+		Payload:   map[string]any{"message": "test"},
+		SessionID: "telegram:12345",
+		UserID:    "user-1",
+		ExecuteAt: &past,
+		Executed:  false,
+	}
+
+	jobID, err := scheduler.AddJob(job)
+	require.NoError(t, err)
+	assert.NotEmpty(t, jobID)
+
+	// Wait for first execution (ticker runs every minute, but we check immediately)
+	time.Sleep(100 * time.Millisecond)
+
+	// First check - should execute
+	scheduler.checkAndExecuteOneshots(time.Now())
+	assert.Len(t, workerPool.submittedTasks, 1, "Oneshot job should execute once")
+
+	// Second check - should NOT execute again
+	scheduler.checkAndExecuteOneshots(time.Now())
+	assert.Len(t, workerPool.submittedTasks, 1, "Oneshot job should not execute twice")
+
+	// Verify job is marked as executed in storage (reload from storage)
+	storageJobs, err := storage.Load()
+	require.NoError(t, err)
+	require.Len(t, storageJobs, 1)
+	storedJob := storageJobs[0]
+	assert.True(t, storedJob.Executed, "Job should be marked as executed")
+
+	// Verify schedule and command are normalized
+	assert.Empty(t, storedJob.Schedule, "Oneshot job should not have schedule")
+	assert.Empty(t, storedJob.Command, "Job with tool should not have command")
+
+	err = scheduler.Stop()
+	assert.NoError(t, err)
 }

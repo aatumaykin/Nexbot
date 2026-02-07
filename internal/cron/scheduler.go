@@ -114,6 +114,19 @@ func (s *Scheduler) AddJob(job Job) (string, error) {
 		job.ID = GenerateJobID()
 	}
 
+	// Validate job fields
+	if err := validateJobFields(job, s.parser); err != nil {
+		return "", err
+	}
+
+	// Normalize job data
+	if job.Type == JobTypeOneshot {
+		job.Schedule = ""
+	}
+	if job.Tool != "" {
+		job.Command = ""
+	}
+
 	var entryID cron.EntryID
 	var err error
 
@@ -134,11 +147,6 @@ func (s *Scheduler) AddJob(job Job) (string, error) {
 		entryID, err = s.cron.AddFunc(job.Schedule, wrappedFunc)
 		if err != nil {
 			return "", fmt.Errorf("invalid cron expression: %w", err)
-		}
-	} else if job.Schedule != "" {
-		// For non-recurring jobs, validate cron expression without adding to scheduler
-		if err := validateCronExpression(job.Schedule, s.parser); err != nil {
-			return "", err
 		}
 	}
 

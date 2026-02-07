@@ -34,10 +34,19 @@ func (s *Scheduler) executeJob(job Job) {
 	// Prepare task payload - always use Payload
 	taskPayload := CronTaskPayload{
 		Tool:      job.Tool,
+		Command:   job.Command, // Deprecated: for backward compatibility when tool=""
 		Payload:   job.Payload,
 		SessionID: job.SessionID,
 		Metadata:  job.Metadata,
 	}
+
+	// Add job-specific metadata for backward compatibility
+	if taskPayload.Metadata == nil {
+		taskPayload.Metadata = make(map[string]string)
+	}
+	taskPayload.Metadata["user_id"] = job.UserID
+	taskPayload.Metadata["cron_job_id"] = job.ID
+	taskPayload.Metadata["cron_schedule"] = job.Schedule
 
 	// Validate required fields based on tool type
 	if job.Tool != "" {

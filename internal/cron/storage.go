@@ -291,11 +291,13 @@ func (s *Storage) UpsertJob(job StorageJob) error {
 
 	// Check if job already exists
 	found := false
+	var jobIndex int = -1
 	for i, existingJob := range jobs {
 		if existingJob.ID == job.ID {
 			// Update existing job
 			jobs[i] = job
 			found = true
+			jobIndex = i
 			break
 		}
 	}
@@ -303,6 +305,15 @@ func (s *Storage) UpsertJob(job StorageJob) error {
 	// Add new job if not found
 	if !found {
 		jobs = append(jobs, job)
+		jobIndex = len(jobs) - 1
+	}
+
+	// Normalize job data in the slice
+	if jobs[jobIndex].Type == string(JobTypeOneshot) {
+		jobs[jobIndex].Schedule = ""
+	}
+	if jobs[jobIndex].Tool != "" {
+		jobs[jobIndex].Command = ""
 	}
 
 	// Save all jobs

@@ -33,7 +33,8 @@ func (s *Scheduler) checkAndExecuteOneshots(now time.Time) {
 	}
 
 	updated := false
-	for _, storageJob := range storageJobs {
+	for i := range storageJobs {
+		storageJob := &storageJobs[i]
 		// Only check oneshot jobs
 		if storageJob.Type != string(JobTypeOneshot) {
 			continue
