@@ -109,11 +109,12 @@ func (a *App) processMessage(ctx context.Context, msg bus.InboundMessage) {
 	// Send response if non-empty
 	if response != "" {
 		correlationID := msg.SessionID // Use session ID as correlation ID
+		cleanedResponse := messages.CleanContent(response)
 		outboundMsg := bus.NewOutboundMessage(
 			msg.ChannelType,
 			msg.UserID,
 			msg.SessionID,
-			response,
+			cleanedResponse,
 			correlationID,
 			nil,
 		)

@@ -2,12 +2,13 @@ package messages
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/aatumaykin/nexbot/internal/constants"
 )
 
-// FormatError formats a general error message with the error prefix.
+// FormatError formats a general error message with error prefix.
 //
 // Parameters:
 //   - err: The error to format
@@ -52,4 +53,55 @@ func FormatValidationErrors(errs []error) string {
 	}
 
 	return builder.String()
+}
+
+// CleanContent removes LLM reasoning tags from content.
+//
+// This function removes full  tags from response content
+// to prevent LLM "thinking" content from being sent to users.
+//
+// Parameters:
+//   - content: The content to clean
+//
+// Returns:
+//   - Content with  tags removed, with proper cleanup of whitespace
+func CleanContent(content string) string {
+	thinkOpen := string([]byte{0x3c, 0x74, 0x68, 0x69, 0x6e, 0x6b, 0x3e})
+	thinkClose := string([]byte{0x3c, 0x2f, 0x74, 0x68, 0x69, 0x6e, 0x6b, 0x3e})
+	thinkTagRegex := regexp.MustCompile(`(?s)` + regexp.QuoteMeta(thinkOpen) + `.*?` + regexp.QuoteMeta(thinkClose))
+
+	// Remove complete  tags
+	cleaned := thinkTagRegex.ReplaceAllString(content, "")
+
+	// Trim whitespace before checking for incomplete tags
+	trimmed := strings.TrimSpace(cleaned)
+
+	// Remove incomplete opening tag  at the end
+	// Check if there's an unclosed  tag at the end
+	lastOpenIndex := strings.LastIndex(cleaned, thinkOpen)
+	if lastOpenIndex != -1 {
+		// Check if there's a closing tag after this opening tag
+		lastCloseIndex := strings.LastIndex(cleaned, thinkClose)
+		if lastCloseIndex < lastOpenIndex {
+			// No closing tag after this opening tag - it's incomplete
+			// Remove everything from the opening tag to the end
+			cleaned = strings.TrimSpace(cleaned[:lastOpenIndex])
+		}
+	}
+
+	// Remove incomplete closing tag  at the beginning
+	trimmed = strings.TrimSpace(cleaned)
+	if strings.HasPrefix(trimmed, thinkClose) {
+		cleaned = strings.TrimSpace(cleaned[len(thinkClose):])
+	} else if strings.HasPrefix(trimmed, "\n\n"+thinkClose) || strings.HasPrefix(trimmed, "\n"+thinkClose) || strings.HasPrefix(trimmed, " "+thinkClose) {
+		cleaned = regexp.MustCompile(`^\s*`+regexp.QuoteMeta(thinkClose)+`\s*\n*`).ReplaceAllString(cleaned, "")
+	}
+
+	// Trim leading/trailing whitespace after tag removal
+	cleaned = strings.TrimSpace(cleaned)
+
+	// Remove excessive newlines (more than 2 consecutive)
+	cleaned = regexp.MustCompile(`\n{3,}`).ReplaceAllString(cleaned, "\n\n")
+
+	return cleaned
 }
