@@ -278,6 +278,47 @@ func TestBuilderBuildForSession(t *testing.T) {
 	}
 }
 
+// TestBuilderBuildForSessionWithChannelChatID tests BuildForSession with channel:chat_id format
+func TestBuilderBuildForSessionWithChannelChatID(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create a bootstrap file so Build returns something
+	identityContent := "# Identity\nTest identity."
+	if err := os.WriteFile(filepath.Join(tmpDir, workspace.BootstrapIdentity), []byte(identityContent), 0644); err != nil {
+		t.Fatalf("Failed to create IDENTITY.md: %v", err)
+	}
+
+	builder, err := NewBuilder(Config{Workspace: tmpDir})
+	if err != nil {
+		t.Fatalf("Failed to create builder: %v", err)
+	}
+
+	// Test with channel:chat_id format
+	sessionID := "telegram:123456789"
+	messages := []llm.Message{
+		{Role: llm.RoleUser, Content: "Hello"},
+	}
+
+	result, err := builder.BuildForSession(sessionID, messages)
+	if err != nil {
+		t.Fatalf("BuildForSession() error: %v", err)
+	}
+
+	// Verify session information includes channel and chat_id
+	if !strings.Contains(result, "# Session Information") {
+		t.Error("BuildForSession() should include session information header")
+	}
+	if !strings.Contains(result, "**Session ID:** telegram:123456789") {
+		t.Error("BuildForSession() should include session ID")
+	}
+	if !strings.Contains(result, "**Channel:** telegram") {
+		t.Error("BuildForSession() should include channel")
+	}
+	if !strings.Contains(result, "**Chat ID:** 123456789") {
+		t.Error("BuildForSession() should include chat ID")
+	}
+}
+
 // TestBuilderProcessTemplates tests processTemplates with template variables
 func TestBuilderProcessTemplates(t *testing.T) {
 	tmpDir := t.TempDir()

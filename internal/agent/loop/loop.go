@@ -150,7 +150,7 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 	// Build system prompt (only on first iteration)
 	messages := sessionHistory
 	if iteration == 0 {
-		systemPrompt, err := l.buildSystemPrompt()
+		systemPrompt, err := l.buildSystemPrompt(sessionID)
 		if err != nil {
 			l.logger.WarnCtx(ctx, "Failed to build system prompt",
 				logger.Field{Key: "error", Value: err.Error()})
@@ -270,8 +270,8 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 }
 
 // buildSystemPrompt builds the system prompt from workspace context.
-func (l *Loop) buildSystemPrompt() (string, error) {
-	return l.contextBldr.Build()
+func (l *Loop) buildSystemPrompt(sessionID string) (string, error) {
+	return l.contextBldr.BuildForSession(sessionID, nil)
 }
 
 // AddMessageToSession adds a message to the session history.

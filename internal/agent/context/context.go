@@ -162,10 +162,22 @@ func (b *Builder) BuildForSession(sessionID string, messages []llm.Message) (str
 		return "", err
 	}
 
-	// Add session-specific header
-	sessionHeader := fmt.Sprintf("# Session: %s\n", sessionID)
+	// Parse sessionID to extract channel and chat_id
+	var sessionInfo string
+	if strings.Contains(sessionID, ":") {
+		parts := strings.SplitN(sessionID, ":", 2)
+		if len(parts) == 2 {
+			channel := parts[0]
+			chatID := parts[1]
+			sessionInfo = fmt.Sprintf("# Session Information\n\n- **Session ID:** %s\n- **Channel:** %s\n- **Chat ID:** %s\n\n", sessionID, channel, chatID)
+		} else {
+			sessionInfo = fmt.Sprintf("# Session: %s\n\n", sessionID)
+		}
+	} else {
+		sessionInfo = fmt.Sprintf("# Session: %s\n\n", sessionID)
+	}
 
-	return sessionHeader + "\n" + systemPrompt, nil
+	return sessionInfo + systemPrompt, nil
 }
 
 // ReadMemory reads memory files from the workspace memory directory.
