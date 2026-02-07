@@ -19,6 +19,18 @@ func FormatError(err error) string {
 	return fmt.Sprintf(constants.MsgErrorFormat, err)
 }
 
+// FormatRetryError formats a retry error message with attempt count.
+//
+// Parameters:
+//   - err: The error that occurred after retries
+//   - attempts: Number of retry attempts made
+//
+// Returns:
+//   - Formatted retry error string with attempt count
+func FormatRetryError(err error, attempts int) string {
+	return fmt.Sprintf("Error: Failed after %d attempts: %v", attempts, err)
+}
+
 // FormatConfigLoadError formats a configuration loading error message.
 //
 // Parameters:
@@ -77,7 +89,7 @@ func CleanContent(content string) string {
 	trimmed := strings.TrimSpace(cleaned)
 
 	// Remove incomplete opening tag  at the end
-	// Check if there's an unclosed  tag at the end
+	// Check if there's an unclosed  tag
 	lastOpenIndex := strings.LastIndex(cleaned, thinkOpen)
 	if lastOpenIndex != -1 {
 		// Check if there's a closing tag after this opening tag

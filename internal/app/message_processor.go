@@ -9,6 +9,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/messages"
+	"github.com/aatumaykin/nexbot/internal/retry"
 )
 
 // StartMessageProcessing starts the message processing loop.
@@ -88,15 +89,34 @@ func (a *App) processMessage(ctx context.Context, msg bus.InboundMessage) {
 	agentCtx, cancel := context.WithTimeout(ctx,
 		time.Duration(cfg.Agent.TimeoutSeconds)*time.Second)
 
-	// Process message through agent loop
-	response, err := a.agentLoop.Process(agentCtx, msg.SessionID, msg.Content)
+	// Retry logic for LLM calls
+	response, err := retry.DoWithRetry(agentCtx, func() (string, error) {
+		return a.agentLoop.Process(agentCtx, msg.SessionID, msg.Content)
+	}, retry.Config{
+		MaxAttempts:    3,
+		InitialBackoff: 1 * time.Second,
+		MaxBackoff:     10 * time.Second,
+	})
 	cancel()
 
 	// Handle error
 	if err != nil {
-		a.logger.ErrorCtx(ctx, "Failed to process message through agent", err,
+		a.logger.ErrorCtx(ctx, "Failed to process message through agent (after retries)", err,
 			logger.Field{Key: "session_id", Value: msg.SessionID})
-		response = messages.FormatError(err)
+
+		// Add error to session so LLM can see it and try to find solution
+		if sessionErr := a.agentLoop.AddErrorToSession(ctx, msg.SessionID, err); sessionErr != nil {
+			a.logger.WarnCtx(ctx, "Failed to add error to session", logger.Field{Key: "error", Value: sessionErr})
+		}
+
+		// Ask LLM to handle error and find solution (500 char limit applied)
+		recoveryResponse, recoveryErr := a.agentLoop.ProcessRecovery(ctx, msg.SessionID, err)
+		if recoveryErr != nil {
+			// If even recovery fails, return formatted error
+			response = messages.FormatRetryError(err, 3)
+		} else {
+			response = recoveryResponse
+		}
 	}
 
 	// Publish processing end event
