@@ -172,44 +172,6 @@ func (s *Scheduler) AddJob(job Job) (string, error) {
 		}
 	}
 
-	// For oneshot jobs, execute immediately if time has already passed
-	// This is important for testing and ensures jobs don't get missed
-	if job.Type == JobTypeOneshot && !job.Executed && job.ExecuteAt != nil {
-		now := time.Now()
-		if validateOneshotJobExecution(job.ExecuteAt, now) {
-			// Execute job first (with Executed=false)
-			s.executeJob(job)
-			s.logger.Info("executed oneshot job immediately on add",
-				logger.Field{Key: "job_id", Value: job.ID})
-
-			// Then mark as executed
-			storageJob := StorageJob{
-				ID:         job.ID,
-				Type:       string(job.Type),
-				Schedule:   job.Schedule,
-				ExecuteAt:  job.ExecuteAt,
-				Command:    job.Command,
-				UserID:     job.UserID,
-				Tool:       job.Tool,
-				Payload:    job.Payload,
-				SessionID:  job.SessionID,
-				Metadata:   job.Metadata,
-				Executed:   true,
-				ExecutedAt: &now,
-			}
-			if s.storage != nil {
-				if err := s.storage.UpsertJob(storageJob); err != nil {
-					s.logger.Error("failed to update oneshot job as executed", err,
-						logger.Field{Key: "job_id", Value: job.ID})
-				}
-			}
-			// Update in-memory job
-			job.Executed = true
-			job.ExecutedAt = &now
-			s.jobs[job.ID] = job
-		}
-	}
-
 	// Log job addition
 	if job.Type == JobTypeRecurring {
 		s.logger.Info("cron job added",

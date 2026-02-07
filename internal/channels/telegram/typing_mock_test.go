@@ -39,7 +39,7 @@ func TestTypingManager_SendMock(t *testing.T) {
 	event := bus.Event{
 		ChannelType: bus.ChannelTypeTelegram,
 		Type:        bus.EventTypeProcessingStart,
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		UserID:      "123456789",
 	}
 
@@ -78,7 +78,7 @@ func TestTypingManager_Periodic_WithMock(t *testing.T) {
 	event := bus.Event{
 		ChannelType: bus.ChannelTypeTelegram,
 		Type:        bus.EventTypeProcessingStart,
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		UserID:      "123456789",
 	}
 
@@ -123,7 +123,7 @@ func TestTypingManager_Stop_WithMock(t *testing.T) {
 	event := bus.Event{
 		ChannelType: bus.ChannelTypeTelegram,
 		Type:        bus.EventTypeProcessingStart,
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		UserID:      "123456789",
 	}
 
@@ -168,14 +168,14 @@ func TestTypingManager_StopAll_WithMock(t *testing.T) {
 	event1 := bus.Event{
 		ChannelType: bus.ChannelTypeTelegram,
 		Type:        bus.EventTypeProcessingStart,
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		UserID:      "123456789",
 	}
 
 	event2 := bus.Event{
 		ChannelType: bus.ChannelTypeTelegram,
 		Type:        bus.EventTypeProcessingStart,
-		SessionID:   "111222333",
+		SessionID:   "telegram:111222333",
 		UserID:      "987654321",
 	}
 
@@ -219,7 +219,7 @@ func TestTypingManager_Send_WithMockError(t *testing.T) {
 	event := bus.Event{
 		ChannelType: bus.ChannelTypeTelegram,
 		Type:        bus.EventTypeProcessingStart,
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		UserID:      "123456789",
 	}
 
@@ -251,7 +251,7 @@ func TestTypingManager_Start_WithNilBot(t *testing.T) {
 	event := bus.Event{
 		ChannelType: bus.ChannelTypeTelegram,
 		Type:        bus.EventTypeProcessingStart,
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		UserID:      "123456789",
 	}
 
@@ -284,7 +284,7 @@ func TestTypingManager_StartNilContext(t *testing.T) {
 	event := bus.Event{
 		ChannelType: bus.ChannelTypeTelegram,
 		Type:        bus.EventTypeProcessingStart,
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		UserID:      "123456789",
 	}
 
@@ -323,7 +323,7 @@ func TestTypingManager_StartAlreadyStarted(t *testing.T) {
 	event := bus.Event{
 		ChannelType: bus.ChannelTypeTelegram,
 		Type:        bus.EventTypeProcessingStart,
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		UserID:      "123456789",
 	}
 
@@ -363,7 +363,7 @@ func TestTypingManager_StopNonExistent(t *testing.T) {
 	event := bus.Event{
 		ChannelType: bus.ChannelTypeTelegram,
 		Type:        bus.EventTypeProcessingStart,
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		UserID:      "123456789",
 	}
 
@@ -394,7 +394,7 @@ func TestTypingManager_StartCancelledContext(t *testing.T) {
 	event := bus.Event{
 		ChannelType: bus.ChannelTypeTelegram,
 		Type:        bus.EventTypeProcessingStart,
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		UserID:      "123456789",
 	}
 

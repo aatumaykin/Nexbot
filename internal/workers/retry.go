@@ -102,7 +102,7 @@ func (p *WorkerPool) executeCronTask(ctx context.Context, task Task) Result {
 		case "agent":
 			return p.executeAgent(ctx, task, payload, sessionID)
 		default:
-			return p.executeCommand(ctx, task, payload, sessionID)
+			return "", fmt.Errorf("unsupported tool type: '%s'. Supported tools: 'send_message', 'agent'. Empty tool is deprecated", payload.Tool)
 		}
 	})
 }
@@ -183,12 +183,24 @@ func (p *WorkerPool) executeAgent(ctx context.Context, task Task, payload cron.C
 		return "", fmt.Errorf("invalid session_id format: expected 'channel:chat_id', got '%s'", sessionID)
 	}
 
+	// Extract message content from payload
+	content := payload.Command
+	if payload.Payload != nil {
+		if msg, ok := payload.Payload["message"].(string); ok {
+			content = msg
+		}
+	}
+
+	if content == "" {
+		return "", fmt.Errorf("no message content provided in payload")
+	}
+
 	// Create inbound message for agent processing
 	msg := bus.NewInboundMessage(
 		bus.ChannelType(channel),
 		"", // Empty user_id for cron tasks
 		chatID,
-		payload.Command,
+		content,
 		map[string]interface{}{
 			"cron_job_id": task.ID,
 			"tool":        "agent",
@@ -208,34 +220,6 @@ func (p *WorkerPool) executeAgent(ctx context.Context, task Task, payload cron.C
 		logger.Field{Key: "chat_id", Value: chatID})
 
 	return fmt.Sprintf("agent message sent to %s:%s", channel, chatID), nil
-}
-
-// executeCommand handles backward compatibility with command-based cron tasks
-func (p *WorkerPool) executeCommand(ctx context.Context, task Task, payload cron.CronTaskPayload, sessionID string) (string, error) {
-	// Create inbound message and publish to message bus
-	msg := bus.NewInboundMessage(
-		cron.ChannelTypeCron,
-		"", // Empty user_id since we use session-based approach
-		sessionID,
-		payload.Command,
-		map[string]interface{}{
-			"cron_job_id": task.ID,
-			"tool":        payload.Tool,
-			"payload":     payload.Payload,
-		},
-	)
-
-	if err := p.messageBus.PublishInbound(*msg); err != nil {
-		p.logger.ErrorCtx(ctx, "failed to publish cron message", err,
-			logger.Field{Key: "task_id", Value: task.ID})
-		return "", fmt.Errorf("failed to publish cron message: %w", err)
-	}
-
-	p.logger.InfoCtx(ctx, "command tool executed successfully",
-		logger.Field{Key: "task_id", Value: task.ID},
-		logger.Field{Key: "command", Value: payload.Command})
-
-	return fmt.Sprintf("cron task executed: %s", payload.Command), nil
 }
 
 // executeSubagentTask executes a subagent task.

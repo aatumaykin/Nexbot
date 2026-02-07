@@ -79,8 +79,8 @@ func (uh *UpdateHandler) Handle(update telego.Update) error {
 		return nil
 	}
 
-	// Use chat ID as session ID
-	sessionID := fmt.Sprintf("%d", msg.Chat.ID)
+	// Use chat ID as session ID with channel prefix
+	sessionID := fmt.Sprintf("telegram:%d", msg.Chat.ID)
 
 	// Create inbound message
 	inboundMsg := bus.NewInboundMessage(

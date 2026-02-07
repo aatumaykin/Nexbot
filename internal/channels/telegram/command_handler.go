@@ -40,7 +40,7 @@ func (h *CommandHandler) HandleCommand(
 	}
 
 	// Create inbound message (extracted once)
-	sessionID := fmt.Sprintf("%d", msg.Chat.ID)
+	sessionID := fmt.Sprintf("telegram:%d", msg.Chat.ID)
 	metadata := map[string]any{
 		"command":    command,
 		"message_id": msg.MessageID,

@@ -288,8 +288,8 @@ func TestConnector_handleUpdate_Success(t *testing.T) {
 			t.Errorf("Expected user ID '123456789', got '%s'", msg.UserID)
 		}
 
-		if msg.SessionID != "987654321" {
-			t.Errorf("Expected session ID '987654321', got '%s'", msg.SessionID)
+		if msg.SessionID != "telegram:987654321" {
+			t.Errorf("Expected session ID 'telegram:987654321', got '%s'", msg.SessionID)
 		}
 
 		if msg.Content != "Hello, bot!" {
@@ -455,7 +455,7 @@ func TestConnector_handleOutbound_Basic(t *testing.T) {
 	outboundMsg := bus.OutboundMessage{
 		ChannelType: bus.ChannelTypeTelegram,
 		UserID:      "123456789",
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		Content:     "Hello from bot!",
 		Timestamp:   time.Now(),
 	}
@@ -498,7 +498,7 @@ func TestConnector_handleOutbound_NonTelegramMessage(t *testing.T) {
 	outboundMsg := bus.OutboundMessage{
 		ChannelType: bus.ChannelTypeDiscord, // Wrong channel type
 		UserID:      "123456789",
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		Content:     "Hello from bot!",
 		Timestamp:   time.Now(),
 	}
@@ -574,8 +574,8 @@ func TestConnector_handleUpdate_NewCommand(t *testing.T) {
 			t.Errorf("Expected user ID '123456789', got '%s'", msg.UserID)
 		}
 
-		if msg.SessionID != "987654321" {
-			t.Errorf("Expected session ID '987654321', got '%s'", msg.SessionID)
+		if msg.SessionID != "telegram:987654321" {
+			t.Errorf("Expected session ID 'telegram:987654321', got '%s'", msg.SessionID)
 		}
 
 		if msg.Content != "/new" {

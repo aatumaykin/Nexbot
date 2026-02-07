@@ -177,7 +177,17 @@ func (b *Builder) BuildForSession(sessionID string, messages []llm.Message) (str
 		sessionInfo = fmt.Sprintf("# Session: %s\n\n", sessionID)
 	}
 
-	return sessionInfo + systemPrompt, nil
+	// DEBUG: Log what's in the system prompt
+	// We'll split it into parts for readability
+	systemPromptWithSession := sessionInfo + systemPrompt
+
+	// Log system prompt preview (first 500 chars)
+	preview := systemPromptWithSession
+	if len(preview) > 500 {
+		preview = preview[:500] + "..."
+	}
+
+	return systemPromptWithSession, nil
 }
 
 // ReadMemory reads memory files from the workspace memory directory.

@@ -3,7 +3,6 @@ package cron
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -218,9 +217,8 @@ func TestGenerateJobID(t *testing.T) {
 		t.Error("Generated ID is empty")
 	}
 
-	// Check that the ID follows the expected format (job_<pid>)
-	// We can't match the exact PID, but we can check the pattern
-	if len(jobID) < 5 {
+	// Check that the ID follows the expected format (job_<uuid>)
+	if len(jobID) < 40 {
 		t.Errorf("Generated ID is too short: %s", jobID)
 	}
 
@@ -229,29 +227,22 @@ func TestGenerateJobID(t *testing.T) {
 		t.Errorf("Generated ID doesn't start with 'job_': %s", jobID)
 	}
 
-	// The rest should be a number (PID)
-	pidPart := jobID[4:]
-	var pid int
-	_, err := fmt.Sscanf(pidPart, "%d", &pid)
-	if err != nil {
-		t.Errorf("Generated ID doesn't have a valid numeric part: %s", jobID)
-	}
-
-	// The PID should be positive
-	if pid <= 0 {
-		t.Errorf("Generated ID has invalid PID: %s", jobID)
+	// The rest should be a UUID (36 chars with hyphens)
+	uuidPart := jobID[4:]
+	if len(uuidPart) != 36 {
+		t.Errorf("UUID part is not 36 characters: %s (len=%d)", uuidPart, len(uuidPart))
 	}
 }
 
-// TestGenerateJobIDMultiple tests that GenerateJobID generates consistent IDs.
+// TestGenerateJobIDMultiple tests that GenerateJobID generates unique IDs.
 func TestGenerateJobIDMultiple(t *testing.T) {
 	// Generate multiple IDs
 	id1 := GenerateJobID()
 	id2 := GenerateJobID()
 
-	// IDs should be the same since they use os.Getpid()
-	if id1 != id2 {
-		t.Logf("Note: IDs are different (%s vs %s), this is expected if PID changed", id1, id2)
+	// IDs should be different since we use UUID
+	if id1 == id2 {
+		t.Errorf("Generated IDs should be different: %s == %s", id1, id2)
 	}
 }
 

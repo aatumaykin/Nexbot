@@ -22,10 +22,9 @@ type CronArgs struct {
 	Action    string `json:"action"`     // Action: "add_recurring", "add_oneshot", "remove", "list"
 	Schedule  string `json:"schedule"`   // Cron expression for recurring jobs
 	ExecuteAt string `json:"execute_at"` // ISO8601 datetime for oneshot jobs
-	Command   string `json:"command"`    // Command to execute
-	Tool      string `json:"tool"`       // Внутренний инструмент: "" | "send_message" | "agent"
-	Payload   string `json:"payload"`    // Параметры для инструмента (JSON строка)
-	SessionID string `json:"session_id"` // Контекст сессии (опциональный)
+	Tool      string `json:"tool"`       // Internal tool: "send_message" | "agent"
+	Payload   string `json:"payload"`    // Parameters for the tool (JSON string)
+	SessionID string `json:"session_id"` // Context session ID
 	JobID     string `json:"job_id"`     // Job ID for removal
 }
 
@@ -65,22 +64,18 @@ func (t *CronTool) Parameters() map[string]interface{} {
 				"type":        "string",
 				"description": "ISO8601 datetime for one-time job execution (e.g., '2026-02-05T18:00:00Z'). Required for 'add_oneshot' action.",
 			},
-			"command": map[string]interface{}{
-				"type":        "string",
-				"description": "Command or message to execute when the job runs. Required for 'add_recurring' and 'add_oneshot' actions.",
-			},
 			"tool": map[string]interface{}{
 				"type":        "string",
-				"description": "Internal tool: '' (for command), 'send_message', or 'agent'.",
-				"enum":        []string{"", "send_message", "agent"},
+				"description": "Internal tool to use: 'send_message' (sends message directly to chat) OR 'agent' (processes command via agent).",
+				"enum":        []string{"send_message", "agent"},
 			},
 			"payload": map[string]interface{}{
 				"type":        "string",
-				"description": "JSON string with parameters for the tool. Required when tool is not empty.",
+				"description": "JSON string with parameters for the tool. For 'send_message' or 'agent', this should be {\"message\": \"your text\"}. Required when tool is not empty.",
 			},
 			"session_id": map[string]interface{}{
 				"type":        "string",
-				"description": "Session ID for context. Optional.",
+				"description": "Session ID for sending message. Format: 'channel:chat_id' (e.g., 'telegram:35052705'). REQUIRED for send_message or agent tools to know where to send.",
 			},
 			"job_id": map[string]interface{}{
 				"type":        "string",
@@ -103,17 +98,21 @@ func (t *CronTool) Execute(args string) (string, error) {
 	// Execute based on action
 	switch params.Action {
 	case "add_recurring":
+		if params.Tool == "" {
+			return "", fmt.Errorf("tool parameter is required for add_recurring action. Use 'send_message' or 'agent'")
+		}
 		return t.addRecurring(context.Background(), map[string]interface{}{
 			"schedule":   params.Schedule,
-			"command":    params.Command,
 			"tool":       params.Tool,
 			"payload":    params.Payload,
 			"session_id": params.SessionID,
 		})
 	case "add_oneshot":
+		if params.Tool == "" {
+			return "", fmt.Errorf("tool parameter is required for add_oneshot action. Use 'send_message' or 'agent'")
+		}
 		return t.addOneshot(context.Background(), map[string]interface{}{
 			"execute_at": params.ExecuteAt,
-			"command":    params.Command,
 			"tool":       params.Tool,
 			"payload":    params.Payload,
 			"session_id": params.SessionID,
@@ -137,28 +136,30 @@ func (t *CronTool) addRecurring(ctx context.Context, params map[string]interface
 		return "", fmt.Errorf("schedule parameter is required for add_recurring action")
 	}
 
-	command, ok := params["command"].(string)
-	if !ok || command == "" {
-		return "", fmt.Errorf("command parameter is required for add_recurring action")
-	}
-
 	tool, _ := params["tool"].(string)
 	payloadStr, _ := params["payload"].(string)
 	sessionID, _ := params["session_id"].(string)
 
-	// Parse payload if provided
+	// Payload is required
+	if payloadStr == "" {
+		return "", fmt.Errorf("payload parameter is required")
+	}
+
+	// Parse payload
 	var payload map[string]any
-	if payloadStr != "" {
-		if err := json.Unmarshal([]byte(payloadStr), &payload); err != nil {
-			return "", fmt.Errorf("failed to parse payload JSON: %w", err)
-		}
+	if err := json.Unmarshal([]byte(payloadStr), &payload); err != nil {
+		return "", fmt.Errorf("failed to parse payload JSON: %w", err)
+	}
+
+	// For send_message or agent tools, session_id is required
+	if (tool == "send_message" || tool == "agent") && sessionID == "" {
+		return "", fmt.Errorf("session_id is required for send_message and agent tools")
 	}
 
 	// Create job using domain model
 	job := agent.Job{
 		Type:      "recurring",
 		Schedule:  schedule,
-		Command:   command,
 		Tool:      tool,
 		Payload:   payload,
 		SessionID: sessionID,
@@ -168,32 +169,21 @@ func (t *CronTool) addRecurring(ctx context.Context, params map[string]interface
 		},
 	}
 
-	// Add job to scheduler
+	// Add job to scheduler (also saves to storage via UpsertJob)
 	jobID, err := t.cronManager.AddJob(job)
 	if err != nil {
 		return "", fmt.Errorf("failed to add recurring job: %w", err)
 	}
 
-	// Save to storage
-	storageJob := agent.Job{
-		ID:         jobID,
-		Type:       job.Type,
-		Schedule:   job.Schedule,
-		Command:    job.Command,
-		Tool:       job.Tool,
-		Payload:    job.Payload,
-		SessionID:  job.SessionID,
-		Metadata:   job.Metadata,
-		Executed:   job.Executed,
-		ExecutedAt: job.ExecutedAt,
-	}
-	if err := t.cronManager.AppendJob(storageJob); err != nil {
-		t.logger.WarnCtx(ctx, "failed to save job to storage", logger.Field{Key: "job_id", Value: jobID}, logger.Field{Key: "error", Value: err})
-	}
-
 	t.logger.InfoCtx(ctx, "recurring job added", logger.Field{Key: "job_id", Value: jobID}, logger.Field{Key: "schedule", Value: schedule})
 
-	return fmt.Sprintf("✅ Recurring job added successfully\n   Job ID: %s\n   Schedule: %s\n   Command: %s", jobID, schedule, command), nil
+	// Extract message for display
+	message := "N/A"
+	if msg, ok := payload["message"].(string); ok {
+		message = msg
+	}
+
+	return fmt.Sprintf("✅ Recurring job added successfully\n   Job ID: %s\n   Schedule: %s\n   Tool: %s\n   Message: %s", jobID, schedule, tool, message), nil
 }
 
 // addOneshot creates a one-time cron job.
@@ -204,21 +194,24 @@ func (t *CronTool) addOneshot(ctx context.Context, params map[string]interface{}
 		return "", fmt.Errorf("execute_at parameter is required for add_oneshot action")
 	}
 
-	command, ok := params["command"].(string)
-	if !ok || command == "" {
-		return "", fmt.Errorf("command parameter is required for add_oneshot action")
-	}
-
 	tool, _ := params["tool"].(string)
 	payloadStr, _ := params["payload"].(string)
 	sessionID, _ := params["session_id"].(string)
 
-	// Parse payload if provided
+	// Payload is required
+	if payloadStr == "" {
+		return "", fmt.Errorf("payload parameter is required")
+	}
+
+	// Parse payload
 	var payload map[string]any
-	if payloadStr != "" {
-		if err := json.Unmarshal([]byte(payloadStr), &payload); err != nil {
-			return "", fmt.Errorf("failed to parse payload JSON: %w", err)
-		}
+	if err := json.Unmarshal([]byte(payloadStr), &payload); err != nil {
+		return "", fmt.Errorf("failed to parse payload JSON: %w", err)
+	}
+
+	// For send_message or agent tools, session_id is required
+	if (tool == "send_message" || tool == "agent") && sessionID == "" {
+		return "", fmt.Errorf("session_id is required for send_message and agent tools")
 	}
 
 	// Parse execute_at time
@@ -236,7 +229,6 @@ func (t *CronTool) addOneshot(ctx context.Context, params map[string]interface{}
 		Type:      "oneshot",
 		Schedule:  schedule,
 		ExecuteAt: &executeAt,
-		Command:   command,
 		Tool:      tool,
 		Payload:   payload,
 		SessionID: sessionID,
@@ -246,33 +238,21 @@ func (t *CronTool) addOneshot(ctx context.Context, params map[string]interface{}
 		},
 	}
 
-	// Add job to scheduler
+	// Add job to scheduler (also saves to storage via UpsertJob)
 	jobID, err := t.cronManager.AddJob(job)
 	if err != nil {
 		return "", fmt.Errorf("failed to add oneshot job: %w", err)
 	}
 
-	// Save to storage
-	storageJob := agent.Job{
-		ID:         jobID,
-		Type:       job.Type,
-		Schedule:   job.Schedule,
-		ExecuteAt:  job.ExecuteAt,
-		Command:    job.Command,
-		Tool:       job.Tool,
-		Payload:    job.Payload,
-		SessionID:  job.SessionID,
-		Metadata:   job.Metadata,
-		Executed:   job.Executed,
-		ExecutedAt: job.ExecutedAt,
-	}
-	if err := t.cronManager.AppendJob(storageJob); err != nil {
-		t.logger.WarnCtx(ctx, "failed to save job to storage", logger.Field{Key: "job_id", Value: jobID}, logger.Field{Key: "error", Value: err})
-	}
-
 	t.logger.InfoCtx(ctx, "oneshot job added", logger.Field{Key: "job_id", Value: jobID}, logger.Field{Key: "execute_at", Value: executeAt})
 
-	return fmt.Sprintf("✅ One-time job added successfully\n   Job ID: %s\n   Execute at: %s\n   Command: %s", jobID, executeAt.Format(time.RFC1123), command), nil
+	// Extract message for display
+	message := "N/A"
+	if msg, ok := payload["message"].(string); ok {
+		message = msg
+	}
+
+	return fmt.Sprintf("✅ One-time job added successfully\n   Job ID: %s\n   Execute at: %s\n   Tool: %s\n   Message: %s", jobID, executeAt.Format(time.RFC1123), tool, message), nil
 }
 
 // removeJob removes a cron job.
@@ -314,9 +294,11 @@ func (t *CronTool) listJobs(ctx context.Context, params map[string]interface{}) 
 		if job.ExecuteAt != nil {
 			result += fmt.Sprintf("Execute at: %s\n", job.ExecuteAt.Format(time.RFC1123))
 		}
-		result += fmt.Sprintf("Command: %s\n", job.Command)
-		if job.Tool != "" {
-			result += fmt.Sprintf("Tool: %s\n", job.Tool)
+		result += fmt.Sprintf("Tool: %s\n", job.Tool)
+		if job.Payload != nil {
+			if msg, ok := job.Payload["message"].(string); ok {
+				result += fmt.Sprintf("Message: %s\n", msg)
+			}
 		}
 		if job.SessionID != "" {
 			result += fmt.Sprintf("Session ID: %s\n", job.SessionID)

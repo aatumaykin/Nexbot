@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/google/uuid"
+
 	"github.com/aatumaykin/nexbot/internal/constants"
 )
 
@@ -63,8 +65,8 @@ func SaveJobs(workspacePath string, jobs map[string]Job) error {
 	return nil
 }
 
-// GenerateJobID generates a unique job ID using the process ID.
-// Returns a string in the format "job_<pid>".
+// GenerateJobID generates a unique job ID using UUID.
+// Returns a string in the format "job_<uuid>".
 func GenerateJobID() string {
-	return fmt.Sprintf(constants.CronJobIDFormat, os.Getpid())
+	return fmt.Sprintf("job_%s", uuid.New().String())
 }

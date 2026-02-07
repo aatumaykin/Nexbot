@@ -128,7 +128,7 @@ func TestTelegramConnector_Concurrent_WithMock(t *testing.T) {
 		go func(idx int) {
 			outboundCh <- bus.OutboundMessage{
 				ChannelType: bus.ChannelTypeTelegram,
-				SessionID:   "987654321",
+				SessionID:   "telegram:987654321",
 				Content:     "Test message",
 			}
 		}(i)
@@ -193,7 +193,7 @@ func TestTelegramConnector_ErrorHandling_WithMock(t *testing.T) {
 	// Send a message (should handle error gracefully)
 	outboundCh <- bus.OutboundMessage{
 		ChannelType: bus.ChannelTypeTelegram,
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		Content:     "Test message",
 	}
 
@@ -316,7 +316,7 @@ func TestTelegramConnector_TypingIndicators_WithMock(t *testing.T) {
 	eventCh <- bus.Event{
 		ChannelType: bus.ChannelTypeTelegram,
 		Type:        bus.EventTypeProcessingStart,
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		UserID:      "123456789",
 	}
 
@@ -327,7 +327,7 @@ func TestTelegramConnector_TypingIndicators_WithMock(t *testing.T) {
 	eventCh <- bus.Event{
 		ChannelType: bus.ChannelTypeTelegram,
 		Type:        bus.EventTypeProcessingEnd,
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		UserID:      "123456789",
 	}
 
@@ -449,7 +449,7 @@ func TestTelegramConnector_GracefulShutdown_WithMock(t *testing.T) {
 	event := bus.Event{
 		ChannelType: bus.ChannelTypeTelegram,
 		Type:        bus.EventTypeProcessingStart,
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		UserID:      "123456789",
 	}
 	conn.typingManager.Start(event)

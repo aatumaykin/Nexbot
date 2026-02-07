@@ -174,7 +174,7 @@ func TestConnector_HandleEvents_WithMock(t *testing.T) {
 	eventCh <- bus.Event{
 		ChannelType: bus.ChannelTypeTelegram,
 		Type:        bus.EventTypeProcessingStart,
-		SessionID:   "123456789",
+		SessionID:   "telegram:123456789",
 	}
 
 	// Wait a bit for processing

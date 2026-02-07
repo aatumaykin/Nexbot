@@ -36,10 +36,10 @@ func (tm *TypingManager) SetContext(ctx context.Context) {
 
 // Start starts a periodic typing indicator for the specified chat.
 func (tm *TypingManager) Start(event bus.Event) {
-	// Extract chat ID from session ID
+	// Extract chat ID from session ID (format: "channel:chat_id")
 	var chatID int64
-	_, err := fmt.Sscanf(event.SessionID, "%d", &chatID)
-	if err != nil {
+	n, err := fmt.Sscanf(event.SessionID, "telegram:%d", &chatID)
+	if err != nil || n != 1 {
 		tm.logger.ErrorCtx(tm.ctx, "invalid session ID for typing indicator", err,
 			logger.Field{Key: "session_id", Value: event.SessionID})
 		return
@@ -111,10 +111,10 @@ func (tm *TypingManager) StopAll() {
 
 // Send sends a typing indicator to the specified chat.
 func (tm *TypingManager) Send(event bus.Event) {
-	// Extract chat ID from session ID
+	// Extract chat ID from session ID (format: "channel:chat_id")
 	var chatID int64
-	_, err := fmt.Sscanf(event.SessionID, "%d", &chatID)
-	if err != nil {
+	n, err := fmt.Sscanf(event.SessionID, "telegram:%d", &chatID)
+	if err != nil || n != 1 {
 		tm.logger.ErrorCtx(tm.ctx, "invalid session ID for typing indicator", err,
 			logger.Field{Key: "session_id", Value: event.SessionID})
 		return

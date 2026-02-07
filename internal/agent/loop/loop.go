@@ -271,7 +271,25 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 
 // buildSystemPrompt builds the system prompt from workspace context.
 func (l *Loop) buildSystemPrompt(sessionID string) (string, error) {
-	return l.contextBldr.BuildForSession(sessionID, nil)
+	systemPrompt, err := l.contextBldr.BuildForSession(sessionID, nil)
+	if err != nil {
+		return "", err
+	}
+
+	// Log system prompt for debugging
+	var preview string
+	if len(systemPrompt) > 500 {
+		preview = systemPrompt[:500] + "..."
+	} else {
+		preview = systemPrompt
+	}
+
+	l.logger.Debug("System prompt built",
+		logger.Field{Key: "session_id", Value: sessionID},
+		logger.Field{Key: "system_prompt_length", Value: len(systemPrompt)},
+		logger.Field{Key: "preview", Value: preview})
+
+	return systemPrompt, nil
 }
 
 // AddMessageToSession adds a message to the session history.

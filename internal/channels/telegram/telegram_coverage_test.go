@@ -567,7 +567,7 @@ func TestConnector_handleOutbound_VeryLongMessage(t *testing.T) {
 	outboundMsg := bus.OutboundMessage{
 		ChannelType: bus.ChannelTypeTelegram,
 		UserID:      "123456789",
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		Content:     string(longContent),
 		Timestamp:   time.Now(),
 	}
@@ -1440,7 +1440,7 @@ func TestConnector_handleOutbound_MultipleMessages(t *testing.T) {
 		outboundMsg := bus.OutboundMessage{
 			ChannelType: bus.ChannelTypeTelegram,
 			UserID:      "123456789",
-			SessionID:   "987654321",
+			SessionID:   "telegram:987654321",
 			Content:     msgContent,
 			Timestamp:   time.Now(),
 		}
@@ -1646,7 +1646,7 @@ func TestConnector_handleOutbound_NilBot(t *testing.T) {
 	outboundMsg := bus.OutboundMessage{
 		ChannelType: bus.ChannelTypeTelegram,
 		UserID:      "123456789",
-		SessionID:   "987654321",
+		SessionID:   "telegram:987654321",
 		Content:     "Hello from bot!",
 		Timestamp:   time.Now(),
 	}
