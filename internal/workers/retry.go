@@ -3,7 +3,11 @@ package workers
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
+	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
 )
 
@@ -70,15 +74,168 @@ func (p *WorkerPool) executeWithRetry(ctx context.Context, task Task, executor T
 // executeCronTask executes a cron-scheduled task.
 func (p *WorkerPool) executeCronTask(ctx context.Context, task Task) Result {
 	return p.executeWithRetry(ctx, task, func(ctx context.Context, t Task) (string, error) {
-		cmd, ok := task.Payload.(string)
+		// Unmarshal CronTaskPayload from task.Payload
+		payload, ok := task.Payload.(cron.CronTaskPayload)
 		if !ok {
-			return "", fmt.Errorf("invalid cron task payload: expected string")
+			return "", fmt.Errorf("invalid cron task payload: expected CronTaskPayload")
 		}
-		fields := []logger.Field{{Key: "task_id", Value: task.ID}, {Key: "command", Value: cmd}}
+
+		fields := []logger.Field{
+			{Key: "task_id", Value: task.ID},
+			{Key: "command", Value: payload.Command},
+			{Key: "tool", Value: payload.Tool},
+			{Key: "session_id", Value: payload.SessionID},
+		}
+
 		p.logger.DebugCtx(ctx, "executing cron task", fields...)
-		p.logger.InfoCtx(ctx, "cron task completed", fields...)
-		return fmt.Sprintf("cron task executed: %s", cmd), nil
+
+		// Determine session ID
+		sessionID := payload.SessionID
+		if sessionID == "" {
+			sessionID = fmt.Sprintf("cron_%s", task.ID)
+		}
+
+		// Dispatch based on tool type
+		switch payload.Tool {
+		case "send_message":
+			return p.executeSendMessage(ctx, task, payload, sessionID)
+		case "agent":
+			return p.executeAgent(ctx, task, payload, sessionID)
+		default:
+			return p.executeCommand(ctx, task, payload, sessionID)
+		}
 	})
+}
+
+// executeSendMessage handles the send_message tool - publishes outbound message directly
+func (p *WorkerPool) executeSendMessage(ctx context.Context, task Task, payload cron.CronTaskPayload, sessionID string) (string, error) {
+	p.logger.DebugCtx(ctx, "executing send_message tool",
+		logger.Field{Key: "task_id", Value: task.ID},
+		logger.Field{Key: "session_id", Value: sessionID})
+
+	// Parse channel and chat ID from session_id
+	var channel, chatID string
+	if strings.Contains(sessionID, ":") {
+		parts := strings.Split(sessionID, ":")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("invalid session_id format: expected 'channel:chat_id', got '%s'", sessionID)
+		}
+		channel = parts[0]
+		chatID = parts[1]
+	} else {
+		return "", fmt.Errorf("invalid session_id format: expected 'channel:chat_id', got '%s'", sessionID)
+	}
+
+	// Extract message content from payload or command
+	content := payload.Command
+	if payload.Payload != nil {
+		if msg, ok := payload.Payload["message"].(string); ok {
+			content = msg
+		}
+	}
+
+	if content == "" {
+		return "", fmt.Errorf("no message content provided")
+	}
+
+	// Create outbound message
+	outboundMsg := bus.OutboundMessage{
+		ChannelType: bus.ChannelType(channel),
+		UserID:      "",
+		SessionID:   chatID,
+		Content:     content,
+		Timestamp:   time.Now(),
+		Metadata: map[string]interface{}{
+			"cron_job_id": task.ID,
+		},
+	}
+
+	if err := p.messageBus.PublishOutbound(outboundMsg); err != nil {
+		p.logger.ErrorCtx(ctx, "failed to publish outbound message", err,
+			logger.Field{Key: "task_id", Value: task.ID})
+		return "", fmt.Errorf("failed to publish outbound message: %w", err)
+	}
+
+	p.logger.InfoCtx(ctx, "send_message tool executed successfully",
+		logger.Field{Key: "task_id", Value: task.ID},
+		logger.Field{Key: "channel", Value: channel},
+		logger.Field{Key: "chat_id", Value: chatID})
+
+	return fmt.Sprintf("message sent to %s:%s", channel, chatID), nil
+}
+
+// executeAgent handles the agent tool - publishes inbound message for agent processing
+func (p *WorkerPool) executeAgent(ctx context.Context, task Task, payload cron.CronTaskPayload, sessionID string) (string, error) {
+	p.logger.DebugCtx(ctx, "executing agent tool",
+		logger.Field{Key: "task_id", Value: task.ID},
+		logger.Field{Key: "session_id", Value: sessionID})
+
+	// Parse channel and chat ID from session_id
+	var channel, chatID string
+	if strings.Contains(sessionID, ":") {
+		parts := strings.Split(sessionID, ":")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("invalid session_id format: expected 'channel:chat_id', got '%s'", sessionID)
+		}
+		channel = parts[0]
+		chatID = parts[1]
+	} else {
+		return "", fmt.Errorf("invalid session_id format: expected 'channel:chat_id', got '%s'", sessionID)
+	}
+
+	// Create inbound message for agent processing
+	msg := bus.NewInboundMessage(
+		bus.ChannelType(channel),
+		"", // Empty user_id for cron tasks
+		chatID,
+		payload.Command,
+		map[string]interface{}{
+			"cron_job_id": task.ID,
+			"tool":        "agent",
+			"payload":     payload.Payload,
+		},
+	)
+
+	if err := p.messageBus.PublishInbound(*msg); err != nil {
+		p.logger.ErrorCtx(ctx, "failed to publish inbound message for agent", err,
+			logger.Field{Key: "task_id", Value: task.ID})
+		return "", fmt.Errorf("failed to publish inbound message: %w", err)
+	}
+
+	p.logger.InfoCtx(ctx, "agent tool executed successfully",
+		logger.Field{Key: "task_id", Value: task.ID},
+		logger.Field{Key: "channel", Value: channel},
+		logger.Field{Key: "chat_id", Value: chatID})
+
+	return fmt.Sprintf("agent message sent to %s:%s", channel, chatID), nil
+}
+
+// executeCommand handles backward compatibility with command-based cron tasks
+func (p *WorkerPool) executeCommand(ctx context.Context, task Task, payload cron.CronTaskPayload, sessionID string) (string, error) {
+	// Create inbound message and publish to message bus
+	msg := bus.NewInboundMessage(
+		cron.ChannelTypeCron,
+		"", // Empty user_id since we use session-based approach
+		sessionID,
+		payload.Command,
+		map[string]interface{}{
+			"cron_job_id": task.ID,
+			"tool":        payload.Tool,
+			"payload":     payload.Payload,
+		},
+	)
+
+	if err := p.messageBus.PublishInbound(*msg); err != nil {
+		p.logger.ErrorCtx(ctx, "failed to publish cron message", err,
+			logger.Field{Key: "task_id", Value: task.ID})
+		return "", fmt.Errorf("failed to publish cron message: %w", err)
+	}
+
+	p.logger.InfoCtx(ctx, "command tool executed successfully",
+		logger.Field{Key: "task_id", Value: task.ID},
+		logger.Field{Key: "command", Value: payload.Command})
+
+	return fmt.Sprintf("cron task executed: %s", payload.Command), nil
 }
 
 // executeSubagentTask executes a subagent task.

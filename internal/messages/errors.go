@@ -85,9 +85,6 @@ func CleanContent(content string) string {
 	// Remove complete  tags
 	cleaned := thinkTagRegex.ReplaceAllString(content, "")
 
-	// Trim whitespace before checking for incomplete tags
-	trimmed := strings.TrimSpace(cleaned)
-
 	// Remove incomplete opening tag  at the end
 	// Check if there's an unclosed  tag
 	lastOpenIndex := strings.LastIndex(cleaned, thinkOpen)
@@ -102,7 +99,7 @@ func CleanContent(content string) string {
 	}
 
 	// Remove incomplete closing tag  at the beginning
-	trimmed = strings.TrimSpace(cleaned)
+	trimmed := strings.TrimSpace(cleaned)
 	if strings.HasPrefix(trimmed, thinkClose) {
 		cleaned = strings.TrimSpace(cleaned[len(thinkClose):])
 	} else if strings.HasPrefix(trimmed, "\n\n"+thinkClose) || strings.HasPrefix(trimmed, "\n"+thinkClose) || strings.HasPrefix(trimmed, " "+thinkClose) {

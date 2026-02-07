@@ -52,7 +52,8 @@ func TestScheduler_JobExecution(t *testing.T) {
 	select {
 	case msg := <-inboundCh:
 		assert.Equal(t, ChannelTypeCron, msg.ChannelType)
-		assert.Equal(t, "cron-user", msg.UserID)
+		assert.Equal(t, "cron-user", msg.UserID)        // UserID from job is used
+		assert.Equal(t, "cron_test-job", msg.SessionID) // Generated session ID
 		assert.Equal(t, "cron test command", msg.Content)
 		assert.NotNil(t, msg.Metadata)
 		assert.Equal(t, "test-job", msg.Metadata["cron_job_id"])

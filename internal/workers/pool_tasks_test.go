@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,14 +17,18 @@ func TestPool_ExecuteCronTask(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	pool := NewPool(1, 10, log)
+	messageBus := bus.New(100, log)
+	require.NoError(t, messageBus.Start(context.Background()))
+	defer func() { _ = messageBus.Stop() }()
+
+	pool := NewPool(1, 10, log, messageBus)
 	pool.Start()
 	defer pool.Stop()
 
 	task := Task{
 		ID:      "cron-task-1",
 		Type:    "cron",
-		Payload: "echo 'hello'",
+		Payload: cron.CronTaskPayload{Command: "echo 'hello'"},
 	}
 
 	// Submit task
@@ -55,7 +61,11 @@ func TestPool_ExecuteSubagentTask(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	pool := NewPool(1, 10, log)
+	messageBus := bus.New(100, log)
+	require.NoError(t, messageBus.Start(context.Background()))
+	defer func() { _ = messageBus.Stop() }()
+
+	pool := NewPool(1, 10, log, messageBus)
 	pool.Start()
 	defer pool.Stop()
 
@@ -92,7 +102,11 @@ func TestPool_UnknownTaskType(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	pool := NewPool(1, 10, log)
+	messageBus := bus.New(100, log)
+	require.NoError(t, messageBus.Start(context.Background()))
+	defer func() { _ = messageBus.Stop() }()
+
+	pool := NewPool(1, 10, log, messageBus)
 	pool.Start()
 	defer pool.Stop()
 
@@ -128,7 +142,11 @@ func TestPool_InvalidCronPayload(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	pool := NewPool(1, 10, log)
+	messageBus := bus.New(100, log)
+	require.NoError(t, messageBus.Start(context.Background()))
+	defer func() { _ = messageBus.Stop() }()
+
+	pool := NewPool(1, 10, log, messageBus)
 	pool.Start()
 	defer pool.Stop()
 
@@ -163,7 +181,11 @@ func TestPool_MultipleTasks(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	pool := NewPool(3, 10, log)
+	messageBus := bus.New(100, log)
+	require.NoError(t, messageBus.Start(context.Background()))
+	defer func() { _ = messageBus.Stop() }()
+
+	pool := NewPool(3, 10, log, messageBus)
 	pool.Start()
 	defer pool.Stop()
 
@@ -176,10 +198,14 @@ func TestPool_MultipleTasks(t *testing.T) {
 		if i%2 == 0 {
 			taskType = "subagent"
 		}
+		payload := interface{}(fmt.Sprintf("command %d", i))
+		if taskType == "cron" {
+			payload = cron.CronTaskPayload{Command: fmt.Sprintf("command %d", i)}
+		}
 		tasks[i] = Task{
 			ID:      fmt.Sprintf("task-%d", i),
 			Type:    taskType,
-			Payload: fmt.Sprintf("command %d", i),
+			Payload: payload,
 		}
 		pool.Submit(tasks[i])
 	}

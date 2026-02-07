@@ -192,7 +192,6 @@ func TestFullWorkflow(t *testing.T) {
 		if payload, ok := task.Payload.(CronTaskPayload); ok {
 			if payload.Command == "recurring test command" {
 				assert.Equal(t, "cron", task.Type, "Task type should be 'cron'")
-				assert.Equal(t, "recurring-user", payload.UserID, "Task user ID should match")
 				assert.Equal(t, "recurring", payload.Metadata["job_type"], "Task metadata should match")
 				foundRecurringTask = true
 				break

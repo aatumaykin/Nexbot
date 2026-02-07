@@ -22,6 +22,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -59,10 +60,24 @@ func New(cfg Config) (*Logger, error) {
 	case "stderr":
 		writer = os.Stderr
 	default:
-		// Путь к файлу
-		file, err := os.OpenFile(cfg.Output, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		// Путь к файлу - разворачиваем ~ в домашнюю директорию
+		filePath := cfg.Output
+		if strings.HasPrefix(filePath, "~/") {
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get home directory: %w", err)
+			}
+			filePath = filepath.Join(homeDir, filePath[2:])
+		}
+		filePath = filepath.Clean(filePath)
+		// Создаём директорию, если она не существует
+		dir := filepath.Dir(filePath)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create log directory %s: %w", dir, err)
+		}
+		file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			return nil, fmt.Errorf("failed to open log file %s: %w", cfg.Output, err)
+			return nil, fmt.Errorf("failed to open log file %s: %w", filePath, err)
 		}
 		writer = file
 	}

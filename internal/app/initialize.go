@@ -116,7 +116,7 @@ func (a *App) Initialize(ctx context.Context) error {
 	}
 
 	// 4.1. Initialize worker pool
-	workerPool := workers.NewPool(a.config.Workers.PoolSize, a.config.Workers.QueueSize, a.logger)
+	workerPool := workers.NewPool(a.config.Workers.PoolSize, a.config.Workers.QueueSize, a.logger, a.messageBus)
 	workerPool.Start()
 	a.workerPool = workerPool
 
@@ -133,6 +133,7 @@ func (a *App) Initialize(ctx context.Context) error {
 	agentLoop, err := loop.NewLoop(loop.Config{
 		Workspace:         ws.Path(),
 		SessionDir:        ws.Subpath("sessions"),
+		Timezone:          a.config.Cron.Timezone,
 		LLMProvider:       provider,
 		Logger:            a.logger,
 		Model:             a.config.Agent.Model,
@@ -230,6 +231,9 @@ func (a *App) Initialize(ctx context.Context) error {
 				ExecuteAt:  storageJob.ExecuteAt,
 				Command:    storageJob.Command,
 				UserID:     storageJob.UserID,
+				Tool:       storageJob.Tool,
+				Payload:    storageJob.Payload,
+				SessionID:  storageJob.SessionID,
 				Metadata:   storageJob.Metadata,
 				Executed:   storageJob.Executed,
 				ExecutedAt: storageJob.ExecutedAt,

@@ -31,6 +31,7 @@ type Loop struct {
 type Config struct {
 	Workspace         string
 	SessionDir        string
+	Timezone          string
 	LLMProvider       llm.Provider
 	Logger            *logger.Logger
 	Model             string
@@ -74,6 +75,7 @@ func NewLoop(cfg Config) (*Loop, error) {
 	// Create context builder
 	contextBldr, err := agentcontext.NewBuilder(agentcontext.Config{
 		Workspace: cfg.Workspace,
+		Timezone:  cfg.Timezone,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create context builder: %w", err)
@@ -371,6 +373,38 @@ func (l *Loop) ProcessHeartbeatCheck(ctx stdcontext.Context) (string, error) {
 // This is a public wrapper for compatibility.
 func (l *Loop) GetSessionStatus(ctx stdcontext.Context, sessionID string) (map[string]any, error) {
 	return l.sessionOps.GetSessionStatus(ctx, sessionID, l)
+}
+
+// AddErrorToSession adds an error message to the session history.
+func (l *Loop) AddErrorToSession(ctx stdcontext.Context, sessionID string, err error) error {
+	l.logger.ErrorCtx(ctx, "Adding error to session", err,
+		logger.Field{Key: "session_id", Value: sessionID})
+	errorMsg := fmt.Sprintf("**Error from previous attempt:**\n%s\n\nPlease analyze this error and suggest a solution.", err.Error())
+	return l.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{
+		Role:    llm.RoleUser,
+		Content: errorMsg,
+	})
+}
+
+// ProcessRecovery processes a recovery request after an error.
+func (l *Loop) ProcessRecovery(ctx stdcontext.Context, sessionID string, originalErr error) (string, error) {
+	l.logger.ErrorCtx(ctx, "Starting recovery processing", originalErr,
+		logger.Field{Key: "session_id", Value: sessionID})
+
+	// Build recovery prompt with length limit (500 chars)
+	basePrompt := "The previous attempt failed. Please analyze this error and suggest a solution:"
+	errText := originalErr.Error()
+
+	// Limit error text to fit within 500 char total limit
+	maxErrLen := 500 - len(basePrompt) - len("\n\n")
+	if len(errText) > maxErrLen {
+		errText = errText[:maxErrLen] + "..."
+	}
+
+	recoveryPrompt := fmt.Sprintf("%s\n\n%s", basePrompt, errText)
+
+	// Process with normal timeout (not reduced)
+	return l.Process(ctx, sessionID, recoveryPrompt)
 }
 
 func getFileInfo(path string) (os.FileInfo, error) {

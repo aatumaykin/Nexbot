@@ -72,6 +72,12 @@ check_interval_minutes = 30
 
 [logging]
 level = "info"
+format = "json"
+
+# Вывод логов (опционально)
+# - stdout/stderr: вывод в консоль
+# - путь к файлу: вывод в файл (например, ~/.nexbot/nexbot.log)
+# output = "~/.nexbot/nexbot.log"
 EOF
 
 # Установить переменные окружения

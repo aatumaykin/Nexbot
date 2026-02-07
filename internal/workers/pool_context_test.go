@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,7 +17,11 @@ func TestPool_ContextCancellation(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	pool := NewPool(1, 10, log)
+	messageBus := bus.New(100, log)
+	require.NoError(t, messageBus.Start(context.Background()))
+	defer func() { _ = messageBus.Stop() }()
+
+	pool := NewPool(1, 10, log, messageBus)
 	pool.Start()
 	defer pool.Stop()
 
@@ -24,7 +30,7 @@ func TestPool_ContextCancellation(t *testing.T) {
 	task := Task{
 		ID:      "cancelled-task",
 		Type:    "cron",
-		Payload: "test command",
+		Payload: cron.CronTaskPayload{Command: "test command"},
 		Context: taskCtx,
 	}
 

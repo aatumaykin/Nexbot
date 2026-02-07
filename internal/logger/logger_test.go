@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"io"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -345,6 +347,46 @@ func createTestLogger(t *testing.T, buf *bytes.Buffer, format string) *Logger {
 
 	return &Logger{
 		slog: slog.New(handler),
+	}
+}
+
+func TestLogger_FileOutput(t *testing.T) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("Failed to get home directory: %v", err)
+	}
+
+	tempDir := filepath.Join(homeDir, ".nexbot_test")
+	defer os.RemoveAll(tempDir)
+
+	logFilePath := filepath.Join(tempDir, "test.log")
+
+	homeLogPath := filepath.Join("~", ".nexbot_test", "test.log")
+
+	cfg := Config{
+		Level:  "debug",
+		Format: "json",
+		Output: homeLogPath,
+	}
+
+	log, err := New(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create logger: %v", err)
+	}
+
+	log.Info("test message", Field{Key: "key", Value: "value"})
+
+	if _, err := os.Stat(logFilePath); os.IsNotExist(err) {
+		t.Errorf("Log file was not created at %s", logFilePath)
+	}
+
+	fileContent, err := os.ReadFile(logFilePath)
+	if err != nil {
+		t.Fatalf("Failed to read log file: %v", err)
+	}
+
+	if !strings.Contains(string(fileContent), "test message") {
+		t.Errorf("Log file does not contain expected message: %s", string(fileContent))
 	}
 }
 

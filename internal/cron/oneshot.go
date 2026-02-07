@@ -57,6 +57,9 @@ func (s *Scheduler) checkAndExecuteOneshots(now time.Time) {
 			ExecuteAt:  storageJob.ExecuteAt,
 			Command:    storageJob.Command,
 			UserID:     storageJob.UserID,
+			Tool:       storageJob.Tool,
+			Payload:    storageJob.Payload,
+			SessionID:  storageJob.SessionID,
 			Metadata:   storageJob.Metadata,
 			Executed:   false, // Not yet executed - executeJob will skip if already executed
 			ExecutedAt: nil,

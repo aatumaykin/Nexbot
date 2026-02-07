@@ -83,50 +83,15 @@ func TestSendMessageToolDefaults(t *testing.T) {
 	tool := setupSendMessageTool(t)
 
 	args := `{
-		"message": "Hello, world!"
+		"message": "Hello, world!",
+		"session_id": "telegram:123456789"
 	}`
 
 	result, err := tool.Execute(args)
 	assert.NoError(t, err, "Execute should not return error")
 	assert.Contains(t, result, "Message sent successfully", "Result should contain success message")
-	assert.Contains(t, result, "User: user", "Result should contain default user ID")
-	assert.Contains(t, result, "Channel: telegram", "Result should contain default channel type")
-	assert.Contains(t, result, "Session: heartbeat-check", "Result should contain default session ID")
+	assert.Contains(t, result, "Session: telegram:123456789", "Result should contain session ID")
 	assert.Contains(t, result, "Hello, world!", "Result should contain message content")
-}
-
-// TestSendMessageToolCustomUser tests that custom user_id is used when provided.
-func TestSendMessageToolCustomUser(t *testing.T) {
-	tool := setupSendMessageTool(t)
-
-	args := `{
-		"message": "Custom user message",
-		"user_id": "custom-user-123"
-	}`
-
-	result, err := tool.Execute(args)
-	assert.NoError(t, err, "Execute should not return error")
-	assert.Contains(t, result, "Message sent successfully", "Result should contain success message")
-	assert.Contains(t, result, "User: custom-user-123", "Result should contain custom user ID")
-	assert.Contains(t, result, "Channel: telegram", "Result should contain default channel type")
-	assert.Contains(t, result, "Session: heartbeat-check", "Result should contain default session ID")
-}
-
-// TestSendMessageToolCustomChannel tests that custom channel_type is used when provided.
-func TestSendMessageToolCustomChannel(t *testing.T) {
-	tool := setupSendMessageTool(t)
-
-	args := `{
-		"message": "Custom channel message",
-		"channel_type": "discord"
-	}`
-
-	result, err := tool.Execute(args)
-	assert.NoError(t, err, "Execute should not return error")
-	assert.Contains(t, result, "Message sent successfully", "Result should contain success message")
-	assert.Contains(t, result, "User: user", "Result should contain default user ID")
-	assert.Contains(t, result, "Channel: discord", "Result should contain custom channel type")
-	assert.Contains(t, result, "Session: heartbeat-check", "Result should contain default session ID")
 }
 
 // TestSendMessageToolCustomSession tests that custom session_id is used when provided.
@@ -135,15 +100,13 @@ func TestSendMessageToolCustomSession(t *testing.T) {
 
 	args := `{
 		"message": "Custom session message",
-		"session_id": "custom-session-456"
+		"session_id": "telegram:456"
 	}`
 
 	result, err := tool.Execute(args)
 	assert.NoError(t, err, "Execute should not return error")
 	assert.Contains(t, result, "Message sent successfully", "Result should contain success message")
-	assert.Contains(t, result, "User: user", "Result should contain default user ID")
-	assert.Contains(t, result, "Channel: telegram", "Result should contain default channel type")
-	assert.Contains(t, result, "Session: custom-session-456", "Result should contain custom session ID")
+	assert.Contains(t, result, "Session: telegram:456", "Result should contain custom session ID")
 }
 
 // TestSendMessageToolPublishError tests error handling when message bus publish fails.
@@ -166,7 +129,8 @@ func TestSendMessageToolPublishError(t *testing.T) {
 	tool := NewSendMessageTool(sender, log)
 
 	args := `{
-		"message": "Test message"
+		"message": "Test message",
+		"session_id": "telegram:test-session"
 	}`
 
 	result, err := tool.Execute(args)
@@ -181,7 +145,7 @@ func TestSendMessageToolMissingMessage(t *testing.T) {
 	tool := setupSendMessageTool(t)
 
 	args := `{
-		"user_id": "user123"
+		"session_id": "telegram:123456789"
 	}`
 
 	result, err := tool.Execute(args)
@@ -208,17 +172,13 @@ func TestSendMessageToolAllCustom(t *testing.T) {
 
 	args := `{
 		"message": "All custom parameters",
-		"user_id": "custom-user",
-		"channel_type": "slack",
-		"session_id": "custom-session"
+		"session_id": "telegram:123456789"
 	}`
 
 	result, err := tool.Execute(args)
 	assert.NoError(t, err, "Execute should not return error")
 	assert.Contains(t, result, "Message sent successfully", "Result should contain success message")
-	assert.Contains(t, result, "User: custom-user", "Result should contain custom user ID")
-	assert.Contains(t, result, "Channel: slack", "Result should contain custom channel type")
-	assert.Contains(t, result, "Session: custom-session", "Result should contain custom session ID")
+	assert.Contains(t, result, "Session: telegram:123456789", "Result should contain custom session ID")
 	assert.Contains(t, result, "All custom parameters", "Result should contain message content")
 }
 
@@ -248,39 +208,29 @@ func TestSendMessageToolParameters(t *testing.T) {
 	props, ok := params["properties"].(map[string]interface{})
 	assert.True(t, ok, "Properties should be a map")
 
-	// Check user_id property
-	userIDProp, ok := props["user_id"].(map[string]interface{})
-	assert.True(t, ok, "user_id property should be a map")
-	assert.Equal(t, "string", userIDProp["type"], "user_id type should be 'string'")
-	assert.Equal(t, "user", userIDProp["default"], "user_id default should be 'user'")
-
-	// Check channel_type property
-	channelTypeProp, ok := props["channel_type"].(map[string]interface{})
-	assert.True(t, ok, "channel_type property should be a map")
-	assert.Equal(t, "string", channelTypeProp["type"], "channel_type type should be 'string'")
-	assert.Equal(t, "telegram", channelTypeProp["default"], "channel_type default should be 'telegram'")
-
 	// Check session_id property
 	sessionIDProp, ok := props["session_id"].(map[string]interface{})
 	assert.True(t, ok, "session_id property should be a map")
 	assert.Equal(t, "string", sessionIDProp["type"], "session_id type should be 'string'")
-	assert.Equal(t, "heartbeat-check", sessionIDProp["default"], "session_id default should be 'heartbeat-check'")
+	assert.Nil(t, sessionIDProp["default"], "session_id should not have default")
 
 	// Check message property
 	messageProp, ok := props["message"].(map[string]interface{})
 	assert.True(t, ok, "message property should be a map")
 	assert.Equal(t, "string", messageProp["type"], "message type should be 'string'")
-	assert.Empty(t, messageProp["default"], "message should not have default")
+	assert.Nil(t, messageProp["default"], "message should not have default")
 
 	// Check required fields - try both types
 	required := params["required"]
 	switch v := required.(type) {
 	case []interface{}:
+		assert.Contains(t, v, "session_id", "Required should contain 'session_id'")
 		assert.Contains(t, v, "message", "Required should contain 'message'")
-		assert.Len(t, v, 1, "Only 'message' should be required")
+		assert.Len(t, v, 2, "Both 'session_id' and 'message' should be required")
 	case []string:
+		assert.Contains(t, v, "session_id", "Required should contain 'session_id'")
 		assert.Contains(t, v, "message", "Required should contain 'message'")
-		assert.Len(t, v, 1, "Only 'message' should be required")
+		assert.Len(t, v, 2, "Both 'session_id' and 'message' should be required")
 	default:
 		assert.Fail(t, "Required should be a slice")
 	}

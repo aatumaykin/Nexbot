@@ -247,12 +247,45 @@ func (c *Connector) handleOutbound() {
 			}
 
 			// Extract chat ID from session ID
+			// Support both formats: "chat_id" (legacy) and "channel:chat_id" (new)
 			var chatID int64
-			_, err := fmt.Sscanf(msg.SessionID, "%d", &chatID)
-			if err != nil {
-				c.logger.ErrorCtx(c.ctx, "invalid session ID", err,
-					logger.Field{Key: "session_id", Value: msg.SessionID})
-				continue
+			var err error
+			if strings.Contains(msg.SessionID, ":") {
+				// New format: "channel:chat_id"
+				parts := strings.Split(msg.SessionID, ":")
+				if len(parts) != 2 {
+					c.logger.ErrorCtx(c.ctx, "invalid session ID format: expected 'channel:chat_id'",
+						nil,
+						logger.Field{Key: "session_id", Value: msg.SessionID})
+					continue
+				}
+				channel := parts[0]
+				chatIDStr := parts[1]
+
+				// Verify channel matches telegram
+				if channel != string(bus.ChannelTypeTelegram) {
+					c.logger.ErrorCtx(c.ctx, "session ID channel mismatch",
+						nil,
+						logger.Field{Key: "expected", Value: bus.ChannelTypeTelegram},
+						logger.Field{Key: "got", Value: channel},
+						logger.Field{Key: "session_id", Value: msg.SessionID})
+					continue
+				}
+
+				_, err = fmt.Sscanf(chatIDStr, "%d", &chatID)
+				if err != nil {
+					c.logger.ErrorCtx(c.ctx, "invalid chat ID in session ID", err,
+						logger.Field{Key: "session_id", Value: msg.SessionID})
+					continue
+				}
+			} else {
+				// Legacy format: "chat_id"
+				_, err = fmt.Sscanf(msg.SessionID, "%d", &chatID)
+				if err != nil {
+					c.logger.ErrorCtx(c.ctx, "invalid session ID", err,
+						logger.Field{Key: "session_id", Value: msg.SessionID})
+					continue
+				}
 			}
 
 			// Send message to Telegram

@@ -20,12 +20,13 @@ type Context struct {
 // Builder builds system prompts from various context components.
 type Builder struct {
 	workspace string
-	context   Context
+	timezone  string
 }
 
 // Config holds configuration for the context builder.
 type Config struct {
 	Workspace string // Workspace directory path
+	Timezone  string // User timezone (e.g., "Europe/Moscow")
 }
 
 // NewBuilder creates a new context builder.
@@ -41,7 +42,7 @@ func NewBuilder(config Config) (*Builder, error) {
 
 	return &Builder{
 		workspace: config.Workspace,
-		context:   Context(config),
+		timezone:  config.Timezone,
 	}, nil
 }
 
@@ -214,10 +215,16 @@ func (b *Builder) ReadMemory() ([]llm.Message, error) {
 func (b *Builder) processTemplates(content string) (string, error) {
 	now := time.Now()
 
+	timezone := b.timezone
+	if timezone == "" {
+		timezone = "UTC"
+	}
+
 	data := map[string]string{
 		"CURRENT_TIME":   now.Format("15:04:05"),
 		"CURRENT_DATE":   now.Format("2006-01-02"),
 		"WORKSPACE_PATH": b.workspace,
+		"TIMEZONE":       timezone,
 	}
 
 	result := content

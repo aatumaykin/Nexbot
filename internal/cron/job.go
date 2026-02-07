@@ -39,9 +39,11 @@ type WorkerPool interface {
 
 // CronTaskPayload represents the payload for a cron task
 type CronTaskPayload struct {
-	Command  string            // Command to execute
-	UserID   string            // User ID
-	Metadata map[string]string // Job metadata
+	Command   string            // Shell команда (обратная совместимость)
+	Tool      string            // Внутренний инструмент: "" | "send_message" | "agent"
+	Payload   map[string]any    // Параметры для инструмента (JSON)
+	SessionID string            // Контекст сессии (опциональный)
+	Metadata  map[string]string // Job metadata
 }
 
 // Job represents a scheduled cron job
@@ -52,6 +54,9 @@ type Job struct {
 	ExecuteAt  *time.Time        `json:"execute_at,omitempty"`  // Execution time for oneshot jobs
 	Command    string            `json:"command"`               // Message to send to agent when job executes
 	UserID     string            `json:"user_id"`               // User ID for the message
+	Tool       string            `json:"tool"`                  // Внутренний инструмент: "" | "send_message" | "agent"
+	Payload    map[string]any    `json:"payload"`               // Параметры для инструмента (JSON)
+	SessionID  string            `json:"session_id"`            // Контекст сессии (опциональный)
 	Metadata   map[string]string `json:"metadata,omitempty"`    // Additional job metadata
 	Executed   bool              `json:"executed,omitempty"`    // Whether the job has been executed
 	ExecutedAt *time.Time        `json:"executed_at,omitempty"` // When the job was executed

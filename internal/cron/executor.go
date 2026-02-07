@@ -27,9 +27,11 @@ func (s *Scheduler) executeJob(job Job) {
 	if s.workerPool != nil {
 		// Prepare task payload
 		taskPayload := CronTaskPayload{
-			Command:  job.Command,
-			UserID:   job.UserID,
-			Metadata: job.Metadata,
+			Command:   job.Command,
+			Tool:      job.Tool,
+			Payload:   job.Payload,
+			SessionID: job.SessionID,
+			Metadata:  job.Metadata,
 		}
 
 		// Create task ID
@@ -65,11 +67,17 @@ func (s *Scheduler) fallbackToMessageBus(job Job) {
 		metadata[k] = v
 	}
 
+	// Determine session ID
+	sessionID := job.SessionID
+	if sessionID == "" {
+		sessionID = generateSessionID(job.ID)
+	}
+
 	// Create inbound message
 	msg := bus.NewInboundMessage(
 		ChannelTypeCron,
-		job.UserID,
-		generateSessionID(job.ID),
+		job.UserID, // Use job.UserID for backward compatibility
+		sessionID,
 		job.Command,
 		metadata,
 	)

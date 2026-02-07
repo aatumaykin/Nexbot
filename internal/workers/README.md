@@ -36,7 +36,9 @@ Worker Pool управляет пулом goroutine workers для асинхр�
 
 ```go
 import (
+    "context"
     "github.com/aatumaykin/nexbot/internal/workers"
+    "github.com/aatumaykin/nexbot/internal/bus"
     "github.com/aatumaykin/nexbot/internal/logger"
 )
 
@@ -47,8 +49,13 @@ func main() {
         Output: "stdout",
     })
 
+    // Создание message bus
+    messageBus := bus.New(100, log)
+    messageBus.Start(context.Background())
+    defer messageBus.Stop()
+
     // Создание пула (5 workers, буфер 100)
-    pool := workers.NewPool(5, 100, log)
+    pool := workers.NewPool(5, 100, log, messageBus)
     pool.Start()
 }
 ```
@@ -56,24 +63,26 @@ func main() {
 ### Отправка задачи
 
 ```go
-// Базовая задача
-task := workers.Task{
-    ID:      "task-1",
-    Type:    "test",
-    Payload: "test data",
+// Cron задача с CronTaskPayload
+cronTask := workers.Task{
+    ID:   "cron-1",
+    Type: "cron",
+    Payload: cron.CronTaskPayload{
+        Command: "execute command",
+        UserID:  "user-123",
+    },
     Context: ctx,
 }
+pool.Submit(cronTask)
 
-pool.Submit(task)
-
-// Cron задача
-cronTask := workers.CronTask{
-    ID:      "cron-1",
-    Type:    "cron",
-    Payload: "execute command",
+// Subagent задача
+subagentTask := workers.Task{
+    ID:      "subagent-1",
+    Type:    "subagent",
+    Payload: map[string]string{"task": "process data"},
     Context: ctx,
 }
-pool.SubmitCronTask(cronTask)
+pool.Submit(subagentTask)
 ```
 
 ### Получение результатов
@@ -127,10 +136,13 @@ for len(pool.Results()) > 0 {
 - `workers` — количество workers (рекомендуется: 5)
 - `bufferSize` — размер очереди (рекомендуется: 100)
 - `logger` — логгер
+- `messageBus` — message bus для публикации inbound сообщений (для cron задач)
 
 ## Зависимости
 
 - `github.com/aatumaykin/nexbot/internal/logger` — логирование
+- `github.com/aatumaykin/nexbot/internal/bus` — message bus
+- `github.com/aatumaykin/nexbot/internal/cron` — CronTaskPayload для cron задач
 - `sync` — конкурентное выполнение
 
 ## Примечания

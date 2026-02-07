@@ -101,6 +101,12 @@ allowed_users = []
 level = "info"
 format = "json"
 output = "stdout"
+
+# Или для вывода логов в файл:
+# [logging]
+# level = "debug"
+# format = "json"
+# output = "~/.nexbot/nexbot.log"
 EOF
 
 # Замените на реальные ключи

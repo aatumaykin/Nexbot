@@ -28,6 +28,9 @@ type StorageJob struct {
 	ExecuteAt  *time.Time        `json:"execute_at,omitempty"`
 	Command    string            `json:"command"`
 	UserID     string            `json:"user_id,omitempty"`
+	Tool       string            `json:"tool,omitempty"`       // Внутренний инструмент: "" | "send_message" | "agent"
+	Payload    map[string]any    `json:"payload,omitempty"`    // Параметры для инструмента (JSON)
+	SessionID  string            `json:"session_id,omitempty"` // Контекст сессии (опциональный)
 	Metadata   map[string]string `json:"metadata,omitempty"`
 	Executed   bool              `json:"executed,omitempty"`
 	ExecutedAt *time.Time        `json:"executed_at,omitempty"`

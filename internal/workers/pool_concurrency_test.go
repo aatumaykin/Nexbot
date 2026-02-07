@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,14 +17,18 @@ func TestPool_WorkerPanicRecovery(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	pool := NewPool(1, 10, log)
+	messageBus := bus.New(100, log)
+	require.NoError(t, messageBus.Start(context.Background()))
+	defer func() { _ = messageBus.Stop() }()
+
+	pool := NewPool(1, 10, log, messageBus)
 	pool.Start()
 	defer pool.Stop()
 
 	task := Task{
 		ID:      "panic-task",
 		Type:    "cron",
-		Payload: "test",
+		Payload: cron.CronTaskPayload{Command: "test"},
 	}
 
 	pool.Submit(task)
@@ -40,7 +46,7 @@ func TestPool_WorkerPanicRecovery(t *testing.T) {
 	task2 := Task{
 		ID:      "recovery-task",
 		Type:    "cron",
-		Payload: "test2",
+		Payload: cron.CronTaskPayload{Command: "test2"},
 	}
 	pool.Submit(task2)
 
@@ -56,7 +62,11 @@ func TestPool_ConcurrentSubmissions(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	pool := NewPool(5, 100, log)
+	messageBus := bus.New(100, log)
+	require.NoError(t, messageBus.Start(context.Background()))
+	defer func() { _ = messageBus.Stop() }()
+
+	pool := NewPool(5, 100, log, messageBus)
 	pool.Start()
 	defer pool.Stop()
 
@@ -69,7 +79,7 @@ func TestPool_ConcurrentSubmissions(t *testing.T) {
 				task := Task{
 					ID:      fmt.Sprintf("goroutine-%d-task-%d", goroutineID, j),
 					Type:    "cron",
-					Payload: fmt.Sprintf("command %d", j),
+					Payload: cron.CronTaskPayload{Command: fmt.Sprintf("command %d", j)},
 				}
 				pool.Submit(task)
 			}

@@ -29,8 +29,8 @@ func TestDeleteFileTool_Description(t *testing.T) {
 		t.Error("Description should not be empty")
 	}
 
-	if !contains(desc, "delete") {
-		t.Errorf("Description should mention 'delete', got: %s", desc)
+	if !contains(desc, "Delete") {
+		t.Errorf("Description should mention 'Delete', got: %s", desc)
 	}
 }
 

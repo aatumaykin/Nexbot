@@ -1,8 +1,10 @@
 package workers
 
 import (
+	"context"
 	"testing"
 
+	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -11,6 +13,10 @@ import (
 func TestNewPool(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
+
+	messageBus := bus.New(100, log)
+	require.NoError(t, messageBus.Start(context.Background()))
+	defer func() { _ = messageBus.Stop() }()
 
 	tests := []struct {
 		name       string
@@ -40,7 +46,7 @@ func TestNewPool(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pool := NewPool(tt.workers, tt.bufferSize, log)
+			pool := NewPool(tt.workers, tt.bufferSize, log, messageBus)
 			assert.NotNil(t, pool)
 			assert.Equal(t, tt.workers, pool.WorkerCount())
 			assert.NotNil(t, pool.Results())

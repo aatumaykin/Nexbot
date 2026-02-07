@@ -1039,41 +1039,258 @@ func TestLongPollManager_Start_WithMock(t *testing.T) {
 	mockBot.AssertExpectations(t)
 }
 
-// TestTypingManager_Send_WithMock tests TypingManager with mock bot
-func TestTypingManager_Send_WithMock(t *testing.T) {
+// TestConnector_handleOutbound_NewFormat tests session_id parsing with new "channel:chat_id" format
+func TestConnector_handleOutbound_NewFormat(t *testing.T) {
 	log, _ := logger.New(logger.Config{
 		Level:  "debug",
 		Format: "text",
 		Output: "stdout",
 	})
 
-	ctx := context.Background()
+	msgBus := bus.New(100, log)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cfg := config.TelegramConfig{}
+
+	conn := New(cfg, log, msgBus)
+	conn.ctx = ctx
 
 	// Create mock bot
 	mockBot := NewMockBotSuccess()
-	defer mockBot.AssertExpectations(t)
+	conn.bot = mockBot
 
-	// Create TypingManager
-	tm := NewTypingManager(mockBot, log)
-	tm.SetContext(ctx)
+	// Create outbound channel
+	outboundCh := make(chan bus.OutboundMessage, 1)
+	conn.outboundCh = outboundCh
 
-	// Create typing event
-	event := bus.NewProcessingStartEvent(
-		bus.ChannelTypeTelegram,
-		"123456789",
-		"987654321",
-		map[string]any{"chat_id": int64(987654321)},
-	)
+	// Start outbound handler in goroutine
+	go conn.handleOutbound()
 
-	// Send typing indicator
-	tm.Send(*event)
+	// Send telegram message with new session_id format
+	outboundMsg := bus.OutboundMessage{
+		ChannelType: bus.ChannelTypeTelegram,
+		UserID:      "123456789",
+		SessionID:   "telegram:987654321", // New format
+		Content:     "Hello from bot!",
+		Timestamp:   time.Now(),
+	}
 
-	// Verify that SendChatAction was called with correct parameters
-	mockBot.AssertCalled(t, "SendChatAction", ctx, mock.MatchedBy(func(params *telego.SendChatActionParams) bool {
-		return params.ChatID.ID == 987654321 && params.Action == telego.ChatActionTyping
+	outboundCh <- outboundMsg
+
+	// Wait a bit for processing
+	time.Sleep(100 * time.Millisecond)
+
+	// Stop handler
+	cancel()
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify bot was called with correct chat ID
+	mockBot.AssertCalled(t, "SendMessage", ctx, mock.MatchedBy(func(params *telego.SendMessageParams) bool {
+		return params.ChatID.ID == 987654321 && params.Text == "Hello from bot!"
 	}))
+}
 
-	mockBot.AssertExpectations(t)
+// TestConnector_handleOutbound_LegacyFormat tests session_id parsing with legacy "chat_id" format
+func TestConnector_handleOutbound_LegacyFormat(t *testing.T) {
+	log, _ := logger.New(logger.Config{
+		Level:  "debug",
+		Format: "text",
+		Output: "stdout",
+	})
+
+	msgBus := bus.New(100, log)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cfg := config.TelegramConfig{}
+
+	conn := New(cfg, log, msgBus)
+	conn.ctx = ctx
+
+	// Create mock bot
+	mockBot := NewMockBotSuccess()
+	conn.bot = mockBot
+
+	// Create outbound channel
+	outboundCh := make(chan bus.OutboundMessage, 1)
+	conn.outboundCh = outboundCh
+
+	// Start outbound handler in goroutine
+	go conn.handleOutbound()
+
+	// Send telegram message with legacy session_id format
+	outboundMsg := bus.OutboundMessage{
+		ChannelType: bus.ChannelTypeTelegram,
+		UserID:      "123456789",
+		SessionID:   "987654321", // Legacy format
+		Content:     "Hello from bot!",
+		Timestamp:   time.Now(),
+	}
+
+	outboundCh <- outboundMsg
+
+	// Wait a bit for processing
+	time.Sleep(100 * time.Millisecond)
+
+	// Stop handler
+	cancel()
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify bot was called with correct chat ID
+	mockBot.AssertCalled(t, "SendMessage", ctx, mock.MatchedBy(func(params *telego.SendMessageParams) bool {
+		return params.ChatID.ID == 987654321 && params.Text == "Hello from bot!"
+	}))
+}
+
+// TestConnector_handleOutbound_InvalidNewFormat tests session_id with invalid new format
+func TestConnector_handleOutbound_InvalidNewFormat(t *testing.T) {
+	log, _ := logger.New(logger.Config{
+		Level:  "debug",
+		Format: "text",
+		Output: "stdout",
+	})
+
+	msgBus := bus.New(100, log)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cfg := config.TelegramConfig{}
+
+	conn := New(cfg, log, msgBus)
+	conn.ctx = ctx
+
+	// Create mock bot
+	mockBot := NewMockBotSuccess()
+	conn.bot = mockBot
+
+	// Create outbound channel
+	outboundCh := make(chan bus.OutboundMessage, 1)
+	conn.outboundCh = outboundCh
+
+	// Start outbound handler in goroutine
+	go conn.handleOutbound()
+
+	// Send telegram message with invalid new format (missing second part)
+	outboundMsg := bus.OutboundMessage{
+		ChannelType: bus.ChannelTypeTelegram,
+		UserID:      "123456789",
+		SessionID:   "telegram:", // Invalid - missing chat_id
+		Content:     "Hello from bot!",
+		Timestamp:   time.Now(),
+	}
+
+	outboundCh <- outboundMsg
+
+	// Wait a bit for processing
+	time.Sleep(100 * time.Millisecond)
+
+	// Stop handler
+	cancel()
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify bot was NOT called because session_id is invalid
+	mockBot.AssertNotCalled(t, "SendMessage")
+}
+
+// TestConnector_handleOutbound_ChannelMismatch tests session_id with non-telegram channel
+func TestConnector_handleOutbound_ChannelMismatch(t *testing.T) {
+	log, _ := logger.New(logger.Config{
+		Level:  "debug",
+		Format: "text",
+		Output: "stdout",
+	})
+
+	msgBus := bus.New(100, log)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cfg := config.TelegramConfig{}
+
+	conn := New(cfg, log, msgBus)
+	conn.ctx = ctx
+
+	// Create mock bot
+	mockBot := NewMockBotSuccess()
+	conn.bot = mockBot
+
+	// Create outbound channel
+	outboundCh := make(chan bus.OutboundMessage, 1)
+	conn.outboundCh = outboundCh
+
+	// Start outbound handler in goroutine
+	go conn.handleOutbound()
+
+	// Send telegram message with discord channel in session_id
+	outboundMsg := bus.OutboundMessage{
+		ChannelType: bus.ChannelTypeTelegram,
+		UserID:      "123456789",
+		SessionID:   "discord:987654321", // Wrong channel
+		Content:     "Hello from bot!",
+		Timestamp:   time.Now(),
+	}
+
+	outboundCh <- outboundMsg
+
+	// Wait a bit for processing
+	time.Sleep(100 * time.Millisecond)
+
+	// Stop handler
+	cancel()
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify bot was NOT called because channel mismatch
+	mockBot.AssertNotCalled(t, "SendMessage")
+}
+
+// TestConnector_handleOutbound_InvalidChatID tests session_id with invalid chat ID
+func TestConnector_handleOutbound_InvalidChatID(t *testing.T) {
+	log, _ := logger.New(logger.Config{
+		Level:  "debug",
+		Format: "text",
+		Output: "stdout",
+	})
+
+	msgBus := bus.New(100, log)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cfg := config.TelegramConfig{}
+
+	conn := New(cfg, log, msgBus)
+	conn.ctx = ctx
+
+	// Create mock bot
+	mockBot := NewMockBotSuccess()
+	conn.bot = mockBot
+
+	// Create outbound channel
+	outboundCh := make(chan bus.OutboundMessage, 1)
+	conn.outboundCh = outboundCh
+
+	// Start outbound handler in goroutine
+	go conn.handleOutbound()
+
+	// Send telegram message with invalid chat_id
+	outboundMsg := bus.OutboundMessage{
+		ChannelType: bus.ChannelTypeTelegram,
+		UserID:      "123456789",
+		SessionID:   "telegram:not_a_number", // Invalid chat_id
+		Content:     "Hello from bot!",
+		Timestamp:   time.Now(),
+	}
+
+	outboundCh <- outboundMsg
+
+	// Wait a bit for processing
+	time.Sleep(100 * time.Millisecond)
+
+	// Stop handler
+	cancel()
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify bot was NOT called because chat_id is invalid
+	mockBot.AssertNotCalled(t, "SendMessage")
 }
 
 // TestTypingManager_Start_WithMock tests TypingManager start with mock bot

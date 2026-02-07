@@ -23,7 +23,9 @@ type CronArgs struct {
 	Schedule  string `json:"schedule"`   // Cron expression for recurring jobs
 	ExecuteAt string `json:"execute_at"` // ISO8601 datetime for oneshot jobs
 	Command   string `json:"command"`    // Command to execute
-	UserID    string `json:"user_id"`    // User ID
+	Tool      string `json:"tool"`       // Внутренний инструмент: "" | "send_message" | "agent"
+	Payload   string `json:"payload"`    // Параметры для инструмента (JSON строка)
+	SessionID string `json:"session_id"` // Контекст сессии (опциональный)
 	JobID     string `json:"job_id"`     // Job ID for removal
 }
 
@@ -67,9 +69,18 @@ func (t *CronTool) Parameters() map[string]interface{} {
 				"type":        "string",
 				"description": "Command or message to execute when the job runs. Required for 'add_recurring' and 'add_oneshot' actions.",
 			},
-			"user_id": map[string]interface{}{
+			"tool": map[string]interface{}{
 				"type":        "string",
-				"description": "User ID associated with the job. Required for 'add_recurring' and 'add_oneshot' actions.",
+				"description": "Internal tool: '' (for command), 'send_message', or 'agent'.",
+				"enum":        []string{"", "send_message", "agent"},
+			},
+			"payload": map[string]interface{}{
+				"type":        "string",
+				"description": "JSON string with parameters for the tool. Required when tool is not empty.",
+			},
+			"session_id": map[string]interface{}{
+				"type":        "string",
+				"description": "Session ID for context. Optional.",
 			},
 			"job_id": map[string]interface{}{
 				"type":        "string",
@@ -93,15 +104,19 @@ func (t *CronTool) Execute(args string) (string, error) {
 	switch params.Action {
 	case "add_recurring":
 		return t.addRecurring(context.Background(), map[string]interface{}{
-			"schedule": params.Schedule,
-			"command":  params.Command,
-			"user_id":  params.UserID,
+			"schedule":   params.Schedule,
+			"command":    params.Command,
+			"tool":       params.Tool,
+			"payload":    params.Payload,
+			"session_id": params.SessionID,
 		})
 	case "add_oneshot":
 		return t.addOneshot(context.Background(), map[string]interface{}{
 			"execute_at": params.ExecuteAt,
 			"command":    params.Command,
-			"user_id":    params.UserID,
+			"tool":       params.Tool,
+			"payload":    params.Payload,
+			"session_id": params.SessionID,
 		})
 	case "remove":
 		return t.removeJob(context.Background(), map[string]interface{}{
@@ -127,17 +142,26 @@ func (t *CronTool) addRecurring(ctx context.Context, params map[string]interface
 		return "", fmt.Errorf("command parameter is required for add_recurring action")
 	}
 
-	userID, ok := params["user_id"].(string)
-	if !ok || userID == "" {
-		return "", fmt.Errorf("user_id parameter is required for add_recurring action")
+	tool, _ := params["tool"].(string)
+	payloadStr, _ := params["payload"].(string)
+	sessionID, _ := params["session_id"].(string)
+
+	// Parse payload if provided
+	var payload map[string]any
+	if payloadStr != "" {
+		if err := json.Unmarshal([]byte(payloadStr), &payload); err != nil {
+			return "", fmt.Errorf("failed to parse payload JSON: %w", err)
+		}
 	}
 
 	// Create job using domain model
 	job := agent.Job{
-		Type:     "recurring",
-		Schedule: schedule,
-		Command:  command,
-		UserID:   userID,
+		Type:      "recurring",
+		Schedule:  schedule,
+		Command:   command,
+		Tool:      tool,
+		Payload:   payload,
+		SessionID: sessionID,
 		Metadata: map[string]string{
 			"created_by": "cron_tool",
 			"created_at": time.Now().Format(time.RFC3339),
@@ -156,7 +180,9 @@ func (t *CronTool) addRecurring(ctx context.Context, params map[string]interface
 		Type:       job.Type,
 		Schedule:   job.Schedule,
 		Command:    job.Command,
-		UserID:     job.UserID,
+		Tool:       job.Tool,
+		Payload:    job.Payload,
+		SessionID:  job.SessionID,
 		Metadata:   job.Metadata,
 		Executed:   job.Executed,
 		ExecutedAt: job.ExecutedAt,
@@ -183,9 +209,16 @@ func (t *CronTool) addOneshot(ctx context.Context, params map[string]interface{}
 		return "", fmt.Errorf("command parameter is required for add_oneshot action")
 	}
 
-	userID, ok := params["user_id"].(string)
-	if !ok || userID == "" {
-		return "", fmt.Errorf("user_id parameter is required for add_oneshot action")
+	tool, _ := params["tool"].(string)
+	payloadStr, _ := params["payload"].(string)
+	sessionID, _ := params["session_id"].(string)
+
+	// Parse payload if provided
+	var payload map[string]any
+	if payloadStr != "" {
+		if err := json.Unmarshal([]byte(payloadStr), &payload); err != nil {
+			return "", fmt.Errorf("failed to parse payload JSON: %w", err)
+		}
 	}
 
 	// Parse execute_at time
@@ -204,7 +237,9 @@ func (t *CronTool) addOneshot(ctx context.Context, params map[string]interface{}
 		Schedule:  schedule,
 		ExecuteAt: &executeAt,
 		Command:   command,
-		UserID:    userID,
+		Tool:      tool,
+		Payload:   payload,
+		SessionID: sessionID,
 		Metadata: map[string]string{
 			"created_by": "cron_tool",
 			"created_at": time.Now().Format(time.RFC3339),
@@ -224,7 +259,9 @@ func (t *CronTool) addOneshot(ctx context.Context, params map[string]interface{}
 		Schedule:   job.Schedule,
 		ExecuteAt:  job.ExecuteAt,
 		Command:    job.Command,
-		UserID:     job.UserID,
+		Tool:       job.Tool,
+		Payload:    job.Payload,
+		SessionID:  job.SessionID,
 		Metadata:   job.Metadata,
 		Executed:   job.Executed,
 		ExecutedAt: job.ExecutedAt,
@@ -278,7 +315,12 @@ func (t *CronTool) listJobs(ctx context.Context, params map[string]interface{}) 
 			result += fmt.Sprintf("Execute at: %s\n", job.ExecuteAt.Format(time.RFC1123))
 		}
 		result += fmt.Sprintf("Command: %s\n", job.Command)
-		result += fmt.Sprintf("User ID: %s\n", job.UserID)
+		if job.Tool != "" {
+			result += fmt.Sprintf("Tool: %s\n", job.Tool)
+		}
+		if job.SessionID != "" {
+			result += fmt.Sprintf("Session ID: %s\n", job.SessionID)
+		}
 		result += "---------------\n"
 	}
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/aatumaykin/nexbot/internal/agent"
 	"github.com/aatumaykin/nexbot/internal/logger"
@@ -18,10 +19,8 @@ type SendMessageTool struct {
 
 // SendMessageArgs represents the arguments for the send message tool.
 type SendMessageArgs struct {
-	UserID      string `json:"user_id"`      // User ID (default: "user")
-	ChannelType string `json:"channel_type"` // Channel type (default: "telegram")
-	SessionID   string `json:"session_id"`   // Session ID (default: "heartbeat-check")
-	Message     string `json:"message"`      // Message to send (required)
+	SessionID string `json:"session_id"` // required
+	Message   string `json:"message"`    // required
 }
 
 // NewSendMessageTool creates a new SendMessageTool instance.
@@ -47,27 +46,16 @@ func (t *SendMessageTool) Parameters() map[string]interface{} {
 	return map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
-			"user_id": map[string]interface{}{
-				"type":        "string",
-				"description": "User ID to send the message to. Defaults to 'user' if not specified.",
-				"default":     "user",
-			},
-			"channel_type": map[string]interface{}{
-				"type":        "string",
-				"description": "Channel type for the message (e.g., 'telegram'). Defaults to 'telegram' if not specified.",
-				"default":     "telegram",
-			},
 			"session_id": map[string]interface{}{
 				"type":        "string",
-				"description": "Session ID for the message. Defaults to 'heartbeat-check' if not specified.",
-				"default":     "heartbeat-check",
+				"description": "Session ID for the message context.",
 			},
 			"message": map[string]interface{}{
 				"type":        "string",
 				"description": "Message content to send. This is a required field.",
 			},
 		},
-		"required": []string{"message"},
+		"required": []string{"session_id", "message"},
 	}
 }
 
@@ -80,38 +68,32 @@ func (t *SendMessageTool) Execute(args string) (string, error) {
 		return "", fmt.Errorf("failed to parse send_message arguments: %w", err)
 	}
 
-	// Apply defaults
-	if params.UserID == "" {
-		params.UserID = "user"
-	}
-	if params.ChannelType == "" {
-		params.ChannelType = "telegram"
-	}
+	// Validate required fields
 	if params.SessionID == "" {
-		params.SessionID = "heartbeat-check"
+		return "", fmt.Errorf("session_id parameter is required for send_message action")
 	}
-
-	// Validate required field
+	// Валидация session_id формата
+	if !strings.Contains(params.SessionID, ":") {
+		return "", errors.New("session_id must be in format 'channel:chat_id' (e.g., 'telegram:123456789')")
+	}
 	if params.Message == "" {
 		return "", fmt.Errorf("message parameter is required for send_message action")
 	}
 
 	// Send message through the sender interface
-	result, err := t.sender.SendMessage(params.UserID, params.ChannelType, params.SessionID, params.Message)
+	result, err := t.sender.SendMessage("", "", params.SessionID, params.Message)
 	if err != nil {
 		return "", fmt.Errorf("failed to send message: %w", err)
 	}
 
 	t.logger.Info("send_message tool executed",
-		logger.Field{Key: "user_id", Value: params.UserID},
-		logger.Field{Key: "channel_type", Value: params.ChannelType},
 		logger.Field{Key: "session_id", Value: params.SessionID},
 		logger.Field{Key: "message_length", Value: len(params.Message)})
 
 	if !result.Success {
 		var errorMsg string
 		if result.Error != nil {
-			errorMsg = fmt.Sprintf(`❌ Failed to send message to %s
+			errorMsg = fmt.Sprintf(`❌ Failed to send message
 
 %s
 
@@ -121,17 +103,16 @@ The message was not delivered. You may need to:
 - Check permissions and bot rights
 
 Original message: %q`,
-				params.ChannelType,
 				result.Error.ToLLMContext(),
 				params.Message)
 		} else {
-			errorMsg = fmt.Sprintf("❌ Failed to send message to %s (no error details available)", params.ChannelType)
+			errorMsg = "❌ Failed to send message (no error details available)"
 		}
 		return "", errors.New(errorMsg)
 	}
 
-	return fmt.Sprintf("✅ Message sent successfully\n   Channel: %s\n   User: %s\n   Session: %s\n   Message: %s",
-		params.ChannelType, params.UserID, params.SessionID, params.Message), nil
+	return fmt.Sprintf("✅ Message sent successfully\n   Session: %s\n   Message: %s",
+		params.SessionID, params.Message), nil
 }
 
 // ToSchema returns the OpenAI-compatible schema for this tool.

@@ -10,6 +10,9 @@ type Job struct {
 	ExecuteAt  *time.Time        // Execution time for oneshot jobs
 	Command    string            // Message to send to agent when job executes
 	UserID     string            // User ID for the message
+	Tool       string            // Внутренний инструмент: "" | "send_message" | "agent"
+	Payload    map[string]any    // Параметры для инструмента (JSON)
+	SessionID  string            // Контекст сессии (опциональный)
 	Metadata   map[string]string // Additional job metadata
 	Executed   bool              // Whether the job has been executed
 	ExecutedAt *time.Time        // When the job was executed

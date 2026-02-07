@@ -7,33 +7,36 @@ import (
 	"context"
 	"sync"
 
+	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/logger"
 )
 
 // WorkerPool manages a pool of goroutine workers for concurrent task execution.
 type WorkerPool struct {
-	taskQueue chan Task
-	resultCh  chan Result
-	workers   int
-	wg        *taskWaitGroup
-	ctx       context.Context
-	cancel    context.CancelFunc
-	logger    *logger.Logger
-	metrics   *PoolMetrics
+	taskQueue  chan Task
+	resultCh   chan Result
+	workers    int
+	wg         *taskWaitGroup
+	ctx        context.Context
+	cancel     context.CancelFunc
+	logger     *logger.Logger
+	metrics    *PoolMetrics
+	messageBus *bus.MessageBus
 }
 
 // NewPool creates a new worker pool with the specified configuration.
-func NewPool(workers int, bufferSize int, logger *logger.Logger) *WorkerPool {
+func NewPool(workers int, bufferSize int, logger *logger.Logger, messageBus *bus.MessageBus) *WorkerPool {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &WorkerPool{
-		taskQueue: make(chan Task, bufferSize),
-		resultCh:  make(chan Result, bufferSize),
-		workers:   workers,
-		wg:        newTaskWaitGroup(),
-		ctx:       ctx,
-		cancel:    cancel,
-		logger:    logger,
-		metrics:   &PoolMetrics{},
+		taskQueue:  make(chan Task, bufferSize),
+		resultCh:   make(chan Result, bufferSize),
+		workers:    workers,
+		wg:         newTaskWaitGroup(),
+		ctx:        ctx,
+		cancel:     cancel,
+		logger:     logger,
+		metrics:    &PoolMetrics{},
+		messageBus: messageBus,
 	}
 }
 

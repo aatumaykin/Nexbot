@@ -270,15 +270,6 @@ func TestCronToolMissingRequiredParams(t *testing.T) {
 			expectedErr: "command parameter is required",
 		},
 		{
-			name: "missing user_id for add_recurring",
-			args: `{
-				"action": "add_recurring",
-				"schedule": "0 * * * *",
-				"command": "test command"
-			}`,
-			expectedErr: "user_id parameter is required",
-		},
-		{
 			name: "missing execute_at for add_oneshot",
 			args: `{
 				"action": "add_oneshot",

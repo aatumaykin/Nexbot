@@ -1,10 +1,13 @@
 package workers
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,7 +17,11 @@ func TestPool_StartStop(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	pool := NewPool(2, 10, log)
+	messageBus := bus.New(100, log)
+	require.NoError(t, messageBus.Start(context.Background()))
+	defer func() { _ = messageBus.Stop() }()
+
+	pool := NewPool(2, 10, log, messageBus)
 
 	pool.Start()
 
@@ -27,14 +34,18 @@ func TestPool_GracefulShutdown(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	pool := NewPool(2, 10, log)
+	messageBus := bus.New(100, log)
+	require.NoError(t, messageBus.Start(context.Background()))
+	defer func() { _ = messageBus.Stop() }()
+
+	pool := NewPool(2, 10, log, messageBus)
 	pool.Start()
 
 	for i := 0; i < 5; i++ {
 		task := Task{
 			ID:      fmt.Sprintf("shutdown-task-%d", i),
 			Type:    "cron",
-			Payload: fmt.Sprintf("command %d", i),
+			Payload: cron.CronTaskPayload{Command: fmt.Sprintf("command %d", i)},
 		}
 		pool.Submit(task)
 	}

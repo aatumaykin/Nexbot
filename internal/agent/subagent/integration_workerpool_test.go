@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/aatumaykin/nexbot/internal/agent/loop"
+	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/workers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,7 +40,11 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	// Test 1: Worker pool spawns subagents via tasks
 	t.Run("pool_spawn_workflow", func(t *testing.T) {
 		// Create worker pool for this sub-test
-		pool := workers.NewPool(5, 20, log)
+		messageBus := bus.New(100, log)
+		require.NoError(t, messageBus.Start(context.Background()))
+		defer func() { _ = messageBus.Stop() }()
+
+		pool := workers.NewPool(5, 20, log, messageBus)
 		pool.Start()
 		defer pool.Stop()
 
@@ -76,7 +82,11 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	// Test 2: Worker pool with mixed task types (cron and subagent)
 	t.Run("mixed_task_types", func(t *testing.T) {
 		// Create worker pool for this sub-test
-		pool := workers.NewPool(5, 20, log)
+		messageBus := bus.New(100, log)
+		require.NoError(t, messageBus.Start(context.Background()))
+		defer func() { _ = messageBus.Stop() }()
+
+		pool := workers.NewPool(5, 20, log, messageBus)
 		pool.Start()
 		defer pool.Stop()
 
@@ -86,7 +96,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 			cronTask := workers.Task{
 				ID:      fmt.Sprintf("cron-%d", i),
 				Type:    "cron",
-				Payload: fmt.Sprintf("Scheduled job %d", i),
+				Payload: cron.CronTaskPayload{Command: fmt.Sprintf("Scheduled job %d", i)},
 			}
 			pool.Submit(cronTask)
 
@@ -114,7 +124,11 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	// Test 3: Worker pool high load with subagent spawning
 	t.Run("high_load_subagents", func(t *testing.T) {
 		// Create worker pool for this sub-test
-		pool := workers.NewPool(5, 20, log)
+		messageBus := bus.New(100, log)
+		require.NoError(t, messageBus.Start(context.Background()))
+		defer func() { _ = messageBus.Stop() }()
+
+		pool := workers.NewPool(5, 20, log, messageBus)
 		pool.Start()
 		defer pool.Stop()
 
@@ -159,7 +173,11 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	// Test 4: Worker pool with context cancellation
 	t.Run("context_cancellation", func(t *testing.T) {
 		// Create worker pool for this sub-test
-		pool := workers.NewPool(2, 10, log)
+		messageBus := bus.New(100, log)
+		require.NoError(t, messageBus.Start(context.Background()))
+		defer func() { _ = messageBus.Stop() }()
+
+		pool := workers.NewPool(2, 10, log, messageBus)
 		pool.Start()
 		defer pool.Stop()
 
@@ -187,7 +205,11 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	// Test 5: Worker pool graceful shutdown
 	t.Run("graceful_shutdown", func(t *testing.T) {
 		// Create worker pool for this sub-test
-		pool := workers.NewPool(3, 10, log)
+		messageBus := bus.New(100, log)
+		require.NoError(t, messageBus.Start(context.Background()))
+		defer func() { _ = messageBus.Stop() }()
+
+		pool := workers.NewPool(3, 10, log, messageBus)
 		pool.Start()
 
 		// Submit tasks
@@ -195,7 +217,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 			task := workers.Task{
 				ID:      fmt.Sprintf("shutdown-%d", i),
 				Type:    "cron",
-				Payload: fmt.Sprintf("Task %d", i),
+				Payload: cron.CronTaskPayload{Command: fmt.Sprintf("Task %d", i)},
 			}
 			pool.Submit(task)
 		}
