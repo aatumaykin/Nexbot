@@ -30,7 +30,7 @@ type Connector struct {
 	cfg             config.TelegramConfig
 	logger          *logger.Logger
 	bus             *bus.MessageBus
-	bot             *telego.Bot
+	bot             BotInterface
 	ctx             context.Context
 	cancel          context.CancelFunc
 	outboundCh      <-chan bus.OutboundMessage
@@ -78,16 +78,16 @@ func (c *Connector) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to initialize telegram bot: %w", err)
 	}
 
-	c.bot = bot
+	c.bot = NewBotAdapter(bot)
 	c.ctx, c.cancel = context.WithCancel(ctx)
 
 	// Update typing manager with bot
 	c.typingManager.SetContext(c.ctx)
-	c.typingManager.bot = bot
+	c.typingManager.bot = c.bot
 
 	// Update long poll manager with bot and context
 	c.longPollManager.SetContext(c.ctx)
-	c.longPollManager.SetBot(bot)
+	c.longPollManager.bot = c.bot
 
 	// Get bot info
 	botUser, err := c.bot.GetMe(c.ctx)

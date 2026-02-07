@@ -10,13 +10,13 @@ import (
 // LongPollManager handles long polling for Telegram updates.
 type LongPollManager struct {
 	connector *Connector
-	bot       *telego.Bot
+	bot       BotInterface
 	logger    *logger.Logger
 	ctx       context.Context
 }
 
 // NewLongPollManager creates a new long poll manager.
-func NewLongPollManager(connector *Connector, bot *telego.Bot, logger *logger.Logger) *LongPollManager {
+func NewLongPollManager(connector *Connector, bot BotInterface, logger *logger.Logger) *LongPollManager {
 	return &LongPollManager{
 		connector: connector,
 		bot:       bot,
@@ -30,7 +30,7 @@ func (lpm *LongPollManager) SetContext(ctx context.Context) {
 }
 
 // SetBot sets the bot for the long poll manager.
-func (lpm *LongPollManager) SetBot(bot *telego.Bot) {
+func (lpm *LongPollManager) SetBot(bot BotInterface) {
 	lpm.bot = bot
 }
 

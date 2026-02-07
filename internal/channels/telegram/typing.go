@@ -13,7 +13,7 @@ import (
 
 // TypingManager handles typing indicator logic for Telegram connector.
 type TypingManager struct {
-	bot          *telego.Bot
+	bot          BotInterface
 	logger       *logger.Logger
 	ctx          context.Context
 	typingLock   sync.RWMutex
@@ -21,7 +21,7 @@ type TypingManager struct {
 }
 
 // NewTypingManager creates a new typing manager.
-func NewTypingManager(bot *telego.Bot, logger *logger.Logger) *TypingManager {
+func NewTypingManager(bot BotInterface, logger *logger.Logger) *TypingManager {
 	return &TypingManager{
 		bot:          bot,
 		logger:       logger,
