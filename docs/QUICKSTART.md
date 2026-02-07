@@ -192,6 +192,36 @@ nexbot cron list
 nexbot cron remove job_12345
 ```
 
+### Создание напоминаний через Cron Tool (для агента)
+
+**Обязательный формат для напоминаний:**
+
+```json
+{
+  "action": "add_oneshot",
+  "execute_at": "2026-02-08T01:00:00Z",
+  "tool": "send_message",  // REQUIRED: "send_message" или "agent"
+  "payload": "{\"message\": \"Reminder text\"}",  // REQUIRED: JSON строка
+  "session_id": "telegram:CHAT_ID_HERE"  // REQUIRED для send_message/agent
+}
+```
+
+**Параметры:**
+
+- `tool` — что выполнять (обязательно): `"send_message"` или `"agent"`
+- `payload` — параметры tool (обязательно): `{"message": "текст"}`
+- `session_id` — куда отправить (обязательно для send_message/agent): `"telegram:CHAT_ID"`
+- `execute_at` — когда выполнять: ISO8601 формат (текущее время + X минут)
+
+**Как работает:**
+1. Пользователь просит напоминание → агент создает cron job с tool, payload, session_id
+2. Cron job выполняется в назначенное время → вызывает tool с параметрами
+3. Сообщение отправляется в правильный Telegram чат
+
+**Устарело:**
+- Параметр `command` больше не поддерживается
+- Используйте `tool` + `payload` + `session_id` вместо command
+
 **Примеры cron выражений:**
 
 ```bash

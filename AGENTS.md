@@ -60,7 +60,10 @@ workspace/            — Bootstrap files (~/.nexbot/)
 ## Инструменты агента
 
 **cron** — планировщик задач с tool/payload
-- Пример: `{"tool": "send_message", "payload": {"session_id": "abc123", "message": "Reminder"}}`
+- Создание напоминаний через cron tool
+- Обязательные параметры: `tool`, `payload`, `session_id`
+- Пример: `{"action": "add_oneshot", "execute_at": "2026-02-08T01:00:00Z", "tool": "send_message", "payload": "{\"message\": \"Reminder\"}", "session_id": "telegram:35052705"}`
+- Устарело: поле `command`, используйте `tool` + `payload` + `session_id`
 
 **send_message** — отправка сообщения через каналы (Telegram)
 - Пример: `{"session_id": "telegram:123456789", "message": "Hello"}`

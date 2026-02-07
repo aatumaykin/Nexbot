@@ -52,8 +52,20 @@ type Scheduler struct {
 
 **Storage Format:**
 ```json
-{"id":"job_123","type":"recurring","schedule":"0 9 * * *","command":"check_status","user_id":"user1","metadata":{},"executed":false,"executed_at":null}
+{
+  "id": "job_123",
+  "type": "recurring",
+  "schedule": "0 9 * * *",
+  "tool": "send_message",
+  "payload": "{\"message\": \"Reminder\"}",
+  "session_id": "telegram:35052705",
+  "metadata": {},
+  "executed": false,
+  "executed_at": null
+}
 ```
+
+**NOTE:** Устаревший формат с `command` полем больше не поддерживается. Используйте `tool` + `payload` + `session_id`.
 
 ### 3. Worker Pool Integration
 
@@ -75,11 +87,14 @@ type Task struct {
 **Payload:**
 ```go
 type CronTaskPayload struct {
-    Command  string            // Command to execute
-    UserID   string            // User ID
+    Tool     string            // REQUIRED: "send_message" or "agent"
+    Payload  string            // REQUIRED: JSON string with tool parameters
+    SessionID string            // REQUIRED for send_message/agent tools
     Metadata map[string]string // Job metadata
 }
 ```
+
+**NOTE:** Устаревший формат с `Command` полем больше не поддерживается. Используйте `tool` + `payload` + `session_id`.
 
 ## Flow Diagrams
 
@@ -136,9 +151,9 @@ type CronTaskPayload struct {
        │
        ▼
 ┌─────────────────────┐
-│ Create Task Payload │
-│ (Command, UserID,   │
-│  Metadata)          │
+│ Extract tool params │
+│ (tool, payload,     │
+│  session_id)        │
 └──────┬──────────────┘
        │
        ▼
@@ -156,7 +171,7 @@ type CronTaskPayload struct {
        ▼
 ┌─────────────────────┐
 │ Worker Executes     │
-│ Task                │
+│ Tool                │
 └──────┬──────────────┘
        │
        ▼
