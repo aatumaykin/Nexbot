@@ -113,15 +113,16 @@ func TestCronToolAddRecurring(t *testing.T) {
 	args := `{
 		"action": "add_recurring",
 		"schedule": "0 0 0 * * *",
-		"command": "test command",
-		"user_id": "user123"
+		"tool": "send_message",
+		"payload": "{\"message\": \"test command\"}",
+		"session_id": "telegram:123456789"
 	}`
 
 	result, err := tool.Execute(args)
 	assert.NoError(t, err, "Execute should not return error")
 	assert.Contains(t, result, "Recurring job added successfully", "Result should contain success message")
 	assert.Contains(t, result, "0 0 0 * * *", "Result should contain schedule")
-	assert.Contains(t, result, "test command", "Result should contain command")
+	assert.Contains(t, result, "test command", "Result should contain message")
 }
 
 // TestCronToolAddOneshot tests adding a one-time job.
@@ -132,14 +133,15 @@ func TestCronToolAddOneshot(t *testing.T) {
 	args := `{
 		"action": "add_oneshot",
 		"execute_at": "` + executeAt + `",
-		"command": "test command",
-		"user_id": "user123"
+		"tool": "send_message",
+		"payload": "{\"message\": \"test command\"}",
+		"session_id": "telegram:123456789"
 	}`
 
 	result, err := tool.Execute(args)
 	assert.NoError(t, err, "Execute should not return error")
 	assert.Contains(t, result, "One-time job added successfully", "Result should contain success message")
-	assert.Contains(t, result, "test command", "Result should contain command")
+	assert.Contains(t, result, "test command", "Result should contain message")
 }
 
 // TestCronToolRemoveJob tests removing a job.
@@ -154,8 +156,9 @@ func TestCronToolRemoveJob(t *testing.T) {
 	addArgs := `{
 		"action": "add_recurring",
 		"schedule": "0 0 0 * * *",
-		"command": "test command",
-		"user_id": "user123"
+		"tool": "send_message",
+		"payload": "{\"message\": \"test command\"}",
+		"session_id": "telegram:123456789"
 	}`
 
 	addResult, err := tool.Execute(addArgs)
@@ -200,8 +203,9 @@ func TestCronToolListJobs(t *testing.T) {
 	addArgs := `{
 		"action": "add_recurring",
 		"schedule": "0 0 0 * * *",
-		"command": "command1",
-		"user_id": "user1"
+		"tool": "send_message",
+		"payload": "{\"message\": \"command1\"}",
+		"session_id": "telegram:123456789"
 	}`
 
 	_, err := tool.Execute(addArgs)
@@ -255,25 +259,27 @@ func TestCronToolMissingRequiredParams(t *testing.T) {
 			name: "missing schedule for add_recurring",
 			args: `{
 				"action": "add_recurring",
-				"command": "test command",
+				"tool": "send_message",
+				"payload": "{\"message\": \"test command\"}",
 				"user_id": "user123"
 			}`,
 			expectedErr: "schedule parameter is required",
 		},
 		{
-			name: "missing command for add_recurring",
+			name: "missing tool for add_recurring",
 			args: `{
 				"action": "add_recurring",
 				"schedule": "0 * * * *",
 				"user_id": "user123"
 			}`,
-			expectedErr: "command parameter is required",
+			expectedErr: "tool parameter is required",
 		},
 		{
 			name: "missing execute_at for add_oneshot",
 			args: `{
 				"action": "add_oneshot",
-				"command": "test command",
+				"tool": "send_message",
+				"payload": "{\"message\": \"test command\"}",
 				"user_id": "user123"
 			}`,
 			expectedErr: "execute_at parameter is required",
@@ -314,9 +320,10 @@ func TestCronToolInvalidExecuteAt(t *testing.T) {
 
 	args := `{
 		"action": "add_oneshot",
-		"execute_at": "invalid-date",
-		"command": "test command",
-		"user_id": "user123"
+		"execute_at": "not-a-valid-date",
+		"tool": "send_message",
+		"payload": "{\"message\":\"test\"}",
+		"session_id": "telegram:123456789"
 	}`
 
 	_, err := tool.Execute(args)
