@@ -42,7 +42,7 @@ func (t *ListDirTool) Name() string {
 
 // Description returns a description of what the tool does.
 func (t *ListDirTool) Description() string {
-	return "Lists the contents of a directory in the workspace. Can list recursively and optionally include hidden files."
+	return "List directory contents in workspace. Supports recursive listing."
 }
 
 // Parameters returns the JSON Schema for the tool's parameters.
@@ -52,16 +52,16 @@ func (t *ListDirTool) Parameters() map[string]interface{} {
 		"properties": map[string]interface{}{
 			"path": map[string]interface{}{
 				"type":        "string",
-				"description": "The path to the directory to list. Can be absolute or relative to the workspace directory.",
+				"description": "The path to the directory to list. Can be absolute or relative to the workspace directory. Examples: {\"path\": \"src\"}",
 			},
 			"recursive": map[string]interface{}{
 				"type":        "boolean",
-				"description": "Whether to list directory contents recursively.",
+				"description": "Whether to list directory contents recursively. Examples: {\"path\": \"src\", \"recursive\": true}",
 				"default":     false,
 			},
 			"include_hidden": map[string]interface{}{
 				"type":        "boolean",
-				"description": "Whether to include hidden files and directories (those starting with '.').",
+				"description": "Whether to include hidden files and directories (those starting with '.'). Examples: {\"path\": \"config\", \"include_hidden\": true}",
 				"default":     false,
 			},
 		},

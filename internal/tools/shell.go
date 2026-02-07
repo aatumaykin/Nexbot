@@ -40,7 +40,7 @@ func (t *ShellExecTool) Name() string {
 
 // Description returns a description of what the tool does.
 func (t *ShellExecTool) Description() string {
-	return "Executes shell commands with security restrictions. Supports deny, ask, and allowed command lists. Commands have a timeout and are logged."
+	return "Execute shell commands with security restrictions (whitelist, timeout, logging)."
 }
 
 // Parameters returns the JSON Schema for the tool's parameters.
@@ -50,7 +50,7 @@ func (t *ShellExecTool) Parameters() map[string]interface{} {
 		"properties": map[string]interface{}{
 			"command": map[string]interface{}{
 				"type":        "string",
-				"description": "The shell command to execute.",
+				"description": "The shell command to execute. Examples: ls -la, pwd, cat /var/log/syslog, df -h",
 			},
 		},
 		"required": []string{"command"},

@@ -41,7 +41,7 @@ func (t *DeleteFileTool) Name() string {
 
 // Description returns a description of what the tool does.
 func (t *DeleteFileTool) Description() string {
-	return "Deletes a file or directory from the workspace. For directories, use recursive=true to delete the entire directory tree."
+	return "Delete file or directory from workspace. Supports recursive deletion."
 }
 
 // Parameters returns the JSON Schema for the tool's parameters.
@@ -51,11 +51,11 @@ func (t *DeleteFileTool) Parameters() map[string]interface{} {
 		"properties": map[string]interface{}{
 			"path": map[string]interface{}{
 				"type":        "string",
-				"description": "The path to the file or directory to delete. Can be absolute or relative to the workspace directory.",
+				"description": "The path to the file or directory to delete. Can be absolute or relative to the workspace directory. Examples: {\"path\": \"temp.txt\"}",
 			},
 			"recursive": map[string]interface{}{
 				"type":        "boolean",
-				"description": "For directories, whether to delete recursively. Required for non-empty directories.",
+				"description": "For directories, whether to delete recursively. Required for non-empty directories. Examples: {\"path\": \"logs\", \"recursive\": true}",
 				"default":     false,
 			},
 		},

@@ -57,6 +57,29 @@ workspace/            — Bootstrap files (~/.nexbot/)
 - Structure: YAML frontmatter + markdown body
 - OpenClaw compatible
 
+## Инструменты агента
+
+**cron** — планировщик задач с tool/payload
+- Пример: `{"tool": "send_message", "payload": {"session_id": "abc123", "message": "Reminder"}}`
+
+**send_message** — отправка сообщения через каналы (Telegram)
+- Пример: `{"session_id": "telegram:123456789", "message": "Hello"}`
+
+**shell_exec** — выполнение shell команд с ограничениями безопасности
+- Описание: Execute shell commands with security restrictions (whitelist, timeout, logging)
+
+**read_file** — чтение файлов из workspace
+- Описание: Read file contents from workspace. Returns content with line numbers
+
+**write_file** — запись файлов в workspace
+- Описание: Write content to a file in workspace. Supports create, append, overwrite modes
+
+**list_dir** — листинг директорий workspace
+- Описание: List directory contents in workspace. Supports recursive listing
+
+**delete_file** — удаление файлов и директорий
+- Описание: Delete file or directory from workspace. Supports recursive deletion
+
 ## Commands
 
 ```bash

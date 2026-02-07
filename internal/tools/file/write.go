@@ -42,7 +42,7 @@ func (t *WriteFileTool) Name() string {
 
 // Description returns a description of what the tool does.
 func (t *WriteFileTool) Description() string {
-	return "Writes content to a file in the workspace. Supports creating new files, appending to existing files, or overwriting files. Creates parent directories if they don't exist."
+	return "Write content to a file in workspace. Supports create, append, overwrite modes."
 }
 
 // Parameters returns the JSON Schema for the tool's parameters.
@@ -52,15 +52,15 @@ func (t *WriteFileTool) Parameters() map[string]interface{} {
 		"properties": map[string]interface{}{
 			"path": map[string]interface{}{
 				"type":        "string",
-				"description": "The path to the file to write. Can be absolute or relative to the workspace directory.",
+				"description": "The path to the file to write. Can be absolute or relative to the workspace directory. Examples: {\"path\": \"newfile.txt\", \"content\": \"Hello World\", \"mode\": \"create\"}",
 			},
 			"content": map[string]interface{}{
 				"type":        "string",
-				"description": "The content to write to the file.",
+				"description": "The content to write to the file. Examples: {\"path\": \"logs.txt\", \"content\": \"New entry\", \"mode\": \"append\"}",
 			},
 			"mode": map[string]interface{}{
 				"type":        "string",
-				"description": "Write mode: 'create' (fails if file exists), 'append' (append to existing file), 'overwrite' (replace file content). Defaults to 'create'.",
+				"description": "Write mode: 'create' (fails if file exists), 'append' (append to existing file), 'overwrite' (replace file content). Defaults to 'create'. Examples: {\"path\": \"config.json\", \"content\": \"{\\\"key\\\": \\\"value\\\"}\", \"mode\": \"overwrite\"}",
 				"enum":        []string{"create", "append", "overwrite"},
 				"default":     "create",
 			},

@@ -43,7 +43,7 @@ func (t *ReadFileTool) Name() string {
 
 // Description returns a description of what the tool does.
 func (t *ReadFileTool) Description() string {
-	return "Reads the contents of a file from the workspace. Returns file content with line numbers. Use this tool when you need to examine file contents."
+	return "Read file contents from workspace. Returns content with line numbers."
 }
 
 // Parameters returns the JSON Schema for the tool's parameters.
@@ -53,11 +53,11 @@ func (t *ReadFileTool) Parameters() map[string]interface{} {
 		"properties": map[string]interface{}{
 			"path": map[string]interface{}{
 				"type":        "string",
-				"description": "The path to the file to read. Can be absolute or relative to the workspace directory.",
+				"description": "The path to the file to read. Can be absolute or relative to the workspace directory. Examples: {\"path\": \"config.json\"}",
 			},
 			"offset": map[string]interface{}{
 				"type":        "integer",
-				"description": "The line number to start reading from (0-based). Defaults to 0.",
+				"description": "The line number to start reading from (0-based). Defaults to 0. Examples: {\"path\": \"logs/app.log\", \"offset\": 100, \"limit\": 50}",
 				"default":     0,
 			},
 			"limit": map[string]interface{}{
@@ -67,7 +67,7 @@ func (t *ReadFileTool) Parameters() map[string]interface{} {
 			},
 			"encoding": map[string]interface{}{
 				"type":        "string",
-				"description": "The file encoding. Currently only 'utf-8' is supported.",
+				"description": "The file encoding. Currently only 'utf-8' is supported. Examples: {\"path\": \"data.txt\", \"encoding\": \"utf-8\"}",
 				"default":     "utf-8",
 			},
 		},
