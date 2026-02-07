@@ -108,11 +108,13 @@ func (a *App) processMessage(ctx context.Context, msg bus.InboundMessage) {
 
 	// Send response if non-empty
 	if response != "" {
+		correlationID := msg.SessionID // Use session ID as correlation ID
 		outboundMsg := bus.NewOutboundMessage(
 			msg.ChannelType,
 			msg.UserID,
 			msg.SessionID,
 			response,
+			correlationID,
 			nil,
 		)
 		if err := a.messageBus.PublishOutbound(*outboundMsg); err != nil {

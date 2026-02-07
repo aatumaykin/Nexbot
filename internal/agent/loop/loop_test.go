@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/aatumaykin/nexbot/internal/agent/session"
 	"github.com/aatumaykin/nexbot/internal/bus"
@@ -531,9 +532,24 @@ func TestAgentMessageSender(t *testing.T) {
 				}
 			}()
 
-			sender := NewAgentMessageSender(messageBus)
+			sender := NewAgentMessageSender(messageBus, log)
 
-			err := sender.SendMessage(tt.userID, tt.channelType, tt.sessionID, tt.message)
+			// Subscribe to outbound messages to simulate channel sending result
+			outboundCh := messageBus.SubscribeOutbound(context.Background())
+			go func() {
+				for msg := range outboundCh {
+					// Simulate successful send
+					result := bus.MessageSendResult{
+						CorrelationID: msg.CorrelationID,
+						ChannelType:   msg.ChannelType,
+						Success:       true,
+						Timestamp:     time.Now(),
+					}
+					_ = messageBus.PublishSendResult(result)
+				}
+			}()
+
+			_, err := sender.SendMessage(tt.userID, tt.channelType, tt.sessionID, tt.message)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SendMessage() error = %v, wantErr %v", err, tt.wantErr)
 			}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aatumaykin/nexbot/internal/agent"
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/stretchr/testify/assert"
@@ -12,14 +13,14 @@ import (
 
 // mockMessageSender is a simple mock implementation of agent.MessageSender.
 type mockMessageSender struct {
-	sendFunc func(userID, channelType, sessionID, message string) error
+	sendFunc func(userID, channelType, sessionID, message string) (*agent.MessageResult, error)
 }
 
-func (m *mockMessageSender) SendMessage(userID, channelType, sessionID, message string) error {
+func (m *mockMessageSender) SendMessage(userID, channelType, sessionID, message string) (*agent.MessageResult, error) {
 	if m.sendFunc != nil {
 		return m.sendFunc(userID, channelType, sessionID, message)
 	}
-	return nil
+	return &agent.MessageResult{Success: true}, nil
 }
 
 // setupTestEnvironmentForMessage creates a test environment with message bus and logger.
@@ -56,15 +57,21 @@ func setupSendMessageTool(t *testing.T) *SendMessageTool {
 
 	// Create mock that delegates to real message bus
 	sender := &mockMessageSender{
-		sendFunc: func(userID, channelType, sessionID, message string) error {
+		sendFunc: func(userID, channelType, sessionID, message string) (*agent.MessageResult, error) {
+			correlationID := sessionID // Use session ID as correlation ID
 			event := bus.NewOutboundMessage(
 				bus.ChannelType(channelType),
 				userID,
 				sessionID,
 				message,
+				correlationID,
 				nil, // no metadata
 			)
-			return messageBus.PublishOutbound(*event)
+			err := messageBus.PublishOutbound(*event)
+			if err != nil {
+				return nil, err
+			}
+			return &agent.MessageResult{Success: true}, nil
 		},
 	}
 
@@ -151,8 +158,8 @@ func TestSendMessageToolPublishError(t *testing.T) {
 
 	// Create mock that returns error
 	sender := &mockMessageSender{
-		sendFunc: func(userID, channelType, sessionID, message string) error {
-			return assert.AnError
+		sendFunc: func(userID, channelType, sessionID, message string) (*agent.MessageResult, error) {
+			return nil, assert.AnError
 		},
 	}
 

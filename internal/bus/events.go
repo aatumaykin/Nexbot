@@ -16,6 +16,8 @@ package bus
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/aatumaykin/nexbot/internal/channels"
 )
 
 // EventType represents the type of lifecycle event
@@ -59,12 +61,22 @@ type InboundMessage struct {
 
 // OutboundMessage represents a message to be sent to an external channel
 type OutboundMessage struct {
-	ChannelType ChannelType    `json:"channel_type"`
-	UserID      string         `json:"user_id"`
-	SessionID   string         `json:"session_id"`
-	Content     string         `json:"content"`
-	Timestamp   time.Time      `json:"timestamp"`
-	Metadata    map[string]any `json:"metadata,omitempty"`
+	ChannelType   ChannelType    `json:"channel_type"`
+	UserID        string         `json:"user_id"`
+	SessionID     string         `json:"session_id"`
+	Content       string         `json:"content"`
+	CorrelationID string         `json:"correlation_id,omitempty"` // для отслеживания результата отправки
+	Timestamp     time.Time      `json:"timestamp"`
+	Metadata      map[string]any `json:"metadata,omitempty"`
+}
+
+// MessageSendResult - результат отправки сообщения в канал
+type MessageSendResult struct {
+	CorrelationID string                // ID для сопоставления с запросом
+	ChannelType   ChannelType           // Канал отправки (telegram и т.д.)
+	Success       bool                  // Успешная отправка
+	Error         channels.ErrorDetails // Детали ошибки (если есть)
+	Timestamp     time.Time             // Время получения результата
 }
 
 // ToJSON serializes the InboundMessage to JSON bytes
@@ -100,14 +112,15 @@ func NewInboundMessage(channelType ChannelType, userID, sessionID, content strin
 }
 
 // NewOutboundMessage creates a new OutboundMessage with the current timestamp
-func NewOutboundMessage(channelType ChannelType, userID, sessionID, content string, metadata map[string]any) *OutboundMessage {
+func NewOutboundMessage(channelType ChannelType, userID, sessionID, content string, correlationID string, metadata map[string]any) *OutboundMessage {
 	return &OutboundMessage{
-		ChannelType: channelType,
-		UserID:      userID,
-		SessionID:   sessionID,
-		Content:     content,
-		Timestamp:   time.Now(),
-		Metadata:    metadata,
+		ChannelType:   channelType,
+		UserID:        userID,
+		SessionID:     sessionID,
+		Content:       content,
+		CorrelationID: correlationID,
+		Timestamp:     time.Now(),
+		Metadata:      metadata,
 	}
 }
 

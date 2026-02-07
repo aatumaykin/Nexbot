@@ -133,7 +133,8 @@ func (h *Handler) handleSendMessage(req *Request, conn net.Conn) {
 		req.UserID,
 		req.SessionID,
 		req.Content,
-		nil,
+		"",  // correlationID (not used for IPC)
+		nil, // metadata
 	)
 
 	// Публикуем в message bus

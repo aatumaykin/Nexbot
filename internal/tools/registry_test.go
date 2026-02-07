@@ -115,8 +115,8 @@ func TestExecuteToolCall(t *testing.T) {
 		t.Errorf("Expected content 'executed: {\"value\": \"test\"}', got '%s'", result.Content)
 	}
 
-	if result.Error != "" {
-		t.Errorf("Expected no error, got '%s'", result.Error)
+	if result.Error != nil {
+		t.Errorf("Expected no error, got '%s'", result.Error.Message)
 	}
 }
 
@@ -134,8 +134,8 @@ func TestExecuteToolCall_NotFound(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	if result.Error != "tool not found: nonexistent" {
-		t.Errorf("Expected error 'tool not found: nonexistent', got '%s'", result.Error)
+	if result.Error == nil || result.Error.Message != "tool not found: nonexistent" {
+		t.Errorf("Expected error 'tool not found: nonexistent', got '%v'", result.Error)
 	}
 }
 
@@ -165,8 +165,8 @@ func TestExecuteToolCall_ExecutionError(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	if result.Error != "execution failed" {
-		t.Errorf("Expected error 'execution failed', got '%s'", result.Error)
+	if result.Error == nil || result.Error.Message != "execution failed" {
+		t.Errorf("Expected error 'execution failed', got '%v'", result.Error)
 	}
 }
 

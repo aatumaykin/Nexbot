@@ -1,34 +1,81 @@
 package loop
 
 import (
+	"context"
+	"fmt"
+	"time"
+
 	"github.com/aatumaykin/nexbot/internal/agent"
 	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/logger"
+	"github.com/google/uuid"
 )
 
 // AgentMessageSender implements agent.MessageSender through the message bus.
 // This bridges the Agent Layer's MessageSender interface with the Bus Layer.
 type AgentMessageSender struct {
 	messageBus *bus.MessageBus
+	logger     *logger.Logger
 }
 
 // NewAgentMessageSender creates a new AgentMessageSender instance.
-func NewAgentMessageSender(messageBus *bus.MessageBus) *AgentMessageSender {
+func NewAgentMessageSender(messageBus *bus.MessageBus, logger *logger.Logger) *AgentMessageSender {
 	return &AgentMessageSender{
 		messageBus: messageBus,
+		logger:     logger,
 	}
 }
 
-// SendMessage sends a message through the message bus.
+// SendMessage sends a message through the message bus and waits for result.
 // Implements agent.MessageSender interface.
-func (a *AgentMessageSender) SendMessage(userID, channelType, sessionID, message string) error {
+func (a *AgentMessageSender) SendMessage(userID, channelType, sessionID, message string) (*agent.MessageResult, error) {
+	// Генерируем correlation ID
+	correlationID := uuid.New().String()
+
+	// Регистрируем ожидание результата
+	tracker := a.messageBus.GetResultTracker()
+	resultCh := tracker.Register(correlationID)
+
+	// Публикуем сообщение в bus
 	event := bus.NewOutboundMessage(
 		bus.ChannelType(channelType),
 		userID,
 		sessionID,
 		message,
-		nil, // no metadata
+		correlationID,
+		nil, // metadata
 	)
-	return a.messageBus.PublishOutbound(*event)
+
+	if err := a.messageBus.PublishOutbound(*event); err != nil {
+		// Удаляем регистрацию при ошибке публикации
+		a.logger.ErrorCtx(context.Background(), "failed to publish outbound message", err,
+			logger.Field{Key: "user_id", Value: userID},
+			logger.Field{Key: "channel_type", Value: channelType})
+		return nil, fmt.Errorf("failed to publish message: %w", err)
+	}
+
+	// Ждем результат отправки (timeout 10 секунд)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Ждем результат напрямую через канал (более эффективно, чем через Wait)
+	select {
+	case result := <-resultCh:
+		a.logger.DebugCtx(context.Background(), "message send result received",
+			logger.Field{Key: "correlation_id", Value: correlationID},
+			logger.Field{Key: "success", Value: result.Success})
+
+		// Возвращаем результат
+		return &agent.MessageResult{
+			Success:      result.Success,
+			Error:        result.Error,
+			ResponseText: "",
+		}, nil
+	case <-ctx.Done():
+		a.logger.ErrorCtx(context.Background(), "timeout waiting for send result", ctx.Err(),
+			logger.Field{Key: "correlation_id", Value: correlationID})
+		return nil, fmt.Errorf("timeout waiting for send result: %w", ctx.Err())
+	}
 }
 
 var _ agent.MessageSender = (*AgentMessageSender)(nil) // Compile-time interface check

@@ -62,10 +62,13 @@ type MessageBus struct {
 	inboundCh  chan InboundMessage
 	outboundCh chan OutboundMessage
 	eventCh    chan Event
+	resultCh   chan MessageSendResult // для result tracking
+	tracker    *ResultTracker
 
 	inboundSubscribers  map[int64]chan InboundMessage
 	outboundSubscribers map[int64]chan OutboundMessage
 	eventSubscribers    map[int64]chan Event
+	resultSubscribers   map[int64]chan MessageSendResult
 	subscriberID        int64
 }
 
@@ -76,9 +79,12 @@ func New(capacity int, logger *logger.Logger) *MessageBus {
 		inboundCh:           make(chan InboundMessage, capacity),
 		outboundCh:          make(chan OutboundMessage, capacity),
 		eventCh:             make(chan Event, capacity),
+		resultCh:            make(chan MessageSendResult, capacity),
+		tracker:             NewResultTracker(logger),
 		inboundSubscribers:  make(map[int64]chan InboundMessage),
 		outboundSubscribers: make(map[int64]chan OutboundMessage),
 		eventSubscribers:    make(map[int64]chan Event),
+		resultSubscribers:   make(map[int64]chan MessageSendResult),
 	}
 }
 
@@ -98,6 +104,7 @@ func (mb *MessageBus) Start(ctx context.Context) error {
 	go mb.distributeInbound()
 	go mb.distributeOutbound()
 	go mb.distributeEvents()
+	go mb.distributeResults()
 
 	mb.logger.Info("message bus started", logger.Field{Key: "capacity", Value: cap(mb.inboundCh)})
 	return nil
@@ -135,10 +142,16 @@ func (mb *MessageBus) Stop() error {
 		delete(mb.eventSubscribers, id)
 	}
 
+	for id, ch := range mb.resultSubscribers {
+		close(ch)
+		delete(mb.resultSubscribers, id)
+	}
+
 	// Close main channels
 	close(mb.inboundCh)
 	close(mb.outboundCh)
 	close(mb.eventCh)
+	close(mb.resultCh)
 
 	mb.started = false
 
@@ -332,4 +345,57 @@ func (mb *MessageBus) distributeEvents() {
 	distributeMessages(mb.ctx, mb.logger, &mb.mu, mb.eventCh, func() map[int64]chan Event {
 		return mb.eventSubscribers
 	}, "event subscriber channel full, skipping event")
+}
+
+// PublishSendResult публикует результат отправки сообщения
+func (mb *MessageBus) PublishSendResult(result MessageSendResult) error {
+	mb.mu.RLock()
+	defer mb.mu.RUnlock()
+
+	if !mb.started {
+		return ErrNotStarted
+	}
+
+	select {
+	case mb.resultCh <- result:
+		mb.tracker.Complete(result.CorrelationID, result)
+		mb.logger.DebugCtx(mb.ctx, "send result published",
+			logger.Field{Key: "correlation_id", Value: result.CorrelationID},
+			logger.Field{Key: "success", Value: result.Success})
+		return nil
+	default:
+		return ErrQueueFull
+	}
+}
+
+// SubscribeSendResults подписывается на результаты отправки
+func (mb *MessageBus) SubscribeSendResults(ctx context.Context) <-chan MessageSendResult {
+	mb.mu.Lock()
+	defer mb.mu.Unlock()
+
+	if !mb.started {
+		return nil
+	}
+
+	ch := make(chan MessageSendResult, 10)
+	mb.subscriberID++
+	id := mb.subscriberID
+	mb.resultSubscribers[id] = ch
+
+	mb.logger.DebugCtx(ctx, "result subscriber added",
+		logger.Field{Key: "subscriber_id", Value: id})
+
+	return ch
+}
+
+// GetResultTracker возвращает трекер результатов
+func (mb *MessageBus) GetResultTracker() *ResultTracker {
+	return mb.tracker
+}
+
+// distributeResults distributes send results to all subscribers
+func (mb *MessageBus) distributeResults() {
+	distributeMessages(mb.ctx, mb.logger, &mb.mu, mb.resultCh, func() map[int64]chan MessageSendResult {
+		return mb.resultSubscribers
+	}, "result subscriber channel full, skipping result")
 }

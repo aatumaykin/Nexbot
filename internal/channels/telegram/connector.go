@@ -11,14 +11,18 @@ package telegram
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/channels"
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/constants"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/mymmrac/telego"
+	telegoapi "github.com/mymmrac/telego/telegoapi"
 )
 
 // Connector represents the Telegram bot connector
@@ -264,14 +268,59 @@ func (c *Connector) handleOutbound() {
 
 			_, err = c.bot.SendMessage(c.ctx, &params)
 			if err != nil {
+				// Парсим ошибку telego для получения деталей
+				var telErr *telegoapi.Error
+				if errors.As(err, &telErr) {
+					details := &channels.TelegramErrorDetails{
+						ErrorCode:       telErr.ErrorCode,
+						Description:     telErr.Description,
+						RetryAfterSec:   0,
+						OriginalMessage: msg.Content,
+						ChatID:          chatID,
+						Timestamp:       time.Now(),
+					}
+
+					if telErr.Parameters != nil {
+						details.RetryAfterSec = telErr.Parameters.RetryAfter
+					}
+
+					result := bus.MessageSendResult{
+						CorrelationID: msg.CorrelationID,
+						ChannelType:   bus.ChannelTypeTelegram,
+						Success:       false,
+						Error:         details,
+						Timestamp:     time.Now(),
+					}
+
+					if pubErr := c.bus.PublishSendResult(result); pubErr != nil {
+						c.logger.ErrorCtx(c.ctx, "failed to publish send result", pubErr,
+							logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+					}
+				}
+
 				c.logger.ErrorCtx(c.ctx, "failed to send message to Telegram", err,
-					logger.Field{Key: "chat_id", Value: chatID})
+					logger.Field{Key: "chat_id", Value: chatID},
+					logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
 				continue
+			}
+
+			// Успешная отправка
+			result := bus.MessageSendResult{
+				CorrelationID: msg.CorrelationID,
+				ChannelType:   bus.ChannelTypeTelegram,
+				Success:       true,
+				Timestamp:     time.Now(),
+			}
+
+			if pubErr := c.bus.PublishSendResult(result); pubErr != nil {
+				c.logger.ErrorCtx(c.ctx, "failed to publish send result", pubErr,
+					logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
 			}
 
 			c.logger.DebugCtx(c.ctx, "outbound message sent to Telegram",
 				logger.Field{Key: "chat_id", Value: chatID},
 				logger.Field{Key: "user_id", Value: msg.UserID},
+				logger.Field{Key: "correlation_id", Value: msg.CorrelationID},
 				logger.Field{Key: "content", Value: msg.Content})
 		}
 	}

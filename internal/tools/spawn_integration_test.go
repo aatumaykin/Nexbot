@@ -91,7 +91,7 @@ func TestSpawnToolIntegration(t *testing.T) {
 	result, err := ExecuteToolCall(registry, toolCall)
 	require.NoError(t, err)
 	assert.Equal(t, "test-call-123", result.ToolCallID)
-	assert.Empty(t, result.Error) // No error expected
+	assert.Nil(t, result.Error) // No error expected
 	assert.Contains(t, result.Content, "Subagent spawned with ID")
 
 	// Verify subagent was created in mock manager
@@ -118,7 +118,7 @@ func TestSpawnToolIntegrationMultipleCalls(t *testing.T) {
 
 		result, err := ExecuteToolCall(registry, toolCall)
 		require.NoError(t, err)
-		assert.Empty(t, result.Error)
+		assert.Nil(t, result.Error)
 		assert.Contains(t, result.Content, "Subagent spawned with ID")
 	}
 
@@ -146,7 +146,7 @@ func TestSpawnToolIntegrationWithTimeout(t *testing.T) {
 
 	result, err := ExecuteToolCall(registry, toolCall)
 	require.NoError(t, err)
-	assert.Empty(t, result.Error)
+	assert.Nil(t, result.Error)
 	assert.Contains(t, result.Content, "Subagent spawned with ID")
 }
 
@@ -172,29 +172,29 @@ func TestSpawnToolIntegrationErrorHandling(t *testing.T) {
 
 	result, err := ExecuteToolCall(registry, toolCall)
 	require.NoError(t, err)
-	assert.NotEmpty(t, result.Error)
-	assert.Contains(t, result.Error, "parse")
+	assert.NotNil(t, result.Error)
+	assert.Contains(t, result.Error.Message, "parse")
 
 	// Test missing task
 	toolCall.Arguments = `{}`
 	result, err = ExecuteToolCall(registry, toolCall)
 	require.NoError(t, err)
-	assert.NotEmpty(t, result.Error)
-	assert.Contains(t, result.Error, "required")
+	assert.NotNil(t, result.Error)
+	assert.Contains(t, result.Error.Message, "required")
 
 	// Test invalid timeout
 	toolCall.Arguments = `{"task": "test", "timeout_seconds": -5}`
 	result, err = ExecuteToolCall(registry, toolCall)
 	require.NoError(t, err)
-	assert.NotEmpty(t, result.Error)
-	assert.Contains(t, result.Error, "positive")
+	assert.NotNil(t, result.Error)
+	assert.Contains(t, result.Error.Message, "positive")
 
 	// Test spawn error
 	toolCall.Arguments = `{"task": "this will error"}`
 	result, err = ExecuteToolCall(registry, toolCall)
 	require.NoError(t, err)
-	assert.NotEmpty(t, result.Error)
-	assert.Contains(t, result.Error, "failed to spawn")
+	assert.NotNil(t, result.Error)
+	assert.Contains(t, result.Error.Message, "failed to spawn")
 }
 
 // TestSpawnToolIntegrationSchema tests schema generation and serialization.
@@ -257,8 +257,8 @@ func TestSpawnToolIntegrationEmptyTask(t *testing.T) {
 
 	result, err := ExecuteToolCall(registry, toolCall)
 	require.NoError(t, err)
-	assert.NotEmpty(t, result.Error)
-	assert.Contains(t, result.Error, "required")
+	assert.NotNil(t, result.Error)
+	assert.Contains(t, result.Error.Message, "required")
 
 	// No subagent should be created
 	assert.Equal(t, 0, mockMgr.Count())
@@ -277,6 +277,6 @@ func TestSpawnToolIntegrationToolNotFound(t *testing.T) {
 	result, err := ExecuteToolCall(registry, toolCall)
 	require.NoError(t, err)
 	assert.Equal(t, "unknown-tool-call", result.ToolCallID)
-	assert.NotEmpty(t, result.Error)
-	assert.Contains(t, result.Error, "not found")
+	assert.NotNil(t, result.Error)
+	assert.Contains(t, result.Error.Message, "not found")
 }

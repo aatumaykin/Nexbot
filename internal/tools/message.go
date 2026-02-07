@@ -2,6 +2,7 @@ package tools
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/aatumaykin/nexbot/internal/agent"
@@ -96,7 +97,8 @@ func (t *SendMessageTool) Execute(args string) (string, error) {
 	}
 
 	// Send message through the sender interface
-	if err := t.sender.SendMessage(params.UserID, params.ChannelType, params.SessionID, params.Message); err != nil {
+	result, err := t.sender.SendMessage(params.UserID, params.ChannelType, params.SessionID, params.Message)
+	if err != nil {
 		return "", fmt.Errorf("failed to send message: %w", err)
 	}
 
@@ -106,8 +108,30 @@ func (t *SendMessageTool) Execute(args string) (string, error) {
 		logger.Field{Key: "session_id", Value: params.SessionID},
 		logger.Field{Key: "message_length", Value: len(params.Message)})
 
-	return fmt.Sprintf("✅ Message sent successfully\n   User: %s\n   Channel: %s\n   Session: %s\n   Message: %s",
-		params.UserID, params.ChannelType, params.SessionID, params.Message), nil
+	if !result.Success {
+		var errorMsg string
+		if result.Error != nil {
+			errorMsg = fmt.Sprintf(`❌ Failed to send message to %s
+
+%s
+
+The message was not delivered. You may need to:
+- Fix the message formatting (if it's a parse error)
+- Retry after the specified delay (if rate limited)
+- Check permissions and bot rights
+
+Original message: %q`,
+				params.ChannelType,
+				result.Error.ToLLMContext(),
+				params.Message)
+		} else {
+			errorMsg = fmt.Sprintf("❌ Failed to send message to %s (no error details available)", params.ChannelType)
+		}
+		return "", errors.New(errorMsg)
+	}
+
+	return fmt.Sprintf("✅ Message sent successfully\n   Channel: %s\n   User: %s\n   Session: %s\n   Message: %s",
+		params.ChannelType, params.UserID, params.SessionID, params.Message), nil
 }
 
 // ToSchema returns the OpenAI-compatible schema for this tool.

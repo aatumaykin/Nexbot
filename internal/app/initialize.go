@@ -155,7 +155,7 @@ func (a *App) Initialize(ctx context.Context) error {
 
 	// 7. Register tools
 	// Create message sender interface implementation
-	messageSender := loop.NewAgentMessageSender(a.messageBus)
+	messageSender := loop.NewAgentMessageSender(a.messageBus, a.logger)
 
 	// Register SendMessageTool
 	sendMessageTool := tools.NewSendMessageTool(messageSender, a.logger)

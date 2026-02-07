@@ -79,7 +79,8 @@ func (h *Handler) handleNewSession(ctx context.Context, msg bus.InboundMessage) 
 		msg.UserID,
 		msg.SessionID,
 		constants.MsgSessionCleared,
-		nil,
+		"",  // correlationID (not used for commands)
+		nil, // metadata
 	)
 
 	if err := h.messageBus.PublishOutbound(*confirmationMsg); err != nil {
@@ -107,7 +108,8 @@ func (h *Handler) handleStatus(ctx context.Context, msg bus.InboundMessage) erro
 			msg.UserID,
 			msg.SessionID,
 			constants.MsgStatusError,
-			nil,
+			"",  // correlationID (not used for commands)
+			nil, // metadata
 		)
 
 		if pubErr := h.messageBus.PublishOutbound(*errorMsg); pubErr != nil {
@@ -139,7 +141,8 @@ func (h *Handler) handleStatus(ctx context.Context, msg bus.InboundMessage) erro
 		msg.UserID,
 		msg.SessionID,
 		statusMsg,
-		nil,
+		"",  // correlationID (not used for commands)
+		nil, // metadata
 	)
 
 	if err := h.messageBus.PublishOutbound(*outboundMsg); err != nil {
@@ -162,7 +165,8 @@ func (h *Handler) handleRestart(ctx context.Context, msg bus.InboundMessage) err
 		msg.UserID,
 		msg.SessionID,
 		constants.MsgRestarting,
-		nil,
+		"",  // correlationID (not used for commands)
+		nil, // metadata
 	)
 
 	if err := h.messageBus.PublishOutbound(*notificationMsg); err != nil {
