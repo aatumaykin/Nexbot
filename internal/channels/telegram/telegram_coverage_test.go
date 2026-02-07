@@ -34,6 +34,43 @@ func TestConnector_sendStartupMessage(t *testing.T) {
 			t.Errorf("Expected no error when whitelist is empty, got: %v", err)
 		}
 	})
+
+	t.Run("only invalid user IDs", func(t *testing.T) {
+		cfg := config.TelegramConfig{
+			AllowedUsers: []string{"not-a-number", "also-not-a-number"},
+		}
+
+		conn := New(cfg, log, nil)
+		conn.ctx = context.Background()
+
+		// Should not error even with invalid user IDs (no valid IDs to send to)
+		err := conn.sendStartupMessage()
+		if err != nil {
+			t.Errorf("Expected no error with only invalid user IDs, got: %v", err)
+		}
+	})
+
+	t.Run("nil bot with allowed users", func(t *testing.T) {
+		cfg := config.TelegramConfig{
+			AllowedUsers: []string{"123", "456"},
+		}
+
+		conn := New(cfg, log, nil)
+		conn.ctx = context.Background()
+		conn.bot = nil // Explicitly set to nil
+
+		// Should not panic when bot is nil (errors are logged internally)
+		// We use recover to catch any panic
+		defer func() {
+			if r := recover(); r != nil {
+				t.Errorf("Function panicked with nil bot: %v", r)
+			}
+		}()
+
+		err := conn.sendStartupMessage()
+		// The function logs errors but doesn't return them
+		_ = err
+	})
 }
 
 // TestLongPollManager tests LongPollManager methods
@@ -744,4 +781,61 @@ func TestConnector_handleEvents_EventTypes(t *testing.T) {
 	// Stop handler
 	cancel()
 	time.Sleep(100 * time.Millisecond)
+}
+
+// TestTypingManager_Send_InvalidSessionID tests Send with invalid session ID
+func TestTypingManager_Send_InvalidSessionID(t *testing.T) {
+	log, _ := logger.New(logger.Config{
+		Level:  "debug",
+		Format: "text",
+		Output: "stdout",
+	})
+
+	t.Run("invalid session ID format", func(t *testing.T) {
+		tm := NewTypingManager(nil, log)
+		ctx := context.Background()
+		tm.SetContext(ctx)
+
+		event := bus.NewProcessingStartEvent(
+			bus.ChannelTypeTelegram,
+			"user1",
+			"not-a-number",
+			nil,
+		)
+
+		// Should not panic, just log error
+		tm.Send(*event)
+	})
+
+	t.Run("empty session ID", func(t *testing.T) {
+		tm := NewTypingManager(nil, log)
+		ctx := context.Background()
+		tm.SetContext(ctx)
+
+		event := bus.NewProcessingStartEvent(
+			bus.ChannelTypeTelegram,
+			"user1",
+			"",
+			nil,
+		)
+
+		// Should not panic, just log error
+		tm.Send(*event)
+	})
+
+	t.Run("negative session ID", func(t *testing.T) {
+		tm := NewTypingManager(nil, log)
+		ctx := context.Background()
+		tm.SetContext(ctx)
+
+		event := bus.NewProcessingStartEvent(
+			bus.ChannelTypeTelegram,
+			"user1",
+			"-123",
+			nil,
+		)
+
+		// Should not panic, Sscanf will parse negative numbers
+		tm.Send(*event)
+	})
 }
