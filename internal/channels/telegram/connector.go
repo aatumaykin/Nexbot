@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/aatumaykin/nexbot/internal/bus"
@@ -270,6 +271,8 @@ func (c *Connector) handleOutbound() {
 			if err != nil {
 				// Парсим ошибку telego для получения деталей
 				var telErr *telegoapi.Error
+				isMarkdownError := false
+
 				if errors.As(err, &telErr) {
 					details := &channels.TelegramErrorDetails{
 						ErrorCode:       telErr.ErrorCode,
@@ -282,6 +285,48 @@ func (c *Connector) handleOutbound() {
 
 					if telErr.Parameters != nil {
 						details.RetryAfterSec = telErr.Parameters.RetryAfter
+					}
+
+					// Проверяем, если это ошибка парсинга markdown (400 Bad Request)
+					if telErr.ErrorCode == 400 {
+						desc := telErr.Description
+						isMarkdownError = strings.Contains(desc, "can't parse entities") ||
+							strings.Contains(desc, "Can't find end of the entity") ||
+							strings.Contains(desc, "wrong number of entities") ||
+							strings.Contains(desc, "specified new message entity")
+					}
+
+					// Fallback: отправка без форматирования при ошибке markdown
+					if isMarkdownError {
+						c.logger.WarnCtx(c.ctx, "markdown parse error, retrying without formatting",
+							logger.Field{Key: "chat_id", Value: chatID},
+							logger.Field{Key: "correlation_id", Value: msg.CorrelationID},
+							logger.Field{Key: "error", Value: telErr.Description})
+
+						params.ParseMode = ""
+						_, fallbackErr := c.bot.SendMessage(c.ctx, &params)
+						if fallbackErr == nil {
+							c.logger.InfoCtx(c.ctx, "message sent with fallback (no formatting)",
+								logger.Field{Key: "chat_id", Value: chatID},
+								logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+
+							result := bus.MessageSendResult{
+								CorrelationID: msg.CorrelationID,
+								ChannelType:   bus.ChannelTypeTelegram,
+								Success:       true,
+								Timestamp:     time.Now(),
+							}
+
+							if pubErr := c.bus.PublishSendResult(result); pubErr != nil {
+								c.logger.ErrorCtx(c.ctx, "failed to publish send result", pubErr,
+									logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+							}
+							continue
+						}
+
+						c.logger.ErrorCtx(c.ctx, "fallback send also failed", fallbackErr,
+							logger.Field{Key: "chat_id", Value: chatID},
+							logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
 					}
 
 					result := bus.MessageSendResult{
