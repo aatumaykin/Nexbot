@@ -11,6 +11,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/mymmrac/telego"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -406,8 +407,9 @@ func TestConnector_Stop(t *testing.T) {
 	ctx := context.Background()
 	conn.ctx, conn.cancel = context.WithCancel(ctx)
 
-	// Set dummy values
-	conn.bot = &telego.Bot{} // Won't be used, just for non-nil check
+	// Set mock bot (methods won't be called in this test)
+	mockBot := NewMockBotSuccess()
+	conn.bot = mockBot
 	outboundCh := make(chan bus.OutboundMessage)
 	conn.outboundCh = outboundCh
 
@@ -973,4 +975,150 @@ func TestConnector_registerCommands(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error when bot is nil")
 	}
+}
+
+// TestLongPollManager_Start_WithMock tests LongPollManager with mock bot
+func TestLongPollManager_Start_WithMock(t *testing.T) {
+	log, _ := logger.New(logger.Config{
+		Level:  "debug",
+		Format: "text",
+		Output: "stdout",
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Create test update
+	update := telego.Update{
+		Message: &telego.Message{
+			MessageID: 1,
+			From: &telego.User{
+				ID:        123456789,
+				FirstName: "TestUser",
+			},
+			Chat: telego.Chat{
+				ID:   987654321,
+				Type: "private",
+			},
+			Text: "Hello, bot!",
+		},
+	}
+
+	// Create mock bot with update
+	mockBot, _ := NewMockBotWithUpdates(update)
+	defer mockBot.AssertExpectations(t)
+
+	// Create LongPollManager
+	msgBus := bus.New(100, log)
+	cfg := config.TelegramConfig{
+		AllowedUsers: []string{"123456789"},
+	}
+
+	conn := New(cfg, log, msgBus)
+	conn.ctx = ctx
+
+	lpm := NewLongPollManager(conn, mockBot, log)
+	lpm.SetContext(ctx)
+
+	// Start long polling in goroutine (should process the update and exit)
+	done := make(chan bool)
+	go func() {
+		lpm.Start()
+		done <- true
+	}()
+
+	// Wait for long polling to complete (channel is closed after processing all updates)
+	select {
+	case <-done:
+		// Long polling completed
+	case <-time.After(1 * time.Second):
+		t.Fatal("Timeout waiting for long polling to complete")
+	}
+
+	// Verify that UpdatesViaLongPolling was called
+	mockBot.AssertExpectations(t)
+}
+
+// TestTypingManager_Send_WithMock tests TypingManager with mock bot
+func TestTypingManager_Send_WithMock(t *testing.T) {
+	log, _ := logger.New(logger.Config{
+		Level:  "debug",
+		Format: "text",
+		Output: "stdout",
+	})
+
+	ctx := context.Background()
+
+	// Create mock bot
+	mockBot := NewMockBotSuccess()
+	defer mockBot.AssertExpectations(t)
+
+	// Create TypingManager
+	tm := NewTypingManager(mockBot, log)
+	tm.SetContext(ctx)
+
+	// Create typing event
+	event := bus.NewProcessingStartEvent(
+		bus.ChannelTypeTelegram,
+		"123456789",
+		"987654321",
+		map[string]any{"chat_id": int64(987654321)},
+	)
+
+	// Send typing indicator
+	tm.Send(*event)
+
+	// Verify that SendChatAction was called with correct parameters
+	mockBot.AssertCalled(t, "SendChatAction", ctx, mock.MatchedBy(func(params *telego.SendChatActionParams) bool {
+		return params.ChatID.ID == 987654321 && params.Action == telego.ChatActionTyping
+	}))
+
+	mockBot.AssertExpectations(t)
+}
+
+// TestTypingManager_Start_WithMock tests TypingManager start with mock bot
+func TestTypingManager_Start_WithMock(t *testing.T) {
+	log, _ := logger.New(logger.Config{
+		Level:  "debug",
+		Format: "text",
+		Output: "stdout",
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Create mock bot
+	mockBot := NewMockBotSuccess()
+	defer mockBot.AssertExpectations(t)
+
+	// Create TypingManager
+	tm := NewTypingManager(mockBot, log)
+	tm.SetContext(ctx)
+
+	// Create typing event
+	event := bus.NewProcessingStartEvent(
+		bus.ChannelTypeTelegram,
+		"123456789",
+		"987654321",
+		nil,
+	)
+
+	// Start typing indicator (sends immediately and then periodically)
+	tm.Start(*event)
+
+	// Wait a bit to ensure the first indicator was sent
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify that SendChatAction was called at least once
+	mockBot.AssertCalled(t, "SendChatAction", ctx, mock.MatchedBy(func(params *telego.SendChatActionParams) bool {
+		return params.ChatID.ID == 987654321 && params.Action == telego.ChatActionTyping
+	}))
+
+	// Stop typing indicator
+	tm.Stop(*event)
+
+	// Wait a bit to ensure goroutine stopped
+	time.Sleep(100 * time.Millisecond)
+
+	mockBot.AssertExpectations(t)
 }
