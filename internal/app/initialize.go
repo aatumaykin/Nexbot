@@ -196,6 +196,13 @@ func (a *App) Initialize(ctx context.Context) error {
 		}
 	}
 
+	// Register SystemTimeTool
+	systemTimeTool := tools.NewSystemTimeTool(a.logger)
+	if err := a.agentLoop.RegisterTool(systemTimeTool); err != nil {
+		return fmt.Errorf("failed to register system time tool: %w", err)
+	}
+	a.logger.Info("System time tool registered")
+
 	// 8. Initialize telegram connector if enabled
 	if a.config.Channels.Telegram.Enabled {
 		a.telegram = telegram.New(

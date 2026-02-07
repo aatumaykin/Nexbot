@@ -80,6 +80,10 @@ workspace/            — Bootstrap files (~/.nexbot/)
 **delete_file** — удаление файлов и директорий
 - Описание: Delete file or directory from workspace. Supports recursive deletion
 
+**system_time** — получение текущего времени
+- Возвращает текущее системное время и дату в фиксированном формате
+- Форматы: RFC3339 (2026-02-07T10:30:00+03:00) + человекочитаемый
+
 ## Commands
 
 ```bash
