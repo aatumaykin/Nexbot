@@ -37,7 +37,6 @@ func TestSchedulerOneshotExecution(t *testing.T) {
 	job := Job{
 		ID:        "oneshot-1",
 		Type:      JobTypeOneshot,
-		Command:   "test command",
 		UserID:    "user-1",
 		ExecuteAt: &past,
 		Executed:  false,
@@ -71,7 +70,6 @@ func TestSchedulerOneshotAlreadyExecuted(t *testing.T) {
 	job := Job{
 		ID:        "oneshot-2",
 		Type:      JobTypeOneshot,
-		Command:   "test command",
 		UserID:    "user-1",
 		ExecuteAt: &past,
 		Executed:  true,
@@ -103,7 +101,6 @@ func TestSchedulerCleanupExecuted(t *testing.T) {
 	job1 := Job{
 		ID:        "oneshot-new",
 		Type:      JobTypeOneshot,
-		Command:   "keep this",
 		UserID:    "user-1",
 		ExecuteAt: &future,
 		Executed:  false,
@@ -112,7 +109,6 @@ func TestSchedulerCleanupExecuted(t *testing.T) {
 	job2 := Job{
 		ID:         "oneshot-executed",
 		Type:       JobTypeOneshot,
-		Command:    "remove this",
 		UserID:     "user-1",
 		ExecuteAt:  &past,
 		Executed:   true,
@@ -125,7 +121,6 @@ func TestSchedulerCleanupExecuted(t *testing.T) {
 	jobs = scheduler.ListJobs()
 	assert.Len(t, jobs, 1)
 	assert.Equal(t, "oneshot-new", jobs[0].ID)
-	assert.Equal(t, "keep this", jobs[0].Command)
 	remainingJobs, err := storage.Load()
 	require.NoError(t, err)
 	assert.Len(t, remainingJobs, 1)
@@ -153,7 +148,6 @@ func TestSchedulerStorageIntegration(t *testing.T) {
 		ID:       "recurring-1",
 		Type:     JobTypeRecurring,
 		Schedule: "* * * * * *",
-		Command:  "recurring command",
 		UserID:   "user-1",
 	}
 	jobID1, err := scheduler.AddJob(job1)
@@ -163,7 +157,6 @@ func TestSchedulerStorageIntegration(t *testing.T) {
 	job2 := Job{
 		ID:        "oneshot-1",
 		Type:      JobTypeOneshot,
-		Command:   "oneshot command",
 		UserID:    "user-1",
 		ExecuteAt: &future,
 		Executed:  false,
@@ -260,7 +253,6 @@ func TestSchedulerOneshotNotExecutedTwice(t *testing.T) {
 
 	// Verify schedule and command are normalized
 	assert.Empty(t, storedJob.Schedule, "Oneshot job should not have schedule")
-	assert.Empty(t, storedJob.Command, "Job with tool should not have command")
 
 	err = scheduler.Stop()
 	assert.NoError(t, err)

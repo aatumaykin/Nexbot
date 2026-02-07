@@ -123,9 +123,6 @@ func (s *Scheduler) AddJob(job Job) (string, error) {
 	if job.Type == JobTypeOneshot {
 		job.Schedule = ""
 	}
-	if job.Tool != "" {
-		job.Command = ""
-	}
 
 	var entryID cron.EntryID
 	var err error
@@ -164,7 +161,6 @@ func (s *Scheduler) AddJob(job Job) (string, error) {
 			Type:       string(job.Type),
 			Schedule:   job.Schedule,
 			ExecuteAt:  job.ExecuteAt,
-			Command:    job.Command,
 			UserID:     job.UserID,
 			Tool:       job.Tool,
 			Payload:    job.Payload,

@@ -25,9 +25,7 @@ func TestPool_Submit(t *testing.T) {
 	pool.Start()
 	defer pool.Stop()
 
-	payload := cron.CronTaskPayload{
-		Command: "test command",
-	}
+	payload := cron.CronTaskPayload{}
 	task := Task{
 		ID:      "task-1",
 		Type:    "cron",
@@ -53,14 +51,12 @@ func TestPool_SubmitWithContext(t *testing.T) {
 	defer pool.Stop()
 
 	task1 := Task{
-		ID:      "task-1",
-		Type:    "cron",
-		Payload: cron.CronTaskPayload{Command: "command1"},
+		ID:   "task-1",
+		Type: "cron",
 	}
 	task2 := Task{
-		ID:      "task-2",
-		Type:    "cron",
-		Payload: cron.CronTaskPayload{Command: "command2"},
+		ID:   "task-2",
+		Type: "cron",
 	}
 	pool.Submit(task1)
 	pool.Submit(task2)
@@ -69,9 +65,8 @@ func TestPool_SubmitWithContext(t *testing.T) {
 	defer cancel()
 
 	task3 := Task{
-		ID:      "task-3",
-		Type:    "cron",
-		Payload: cron.CronTaskPayload{Command: "command3"},
+		ID:   "task-3",
+		Type: "cron",
 	}
 	err = pool.SubmitWithContext(ctx, task3)
 	if err != nil {

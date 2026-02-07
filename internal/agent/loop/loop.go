@@ -293,27 +293,28 @@ func (l *Loop) buildSystemPrompt(sessionID string) (string, error) {
 }
 
 // AddMessageToSession adds a message to the session history.
-// This is a public wrapper for compatibility.
 func (l *Loop) AddMessageToSession(ctx stdcontext.Context, sessionID string, message llm.Message) error {
 	return l.sessionOps.AddMessageToSession(ctx, sessionID, message)
 }
 
 // GetSessionHistory returns the message history for a session.
-// This is a public wrapper for compatibility.
 func (l *Loop) GetSessionHistory(ctx stdcontext.Context, sessionID string) ([]llm.Message, error) {
 	return l.sessionOps.GetSessionHistory(ctx, sessionID)
 }
 
 // ClearSession clears all messages from a session.
-// This is a public wrapper for compatibility.
 func (l *Loop) ClearSession(ctx stdcontext.Context, sessionID string) error {
 	return l.sessionOps.ClearSession(ctx, sessionID)
 }
 
 // DeleteSession deletes a session entirely.
-// This is a public wrapper for compatibility.
 func (l *Loop) DeleteSession(ctx stdcontext.Context, sessionID string) error {
 	return l.sessionOps.DeleteSession(ctx, sessionID)
+}
+
+// GetSessionStatus returns status information about a session.
+func (l *Loop) GetSessionStatus(ctx stdcontext.Context, sessionID string) (map[string]any, error) {
+	return l.sessionOps.GetSessionStatus(ctx, sessionID, l)
 }
 
 // GetContextBuilder returns the context builder.
@@ -385,12 +386,6 @@ func (l *Loop) ProcessHeartbeatCheck(ctx stdcontext.Context) (string, error) {
 
 	// Return the LLM response
 	return resp.Content, nil
-}
-
-// GetSessionStatus returns status information about a session.
-// This is a public wrapper for compatibility.
-func (l *Loop) GetSessionStatus(ctx stdcontext.Context, sessionID string) (map[string]any, error) {
-	return l.sessionOps.GetSessionStatus(ctx, sessionID, l)
 }
 
 // AddErrorToSession adds an error message to the session history.

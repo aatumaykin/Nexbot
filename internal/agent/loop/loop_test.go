@@ -83,7 +83,7 @@ func TestLoop_AddMessageToSession(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := looper.AddMessageToSession(ctx, tt.sessionID, tt.message)
+			err := looper.sessionOps.AddMessageToSession(ctx, tt.sessionID, tt.message)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("AddMessageToSession() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -91,7 +91,7 @@ func TestLoop_AddMessageToSession(t *testing.T) {
 
 			if !tt.wantErr {
 				// Verify message was added
-				history, err := looper.GetSessionHistory(ctx, tt.sessionID)
+				history, err := looper.sessionOps.GetSessionHistory(ctx, tt.sessionID)
 				if err != nil {
 					t.Errorf("Failed to get session history: %v", err)
 					return
@@ -144,27 +144,27 @@ func TestLoop_ClearSession(t *testing.T) {
 	sessionID := "test-session"
 
 	// Add some messages
-	if err := looper.AddMessageToSession(ctx, sessionID, llm.Message{Role: llm.RoleUser, Content: "Message 1"}); err != nil {
+	if err := looper.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{Role: llm.RoleUser, Content: "Message 1"}); err != nil {
 		t.Fatalf("Failed to add message: %v", err)
 	}
-	if err := looper.AddMessageToSession(ctx, sessionID, llm.Message{Role: llm.RoleUser, Content: "Message 2"}); err != nil {
+	if err := looper.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{Role: llm.RoleUser, Content: "Message 2"}); err != nil {
 		t.Fatalf("Failed to add message: %v", err)
 	}
 
 	// Verify messages exist
-	history, _ := looper.GetSessionHistory(ctx, sessionID)
+	history, _ := looper.sessionOps.GetSessionHistory(ctx, sessionID)
 	if len(history) != 2 {
 		t.Fatalf("Expected 2 messages before clear, got %d", len(history))
 	}
 
 	// Clear session
-	err := looper.ClearSession(ctx, sessionID)
+	err := looper.sessionOps.ClearSession(ctx, sessionID)
 	if err != nil {
 		t.Fatalf("ClearSession failed: %v", err)
 	}
 
 	// Verify session is cleared
-	history, _ = looper.GetSessionHistory(ctx, sessionID)
+	history, _ = looper.sessionOps.GetSessionHistory(ctx, sessionID)
 	if len(history) != 0 {
 		t.Errorf("Expected 0 messages after clear, got %d", len(history))
 	}
@@ -206,24 +206,24 @@ func TestLoop_DeleteSession(t *testing.T) {
 	sessionID := "test-session-delete"
 
 	// Add a message to create session
-	if err := looper.AddMessageToSession(ctx, sessionID, llm.Message{Role: llm.RoleUser, Content: "Message"}); err != nil {
+	if err := looper.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{Role: llm.RoleUser, Content: "Message"}); err != nil {
 		t.Fatalf("Failed to add message: %v", err)
 	}
 
 	// Verify session exists
-	history, _ := looper.GetSessionHistory(ctx, sessionID)
+	history, _ := looper.sessionOps.GetSessionHistory(ctx, sessionID)
 	if len(history) != 1 {
 		t.Fatalf("Expected 1 message before delete, got %d", len(history))
 	}
 
 	// Delete session
-	err := looper.DeleteSession(ctx, sessionID)
+	err := looper.sessionOps.DeleteSession(ctx, sessionID)
 	if err != nil {
 		t.Fatalf("DeleteSession failed: %v", err)
 	}
 
 	// Verify session no longer exists (should be recreated as empty)
-	history, _ = looper.GetSessionHistory(ctx, sessionID)
+	history, _ = looper.sessionOps.GetSessionHistory(ctx, sessionID)
 	if len(history) != 0 {
 		t.Errorf("Expected empty session after delete, got %d messages", len(history))
 	}
@@ -440,10 +440,10 @@ func TestLoop_GetSessionStatus(t *testing.T) {
 	sessionID := "status-test-session"
 
 	// Add messages
-	if err := looper.AddMessageToSession(ctx, sessionID, llm.Message{Role: llm.RoleUser, Content: "Message 1"}); err != nil {
+	if err := looper.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{Role: llm.RoleUser, Content: "Message 1"}); err != nil {
 		t.Fatalf("Failed to add message: %v", err)
 	}
-	if err := looper.AddMessageToSession(ctx, sessionID, llm.Message{Role: llm.RoleUser, Content: "Message 2"}); err != nil {
+	if err := looper.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{Role: llm.RoleUser, Content: "Message 2"}); err != nil {
 		t.Fatalf("Failed to add message: %v", err)
 	}
 

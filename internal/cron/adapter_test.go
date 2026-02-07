@@ -24,7 +24,6 @@ func TestSchedulerAdapter_ConvertJobToAgentJob(t *testing.T) {
 				ID:         "job_123",
 				Type:       JobTypeRecurring,
 				Schedule:   "0 * * * *",
-				Command:    "test command",
 				UserID:     "user_1",
 				Metadata:   map[string]string{"key": "value"},
 				Executed:   false,
@@ -35,7 +34,6 @@ func TestSchedulerAdapter_ConvertJobToAgentJob(t *testing.T) {
 				Type:       "recurring",
 				Schedule:   "0 * * * *",
 				ExecuteAt:  nil,
-				Command:    "test command",
 				UserID:     "user_1",
 				Metadata:   map[string]string{"key": "value"},
 				Executed:   false,
@@ -49,7 +47,6 @@ func TestSchedulerAdapter_ConvertJobToAgentJob(t *testing.T) {
 				Type:       JobTypeOneshot,
 				Schedule:   "0 0 0 1 1 *",
 				ExecuteAt:  &now,
-				Command:    "oneshot command",
 				UserID:     "user_2",
 				Metadata:   nil,
 				Executed:   true,
@@ -60,7 +57,6 @@ func TestSchedulerAdapter_ConvertJobToAgentJob(t *testing.T) {
 				Type:       "oneshot",
 				Schedule:   "0 0 0 1 1 *",
 				ExecuteAt:  &now,
-				Command:    "oneshot command",
 				UserID:     "user_2",
 				Metadata:   nil,
 				Executed:   true,
@@ -78,7 +74,6 @@ func TestSchedulerAdapter_ConvertJobToAgentJob(t *testing.T) {
 			assert.Equal(t, tt.expected.ID, agentJob.ID)
 			assert.Equal(t, tt.expected.Type, agentJob.Type)
 			assert.Equal(t, tt.expected.Schedule, agentJob.Schedule)
-			assert.Equal(t, tt.expected.Command, agentJob.Command)
 			assert.Equal(t, tt.expected.UserID, agentJob.UserID)
 			assert.Equal(t, tt.expected.Executed, agentJob.Executed)
 
@@ -114,7 +109,6 @@ func TestSchedulerAdapter_ConvertStorageJobToAgentJob(t *testing.T) {
 				ID:         "storage_job_1",
 				Type:       "recurring",
 				Schedule:   "0 * * * *",
-				Command:    "storage command",
 				UserID:     "user_1",
 				Metadata:   map[string]string{"created_by": "cron_tool"},
 				Executed:   false,
@@ -125,7 +119,6 @@ func TestSchedulerAdapter_ConvertStorageJobToAgentJob(t *testing.T) {
 				Type:       "recurring",
 				Schedule:   "0 * * * *",
 				ExecuteAt:  nil,
-				Command:    "storage command",
 				UserID:     "user_1",
 				Metadata:   map[string]string{"created_by": "cron_tool"},
 				Executed:   false,
@@ -143,7 +136,6 @@ func TestSchedulerAdapter_ConvertStorageJobToAgentJob(t *testing.T) {
 			assert.Equal(t, tt.expected.ID, agentJob.ID)
 			assert.Equal(t, tt.expected.Type, agentJob.Type)
 			assert.Equal(t, tt.expected.Schedule, agentJob.Schedule)
-			assert.Equal(t, tt.expected.Command, agentJob.Command)
 			assert.Equal(t, tt.expected.UserID, agentJob.UserID)
 			assert.Equal(t, tt.expected.Executed, agentJob.Executed)
 			assert.Equal(t, tt.expected.Metadata, agentJob.Metadata)
@@ -167,7 +159,6 @@ func TestSchedulerAdapter_ConvertAgentJobToCronJob(t *testing.T) {
 				Type:       "recurring",
 				Schedule:   "0 * * * *",
 				ExecuteAt:  nil,
-				Command:    "agent command",
 				UserID:     "user_1",
 				Metadata:   map[string]string{"key": "value"},
 				Executed:   false,
@@ -178,7 +169,6 @@ func TestSchedulerAdapter_ConvertAgentJobToCronJob(t *testing.T) {
 				Type:       JobTypeRecurring,
 				Schedule:   "0 * * * *",
 				ExecuteAt:  nil,
-				Command:    "agent command",
 				UserID:     "user_1",
 				Metadata:   map[string]string{"key": "value"},
 				Executed:   false,
@@ -192,7 +182,6 @@ func TestSchedulerAdapter_ConvertAgentJobToCronJob(t *testing.T) {
 				Type:       "oneshot",
 				Schedule:   "0 0 0 1 1 *",
 				ExecuteAt:  &now,
-				Command:    "agent oneshot",
 				UserID:     "user_2",
 				Metadata:   nil,
 				Executed:   true,
@@ -203,7 +192,6 @@ func TestSchedulerAdapter_ConvertAgentJobToCronJob(t *testing.T) {
 				Type:       JobTypeOneshot,
 				Schedule:   "0 0 0 1 1 *",
 				ExecuteAt:  &now,
-				Command:    "agent oneshot",
 				UserID:     "user_2",
 				Metadata:   nil,
 				Executed:   true,
@@ -221,7 +209,6 @@ func TestSchedulerAdapter_ConvertAgentJobToCronJob(t *testing.T) {
 			assert.Equal(t, tt.expected.ID, cronJob.ID)
 			assert.Equal(t, tt.expected.Type, cronJob.Type)
 			assert.Equal(t, tt.expected.Schedule, cronJob.Schedule)
-			assert.Equal(t, tt.expected.Command, cronJob.Command)
 			assert.Equal(t, tt.expected.UserID, cronJob.UserID)
 			assert.Equal(t, tt.expected.Executed, cronJob.Executed)
 
@@ -260,7 +247,6 @@ func TestSchedulerAdapter_ConvertAgentJobToStorageJob(t *testing.T) {
 				Type:       "recurring",
 				Schedule:   "0 * * * *",
 				ExecuteAt:  nil,
-				Command:    "agent command",
 				UserID:     "user_1",
 				Metadata:   map[string]string{"key": "value"},
 				Executed:   false,
@@ -271,7 +257,6 @@ func TestSchedulerAdapter_ConvertAgentJobToStorageJob(t *testing.T) {
 				Type:       "recurring",
 				Schedule:   "0 * * * *",
 				ExecuteAt:  nil,
-				Command:    "agent command",
 				UserID:     "user_1",
 				Metadata:   map[string]string{"key": "value"},
 				Executed:   false,
@@ -289,7 +274,6 @@ func TestSchedulerAdapter_ConvertAgentJobToStorageJob(t *testing.T) {
 			assert.Equal(t, tt.expected.ID, storageJob.ID)
 			assert.Equal(t, tt.expected.Type, storageJob.Type)
 			assert.Equal(t, tt.expected.Schedule, storageJob.Schedule)
-			assert.Equal(t, tt.expected.Command, storageJob.Command)
 			assert.Equal(t, tt.expected.UserID, storageJob.UserID)
 			assert.Equal(t, tt.expected.Executed, storageJob.Executed)
 			assert.Equal(t, tt.expected.Metadata, storageJob.Metadata)
@@ -305,7 +289,6 @@ func convertToAgentJob(job Job) agent.Job {
 		Type:       string(job.Type),
 		Schedule:   job.Schedule,
 		ExecuteAt:  job.ExecuteAt,
-		Command:    job.Command,
 		UserID:     job.UserID,
 		Metadata:   job.Metadata,
 		Executed:   job.Executed,
@@ -319,7 +302,6 @@ func convertStorageToAgentJob(job StorageJob) agent.Job {
 		Type:       job.Type,
 		Schedule:   job.Schedule,
 		ExecuteAt:  job.ExecuteAt,
-		Command:    job.Command,
 		UserID:     job.UserID,
 		Metadata:   job.Metadata,
 		Executed:   job.Executed,
@@ -333,7 +315,6 @@ func convertAgentToCronJob(job agent.Job) Job {
 		Type:       JobType(job.Type),
 		Schedule:   job.Schedule,
 		ExecuteAt:  job.ExecuteAt,
-		Command:    job.Command,
 		UserID:     job.UserID,
 		Metadata:   job.Metadata,
 		Executed:   job.Executed,
@@ -347,7 +328,6 @@ func convertAgentToStorageJob(job agent.Job) StorageJob {
 		Type:       job.Type,
 		Schedule:   job.Schedule,
 		ExecuteAt:  job.ExecuteAt,
-		Command:    job.Command,
 		UserID:     job.UserID,
 		Metadata:   job.Metadata,
 		Executed:   job.Executed,

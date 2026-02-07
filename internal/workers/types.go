@@ -34,14 +34,6 @@ type PoolMetrics struct {
 	TotalDuration  time.Duration
 }
 
-// CronTask is a type alias for compatibility with cron package
-type CronTask struct {
-	ID      string
-	Type    string
-	Payload interface{}
-	Context context.Context
-}
-
 // TaskExecutor defines the interface for task-specific execution logic
 type TaskExecutor func(context.Context, Task) (string, error)
 

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/aatumaykin/nexbot/internal/bus"
-	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +27,6 @@ func TestPool_ExecuteCronTask(t *testing.T) {
 	task := Task{
 		ID:      "cron-task-1",
 		Type:    "cron",
-		Payload: cron.CronTaskPayload{Command: "echo 'hello'"},
 	}
 
 	// Submit task
@@ -200,7 +198,6 @@ func TestPool_MultipleTasks(t *testing.T) {
 		}
 		payload := interface{}(fmt.Sprintf("command %d", i))
 		if taskType == "cron" {
-			payload = cron.CronTaskPayload{Command: fmt.Sprintf("command %d", i)}
 		}
 		tasks[i] = Task{
 			ID:      fmt.Sprintf("task-%d", i),

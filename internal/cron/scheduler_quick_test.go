@@ -30,7 +30,6 @@ func TestSchedulerOneshotAlreadyExecutedQuick(t *testing.T) {
 	job := Job{
 		ID:        "oneshot-already-executed",
 		Type:      JobTypeOneshot,
-		Command:   "test command",
 		UserID:    "user-1",
 		ExecuteAt: &past,
 		Executed:  true,
@@ -49,7 +48,6 @@ func TestSchedulerOneshotAlreadyExecutedQuick(t *testing.T) {
 	job2 := Job{
 		ID:        "oneshot-not-executed",
 		Type:      JobTypeOneshot,
-		Command:   "test command 2",
 		UserID:    "user-1",
 		ExecuteAt: &past,
 		Executed:  false,
@@ -63,7 +61,6 @@ func TestSchedulerOneshotAlreadyExecutedQuick(t *testing.T) {
 
 	// Should have been submitted
 	assert.Len(t, workerPool.submittedTasks, 1, "Oneshot job with Executed=false should be submitted")
-	assert.Equal(t, "test command 2", workerPool.submittedTasks[0].Payload.(CronTaskPayload).Command)
 
 	err = scheduler.Stop()
 	assert.NoError(t, err)

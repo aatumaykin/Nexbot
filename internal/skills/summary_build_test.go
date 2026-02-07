@@ -39,7 +39,6 @@ Git commit functionality.
 
 	opts := SummaryOptions{
 		Format:            "short",
-		IncludeDeprecated: false,
 	}
 
 	summary, err := builder.Build(opts)
@@ -97,8 +96,7 @@ Git commit functionality.
 	builder := NewSummaryBuilder(loader)
 
 	opts := SummaryOptions{
-		Format:            "medium",
-		IncludeDeprecated: false,
+		Format: "short",
 	}
 
 	summary, err := builder.Build(opts)
@@ -177,8 +175,7 @@ With proper formatting.
 	builder := NewSummaryBuilder(loader)
 
 	opts := SummaryOptions{
-		Format:            "long",
-		IncludeDeprecated: false,
+		Format: "medium",
 	}
 
 	summary, err := builder.Build(opts)
@@ -290,9 +287,7 @@ Git commit functionality.
 	loader := NewLoader(cfg)
 	builder := NewSummaryBuilder(loader)
 
-	opts := SummaryOptions{
-		IncludeDeprecated: false,
-	}
+	opts := SummaryOptions{}
 
 	summary, err := builder.BuildForPrompt(opts)
 	if err != nil {
@@ -339,7 +334,6 @@ func TestSummaryBuilder_NoSkills(t *testing.T) {
 
 	opts := SummaryOptions{
 		Format:            "short",
-		IncludeDeprecated: false,
 	}
 
 	summary, err := builder.Build(opts)

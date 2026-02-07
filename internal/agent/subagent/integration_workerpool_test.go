@@ -8,7 +8,6 @@ import (
 
 	"github.com/aatumaykin/nexbot/internal/agent/loop"
 	"github.com/aatumaykin/nexbot/internal/bus"
-	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/workers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -95,8 +94,6 @@ func TestWorkerPoolIntegration(t *testing.T) {
 			// Cron task
 			cronTask := workers.Task{
 				ID:      fmt.Sprintf("cron-%d", i),
-				Type:    "cron",
-				Payload: cron.CronTaskPayload{Command: fmt.Sprintf("Scheduled job %d", i)},
 			}
 			pool.Submit(cronTask)
 
@@ -216,8 +213,6 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		for i := 0; i < 5; i++ {
 			task := workers.Task{
 				ID:      fmt.Sprintf("shutdown-%d", i),
-				Type:    "cron",
-				Payload: cron.CronTaskPayload{Command: fmt.Sprintf("Task %d", i)},
 			}
 			pool.Submit(task)
 		}

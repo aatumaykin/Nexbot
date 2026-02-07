@@ -56,7 +56,6 @@ func (s *Scheduler) checkAndExecuteOneshots(now time.Time) {
 			Type:       JobType(storageJob.Type),
 			Schedule:   storageJob.Schedule,
 			ExecuteAt:  storageJob.ExecuteAt,
-			Command:    storageJob.Command,
 			UserID:     storageJob.UserID,
 			Tool:       storageJob.Tool,
 			Payload:    storageJob.Payload,

@@ -73,7 +73,6 @@ func TestLoader_Stats(t *testing.T) {
 name: git-commit
 description: Git commit
 category: git
-deprecated: true
 parameters:
   - name: message
     type: string
@@ -130,10 +129,6 @@ examples:
 
 	if stats.Total != 2 {
 		t.Errorf("Expected 2 total skills, got %d", stats.Total)
-	}
-
-	if stats.Deprecated != 1 {
-		t.Errorf("Expected 1 deprecated skill, got %d", stats.Deprecated)
 	}
 
 	if stats.ParameterCount != 3 {

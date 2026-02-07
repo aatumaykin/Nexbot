@@ -77,7 +77,6 @@ func TestFullWorkflow(t *testing.T) {
 		ID:       "recurring-test-job",
 		Type:     JobTypeRecurring,
 		Schedule: "*/2 * * * * *", // Every 2 seconds for testing
-		Command:  "recurring test command",
 		UserID:   "recurring-user",
 		Metadata: map[string]string{
 			"job_type": "recurring",
@@ -92,14 +91,12 @@ func TestFullWorkflow(t *testing.T) {
 	storedRecurringJob, err := scheduler.GetJob(recurringJobID)
 	require.NoError(t, err, "Failed to get recurring job from scheduler")
 	assert.Equal(t, JobTypeRecurring, storedRecurringJob.Type, "Recurring job type should be set")
-	assert.Equal(t, "recurring test command", storedRecurringJob.Command, "Recurring job command should match")
 
 	// Step 5: Add oneshot job
 	pastTime := now.Add(-1 * time.Minute) // Past time to trigger execution
 	oneshotJob := Job{
 		ID:        "oneshot-test-job",
 		Type:      JobTypeOneshot,
-		Command:   "oneshot test command",
 		UserID:    "oneshot-user",
 		ExecuteAt: &pastTime,
 		Metadata: map[string]string{
@@ -114,7 +111,6 @@ func TestFullWorkflow(t *testing.T) {
 	storedOneshotJob, err := scheduler.GetJob(oneshotJobID)
 	require.NoError(t, err, "Failed to get oneshot job from scheduler")
 	assert.Equal(t, JobTypeOneshot, storedOneshotJob.Type, "Oneshot job type should be set")
-	assert.Equal(t, "oneshot test command", storedOneshotJob.Command, "Oneshot job command should match")
 	assert.NotNil(t, storedOneshotJob.ExecuteAt, "Oneshot job should have ExecuteAt set")
 
 	// Verify both jobs are in the list
@@ -142,9 +138,9 @@ func TestFullWorkflow(t *testing.T) {
 	require.NotNil(t, storageOneshot, "Oneshot job should be persisted in storage")
 
 	assert.Equal(t, string(JobTypeRecurring), storageRecurring.Type, "Storage recurring job type should match")
-	assert.Equal(t, "recurring test command", storageRecurring.Command, "Storage recurring job command should match")
+	assert.Equal(t, "recurring test command", "", "Storage recurring job command should match")
 	assert.Equal(t, string(JobTypeOneshot), storageOneshot.Type, "Storage oneshot job type should match")
-	assert.Equal(t, "oneshot test command", storageOneshot.Command, "Storage oneshot job command should match")
+	assert.Equal(t, "oneshot test command", "", "Storage oneshot job command should match")
 
 	// Step 10 (partial): Verify file exists and contains data
 	_, err = os.Stat(jobsFilePath)
@@ -188,7 +184,7 @@ func TestFullWorkflow(t *testing.T) {
 	foundRecurringTask := false
 	for _, task := range workerPool.submittedTasks {
 		if payload, ok := task.Payload.(CronTaskPayload); ok {
-			if payload.Command == "recurring test command" {
+			if payload.Tool == "recurring test command" {
 				assert.Equal(t, "cron", task.Type, "Task type should be 'cron'")
 				assert.Equal(t, "recurring", payload.Metadata["job_type"], "Task metadata should match")
 				foundRecurringTask = true
@@ -321,14 +317,12 @@ func TestFullWorkflowWithMultipleJobs(t *testing.T) {
 			ID:       "recurring-1",
 			Type:     JobTypeRecurring,
 			Schedule: "*/2 * * * * *",
-			Command:  "command 1",
 			UserID:   "user-1",
 		},
 		{
 			ID:       "recurring-2",
 			Type:     JobTypeRecurring,
 			Schedule: "*/3 * * * * *",
-			Command:  "command 2",
 			UserID:   "user-2",
 		},
 	}
@@ -344,14 +338,12 @@ func TestFullWorkflowWithMultipleJobs(t *testing.T) {
 		{
 			ID:        "oneshot-1",
 			Type:      JobTypeOneshot,
-			Command:   "oneshot command 1",
 			UserID:    "user-1",
 			ExecuteAt: &pastTime,
 		},
 		{
 			ID:        "oneshot-2",
 			Type:      JobTypeOneshot,
-			Command:   "oneshot command 2",
 			UserID:    "user-2",
 			ExecuteAt: &pastTime,
 		},
@@ -445,7 +437,6 @@ func TestFullWorkflowPersistenceAcrossRestarts(t *testing.T) {
 		ID:       "persistent-recurring",
 		Type:     JobTypeRecurring,
 		Schedule: "*/2 * * * * *",
-		Command:  "persistent command",
 		UserID:   "persistent-user",
 	}
 	_, err = scheduler1.AddJob(recurringJob)
@@ -456,7 +447,6 @@ func TestFullWorkflowPersistenceAcrossRestarts(t *testing.T) {
 	oneshotJob := Job{
 		ID:        "persistent-oneshot",
 		Type:      JobTypeOneshot,
-		Command:   "oneshot command",
 		UserID:    "persistent-user",
 		ExecuteAt: &pastTime,
 	}
@@ -481,9 +471,7 @@ func TestFullWorkflowPersistenceAcrossRestarts(t *testing.T) {
 	assert.Contains(t, jobMap, "persistent-recurring", "Recurring job should be in storage")
 	assert.Contains(t, jobMap, "persistent-oneshot", "Oneshot job should be in storage")
 
-	assert.Equal(t, "persistent command", jobMap["persistent-recurring"].Command)
 	assert.Equal(t, string(JobTypeRecurring), jobMap["persistent-recurring"].Type)
-	assert.Equal(t, "oneshot command", jobMap["persistent-oneshot"].Command)
 	assert.Equal(t, string(JobTypeOneshot), jobMap["persistent-oneshot"].Type)
 	assert.NotNil(t, jobMap["persistent-oneshot"].ExecuteAt)
 

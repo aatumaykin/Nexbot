@@ -53,8 +53,7 @@ category: docker
 	builder := NewSummaryBuilder(loader)
 
 	opts := SummaryOptions{
-		Format:            "medium",
-		IncludeDeprecated: false,
+		Format: "medium",
 	}
 
 	summary, err := builder.Build(opts)
@@ -116,8 +115,7 @@ This is paragraph 4.
 	builder := NewSummaryBuilder(loader)
 
 	opts := SummaryOptions{
-		Format:            "long",
-		IncludeDeprecated: false,
+		Format: "long",
 	}
 
 	summary, err := builder.Build(opts)

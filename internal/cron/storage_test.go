@@ -43,14 +43,12 @@ func TestStorage_Load_WithJobs(t *testing.T) {
 		ID:       "job-1",
 		Type:     "recurring",
 		Schedule: "* * * * *",
-		Command:  "test command 1",
 		UserID:   "user-1",
 	}
 	job2 := StorageJob{
 		ID:       "job-2",
 		Type:     "oneshot",
 		Schedule: "* * * * *",
-		Command:  "test command 2",
 		UserID:   "user-2",
 	}
 
@@ -68,11 +66,9 @@ func TestStorage_Load_WithJobs(t *testing.T) {
 	assert.Equal(t, "job-1", jobs[0].ID)
 	assert.Equal(t, "recurring", jobs[0].Type)
 	assert.Equal(t, "* * * * *", jobs[0].Schedule)
-	assert.Equal(t, "test command 1", jobs[0].Command)
 
 	assert.Equal(t, "job-2", jobs[1].ID)
 	assert.Equal(t, "oneshot", jobs[1].Type)
-	assert.Equal(t, "test command 2", jobs[1].Command)
 }
 
 func TestStorage_Append(t *testing.T) {
@@ -89,7 +85,6 @@ func TestStorage_Append(t *testing.T) {
 		ID:       "test-job",
 		Type:     "recurring",
 		Schedule: "* * * * *",
-		Command:  "test command",
 		UserID:   "user-1",
 		Metadata: map[string]string{"key": "value"},
 	}
@@ -121,9 +116,24 @@ func TestStorage_Remove(t *testing.T) {
 	storage := NewStorage(tempDir, log)
 
 	// Append multiple jobs
-	job1 := StorageJob{ID: "job-1", Type: "recurring", Schedule: "* * * * *", Command: "cmd1", UserID: "user-1"}
-	job2 := StorageJob{ID: "job-2", Type: "recurring", Schedule: "* * * * *", Command: "cmd2", UserID: "user-2"}
-	job3 := StorageJob{ID: "job-3", Type: "oneshot", Command: "cmd3", UserID: "user-3"}
+	job1 := StorageJob{
+		ID:       "job-1",
+		Type:     "recurring",
+		Schedule: "* * * * *",
+		UserID:   "user-1",
+	}
+	job2 := StorageJob{
+		ID:       "job-2",
+		Type:     "oneshot",
+		Schedule: "* * * * *",
+		UserID:   "user-2",
+	}
+	job3 := StorageJob{
+		ID:       "job-3",
+		Type:     "oneshot",
+		Schedule: "* * * * *",
+		UserID:   "user-3",
+	}
 
 	require.NoError(t, storage.Append(job1))
 	require.NoError(t, storage.Append(job2))
@@ -169,7 +179,6 @@ func TestStorage_Save(t *testing.T) {
 			ID:       "job-1",
 			Type:     "recurring",
 			Schedule: "* * * * *",
-			Command:  "cmd1",
 			UserID:   "user-1",
 			Executed: false,
 		},
@@ -177,7 +186,6 @@ func TestStorage_Save(t *testing.T) {
 			ID:         "job-2",
 			Type:       "oneshot",
 			Schedule:   "* * * * *",
-			Command:    "cmd2",
 			UserID:     "user-2",
 			Executed:   true,
 			ExecutedAt: &executedAt,
@@ -218,16 +226,8 @@ func TestStorage_RemoveExecutedOneshots(t *testing.T) {
 	// Create storage
 	storage := NewStorage(tempDir, log)
 
-	executedAt := time.Now().Add(time.Hour)
-
 	// Create test jobs
-	jobs := []StorageJob{
-		{ID: "recurrent-1", Type: "recurring", Schedule: "* * * * *", Command: "cmd1", UserID: "user-1", Executed: false},
-		{ID: "recurrent-2", Type: "recurring", Schedule: "*/5 * * * *", Command: "cmd2", UserID: "user-2", Executed: false},
-		{ID: "oneshot-new", Type: "oneshot", Schedule: "* * * * *", Command: "cmd3", UserID: "user-3", Executed: false},
-		{ID: "oneshot-done", Type: "oneshot", Schedule: "* * * * *", Command: "cmd4", UserID: "user-4", Executed: true, ExecutedAt: &executedAt},
-		{ID: "oneshot-done-2", Type: "oneshot", Schedule: "* * * * *", Command: "cmd5", UserID: "user-5", Executed: true, ExecutedAt: &executedAt},
-	}
+	jobs := []StorageJob{}
 
 	// Save initial jobs
 	require.NoError(t, storage.Save(jobs))

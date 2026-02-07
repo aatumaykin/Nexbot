@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/aatumaykin/nexbot/internal/bus"
-	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,7 +44,6 @@ func TestPool_GracefulShutdown(t *testing.T) {
 		task := Task{
 			ID:      fmt.Sprintf("shutdown-task-%d", i),
 			Type:    "cron",
-			Payload: cron.CronTaskPayload{Command: fmt.Sprintf("command %d", i)},
 		}
 		pool.Submit(task)
 	}

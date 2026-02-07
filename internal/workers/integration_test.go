@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/aatumaykin/nexbot/internal/bus"
-	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,8 +35,6 @@ func TestWorkerPool_Integration_CronTasks(t *testing.T) {
 	for i := 0; i < numCronJobs; i++ {
 		task := Task{
 			ID:      fmt.Sprintf("cron-job-%d", i),
-			Type:    "cron",
-			Payload: cron.CronTaskPayload{Command: fmt.Sprintf("scheduled command %d", i)},
 		}
 		pool.Submit(task)
 	}
@@ -152,8 +149,6 @@ func TestWorkerPool_Integration_MixedTasks(t *testing.T) {
 		var payload interface{}
 
 		if i%2 == 0 {
-			taskType = "cron"
-			payload = cron.CronTaskPayload{Command: fmt.Sprintf("cron command %d", i)}
 		} else {
 			taskType = "subagent"
 			payload = map[string]string{"task": fmt.Sprintf("subtask %d", i)}
@@ -209,8 +204,6 @@ func TestWorkerPool_Integration_CronWithCancellation(t *testing.T) {
 	taskCtx, cancel := context.WithCancel(context.Background())
 	task := Task{
 		ID:      "cancellable-cron-task",
-		Type:    "cron",
-		Payload: cron.CronTaskPayload{Command: "long running command"},
 		Context: taskCtx,
 	}
 
@@ -264,8 +257,6 @@ func TestWorkerPool_Integration_HighLoad(t *testing.T) {
 	for i := 0; i < numTasks; i++ {
 		task := Task{
 			ID:      fmt.Sprintf("load-task-%d", i),
-			Type:    "cron",
-			Payload: cron.CronTaskPayload{Command: fmt.Sprintf("load command %d", i)},
 		}
 		pool.Submit(task)
 	}
@@ -322,8 +313,6 @@ func TestWorkerPool_Integration_GracefulShutdownWithTasks(t *testing.T) {
 	for i := 0; i < numTasks; i++ {
 		task := Task{
 			ID:      fmt.Sprintf("shutdown-task-%d", i),
-			Type:    "cron",
-			Payload: cron.CronTaskPayload{Command: fmt.Sprintf("command %d", i)},
 		}
 		pool.Submit(task)
 	}
@@ -419,8 +408,6 @@ func TestWorkerPool_Integration_SequentialSubmissions(t *testing.T) {
 		for i := 0; i < tasksPerBatch; i++ {
 			task := Task{
 				ID:      fmt.Sprintf("batch-%d-task-%d", batch, i),
-				Type:    "cron",
-				Payload: cron.CronTaskPayload{Command: fmt.Sprintf("batch %d, command %d", batch, i)},
 			}
 			pool.Submit(task)
 		}
@@ -470,8 +457,6 @@ func TestWorkerPool_Integration_MetricsTracking(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		task := Task{
 			ID:      fmt.Sprintf("success-%d", i),
-			Type:    "cron",
-			Payload: cron.CronTaskPayload{Command: fmt.Sprintf("command %d", i)},
 		}
 		pool.Submit(task)
 		successfulTasks++
@@ -530,8 +515,6 @@ func TestWorkerPool_Integration_Restart(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		task := Task{
 			ID:      fmt.Sprintf("run1-task-%d", i),
-			Type:    "cron",
-			Payload: cron.CronTaskPayload{Command: fmt.Sprintf("command %d", i)},
 		}
 		pool.Submit(task)
 	}
@@ -560,8 +543,6 @@ func TestWorkerPool_Integration_Restart(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		task := Task{
 			ID:      fmt.Sprintf("run2-task-%d", i),
-			Type:    "cron",
-			Payload: cron.CronTaskPayload{Command: fmt.Sprintf("command %d", i)},
 		}
 		newPool.Submit(task)
 	}

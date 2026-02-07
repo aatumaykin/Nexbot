@@ -16,13 +16,11 @@ func TestLoadJobs(t *testing.T) {
 	jobsData := map[string]Job{
 		"job1": {
 			ID:       "job1",
-			Command:  "test command",
 			Schedule: "0 * * * *",
 			Type:     JobTypeRecurring,
 		},
 		"job2": {
 			ID:       "job2",
-			Command:  "another command",
 			Schedule: "0 0 * * *",
 			Type:     JobTypeOneshot,
 		},
@@ -47,9 +45,6 @@ func TestLoadJobs(t *testing.T) {
 
 	// Check job1
 	if job, ok := jobs["job1"]; ok {
-		if job.Command != "test command" {
-			t.Errorf("job1 command = %q, want 'test command'", job.Command)
-		}
 		if job.Type != JobTypeRecurring {
 			t.Errorf("job1 type = %q, want 'recurring'", job.Type)
 		}
@@ -134,7 +129,6 @@ func TestSaveJobs(t *testing.T) {
 	jobs := map[string]Job{
 		"job1": {
 			ID:       "job1",
-			Command:  "test command",
 			Schedule: "0 * * * *",
 			Type:     JobTypeRecurring,
 		},
@@ -166,10 +160,6 @@ func TestSaveJobs(t *testing.T) {
 
 	if len(loadedJobs) != 1 {
 		t.Errorf("Expected 1 job, got %d", len(loadedJobs))
-	}
-
-	if loadedJobs["job1"].Command != "test command" {
-		t.Errorf("Expected command 'test command', got '%s'", loadedJobs["job1"].Command)
 	}
 }
 
@@ -254,13 +244,11 @@ func TestLoadSaveRoundTrip(t *testing.T) {
 	originalJobs := map[string]Job{
 		"job1": {
 			ID:       "job1",
-			Command:  "test command",
 			Schedule: "0 * * * *",
 			Type:     JobTypeRecurring,
 		},
 		"job2": {
 			ID:       "job2",
-			Command:  "another command",
 			Schedule: "0 0 * * *",
 			Type:     JobTypeOneshot,
 		},
@@ -287,9 +275,6 @@ func TestLoadSaveRoundTrip(t *testing.T) {
 		if job.ID != originalJobs["job1"].ID {
 			t.Errorf("job1 ID = %q, want %q", job.ID, originalJobs["job1"].ID)
 		}
-		if job.Command != originalJobs["job1"].Command {
-			t.Errorf("job1 Command = %q, want %q", job.Command, originalJobs["job1"].Command)
-		}
 	} else {
 		t.Error("job1 not found in loaded jobs")
 	}
@@ -298,9 +283,6 @@ func TestLoadSaveRoundTrip(t *testing.T) {
 	if job, ok := loadedJobs["job2"]; ok {
 		if job.ID != originalJobs["job2"].ID {
 			t.Errorf("job2 ID = %q, want %q", job.ID, originalJobs["job2"].ID)
-		}
-		if job.Command != originalJobs["job2"].Command {
-			t.Errorf("job2 Command = %q, want %q", job.Command, originalJobs["job2"].Command)
 		}
 	} else {
 		t.Error("job2 not found in loaded jobs")

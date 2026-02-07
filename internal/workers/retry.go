@@ -82,7 +82,6 @@ func (p *WorkerPool) executeCronTask(ctx context.Context, task Task) Result {
 
 		fields := []logger.Field{
 			{Key: "task_id", Value: task.ID},
-			{Key: "command", Value: payload.Command},
 			{Key: "tool", Value: payload.Tool},
 			{Key: "session_id", Value: payload.SessionID},
 		}
@@ -126,12 +125,14 @@ func (p *WorkerPool) executeSendMessage(ctx context.Context, task Task, payload 
 		return "", fmt.Errorf("invalid session_id format: expected 'channel:chat_id', got '%s'", sessionID)
 	}
 
-	// Extract message content from payload or command
-	content := payload.Command
-	if payload.Payload != nil {
-		if msg, ok := payload.Payload["message"].(string); ok {
-			content = msg
-		}
+	// Extract message content from payload
+	if payload.Payload == nil {
+		return "", fmt.Errorf("no message content provided")
+	}
+
+	content, ok := payload.Payload["message"].(string)
+	if !ok {
+		return "", fmt.Errorf("no message content provided")
 	}
 
 	if content == "" {
@@ -184,11 +185,13 @@ func (p *WorkerPool) executeAgent(ctx context.Context, task Task, payload cron.C
 	}
 
 	// Extract message content from payload
-	content := payload.Command
-	if payload.Payload != nil {
-		if msg, ok := payload.Payload["message"].(string); ok {
-			content = msg
-		}
+	if payload.Payload == nil {
+		return "", fmt.Errorf("no message content provided in payload")
+	}
+
+	content, ok := payload.Payload["message"].(string)
+	if !ok {
+		return "", fmt.Errorf("no message content provided in payload")
 	}
 
 	if content == "" {

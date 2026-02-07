@@ -78,7 +78,6 @@ func TestScheduler_AddJob(t *testing.T) {
 	job := Job{
 		ID:       "test-job",
 		Schedule: "* * * * * *", // Every second
-		Command:  "test command",
 		UserID:   "test-user",
 	}
 
@@ -91,7 +90,6 @@ func TestScheduler_AddJob(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "test-job", storedJob.ID)
 	assert.Equal(t, job.Schedule, storedJob.Schedule)
-	assert.Equal(t, job.Command, storedJob.Command)
 }
 
 func TestScheduler_AddJobAutoID(t *testing.T) {
@@ -113,7 +111,6 @@ func TestScheduler_AddJobAutoID(t *testing.T) {
 
 	job := Job{
 		Schedule: "* * * * * *", // Every second
-		Command:  "test command",
 		UserID:   "test-user",
 	}
 
@@ -148,7 +145,6 @@ func TestScheduler_AddJobInvalidSchedule(t *testing.T) {
 	job := Job{
 		ID:       "test-job",
 		Schedule: "invalid-cron",
-		Command:  "test command",
 		UserID:   "test-user",
 	}
 
@@ -178,7 +174,6 @@ func TestScheduler_RemoveJob(t *testing.T) {
 	job := Job{
 		ID:       "test-job",
 		Schedule: "* * * * * *",
-		Command:  "test command",
 		UserID:   "test-user",
 	}
 
@@ -225,13 +220,11 @@ func TestScheduler_ListJobs(t *testing.T) {
 	job1 := Job{
 		ID:       "job-1",
 		Schedule: "* * * * * *",
-		Command:  "command 1",
 		UserID:   "user-1",
 	}
 	job2 := Job{
 		ID:       "job-2",
 		Schedule: "*/2 * * * * *",
-		Command:  "command 2",
 		UserID:   "user-2",
 	}
 
@@ -272,7 +265,6 @@ func TestScheduler_GetJob(t *testing.T) {
 	job := Job{
 		ID:       "get-test-job",
 		Schedule: "* * * * * *",
-		Command:  "test command",
 		UserID:   "test-user",
 	}
 
@@ -283,7 +275,6 @@ func TestScheduler_GetJob(t *testing.T) {
 	storedJob, err := scheduler.GetJob("get-test-job")
 	assert.NoError(t, err)
 	assert.Equal(t, "get-test-job", storedJob.ID)
-	assert.Equal(t, job.Command, storedJob.Command)
 
 	// Get non-existent job
 	_, err = scheduler.GetJob("non-existent")
@@ -311,13 +302,11 @@ func TestScheduler_GracefulShutdown(t *testing.T) {
 	job1 := Job{
 		ID:       "job-1",
 		Schedule: "* * * * * *",
-		Command:  "command 1",
 		UserID:   "user-1",
 	}
 	job2 := Job{
 		ID:       "job-2",
 		Schedule: "*/2 * * * * *",
-		Command:  "command 2",
 		UserID:   "user-2",
 	}
 
@@ -358,7 +347,6 @@ func TestScheduler_AddJobInvalidOneshotWithSchedule(t *testing.T) {
 		Type:      JobTypeOneshot,
 		Schedule:  "* * * * * *", // Should NOT be allowed for oneshot
 		ExecuteAt: &past,
-		Command:   "test",
 		UserID:    "test-user",
 	}
 
@@ -389,7 +377,6 @@ func TestScheduler_AddJobNormalizeToolCommand(t *testing.T) {
 		ID:        "test-tool",
 		Type:      JobTypeOneshot,
 		Tool:      "send_message",
-		Command:   "test", // Should be removed by normalization
 		Payload:   map[string]any{"message": "hello"},
 		SessionID: "telegram:123",
 		ExecuteAt: &past,
@@ -398,8 +385,6 @@ func TestScheduler_AddJobNormalizeToolCommand(t *testing.T) {
 	jobID, err := scheduler.AddJob(job)
 	require.NoError(t, err)
 
-	// Verify command was normalized
-	storedJob, err := scheduler.GetJob(jobID)
+	_, err = scheduler.GetJob(jobID)
 	require.NoError(t, err)
-	assert.Empty(t, storedJob.Command, "Command should be empty when tool is set")
 }

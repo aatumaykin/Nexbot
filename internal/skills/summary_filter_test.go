@@ -54,9 +54,8 @@ category: docker
 	builder := NewSummaryBuilder(loader)
 
 	opts := SummaryOptions{
-		Format:            "short",
-		Categories:        []string{"git"},
-		IncludeDeprecated: false,
+		Format:     "short",
+		Categories: []string{"git"},
 	}
 
 	summary, err := builder.Build(opts)
@@ -71,104 +70,6 @@ category: docker
 
 	if strings.Contains(summary, "docker-build") {
 		t.Error("Expected summary to not contain docker skill")
-	}
-}
-
-func TestSummaryBuilder_ExcludeDeprecated(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	builtinDir := filepath.Join(tmpDir, "builtin", "skills")
-	if err := os.MkdirAll(builtinDir, 0755); err != nil {
-		t.Fatalf("Failed to create builtin directory: %v", err)
-	}
-
-	activeContent := `---
-name: active-skill
-description: An active skill
----
-
-`
-
-	deprecatedContent := `---
-name: deprecated-skill
-description: A deprecated skill
-deprecated: true
----
-
-`
-
-	if err := os.WriteFile(filepath.Join(builtinDir, "active.md"), []byte(activeContent), 0644); err != nil {
-		t.Fatalf("Failed to write active skill: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(builtinDir, "deprecated.md"), []byte(deprecatedContent), 0644); err != nil {
-		t.Fatalf("Failed to write deprecated skill: %v", err)
-	}
-
-	cfg := LoaderConfig{
-		BuiltinDir:   builtinDir,
-		CacheEnabled: false,
-	}
-
-	loader := NewLoader(cfg)
-	builder := NewSummaryBuilder(loader)
-
-	opts := SummaryOptions{
-		Format:            "short",
-		IncludeDeprecated: false,
-	}
-
-	summary, err := builder.Build(opts)
-	if err != nil {
-		t.Fatalf("Failed to build summary: %v", err)
-	}
-
-	// Should not contain deprecated skills
-	if strings.Contains(summary, "deprecated-skill") {
-		t.Error("Expected summary to not contain deprecated skill")
-	}
-}
-
-func TestSummaryBuilder_IncludeDeprecated(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	builtinDir := filepath.Join(tmpDir, "builtin", "skills")
-	if err := os.MkdirAll(builtinDir, 0755); err != nil {
-		t.Fatalf("Failed to create builtin directory: %v", err)
-	}
-
-	deprecatedContent := `---
-name: deprecated-skill
-description: A deprecated skill
-deprecated: true
----
-
-`
-
-	if err := os.WriteFile(filepath.Join(builtinDir, "SKILL.md"), []byte(deprecatedContent), 0644); err != nil {
-		t.Fatalf("Failed to write deprecated skill: %v", err)
-	}
-
-	cfg := LoaderConfig{
-		BuiltinDir:   builtinDir,
-		CacheEnabled: false,
-	}
-
-	loader := NewLoader(cfg)
-	builder := NewSummaryBuilder(loader)
-
-	opts := SummaryOptions{
-		Format:            "short",
-		IncludeDeprecated: true,
-	}
-
-	summary, err := builder.Build(opts)
-	if err != nil {
-		t.Fatalf("Failed to build summary: %v", err)
-	}
-
-	// Should contain deprecated skills
-	if !strings.Contains(summary, "deprecated-skill") {
-		t.Error("Expected summary to contain deprecated skill when IncludeDeprecated is true")
 	}
 }
 
@@ -207,9 +108,8 @@ description: Skill number %d
 	builder := NewSummaryBuilder(loader)
 
 	opts := SummaryOptions{
-		Format:            "short",
-		IncludeDeprecated: false,
-		MaxSkills:         3,
+		Format:    "short",
+		MaxSkills: 3,
 	}
 
 	summary, err := builder.Build(opts)

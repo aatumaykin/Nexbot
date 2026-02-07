@@ -1089,55 +1089,6 @@ func TestConnector_handleOutbound_NewFormat(t *testing.T) {
 	mockBot.AssertCalled(t, "SendMessage", ctx, mock.MatchedBy(func(params *telego.SendMessageParams) bool {
 		return params.ChatID.ID == 987654321 && params.Text == "Hello from bot!"
 	}))
-}
-
-// TestConnector_handleOutbound_LegacyFormat tests session_id parsing with legacy "chat_id" format
-func TestConnector_handleOutbound_LegacyFormat(t *testing.T) {
-	log, _ := logger.New(logger.Config{
-		Level:  "debug",
-		Format: "text",
-		Output: "stdout",
-	})
-
-	msgBus := bus.New(100, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	cfg := config.TelegramConfig{}
-
-	conn := New(cfg, log, msgBus)
-	conn.ctx = ctx
-
-	// Create mock bot
-	mockBot := NewMockBotSuccess()
-	conn.bot = mockBot
-
-	// Create outbound channel
-	outboundCh := make(chan bus.OutboundMessage, 1)
-	conn.outboundCh = outboundCh
-
-	// Start outbound handler in goroutine
-	go conn.handleOutbound()
-
-	// Send telegram message with legacy session_id format
-	outboundMsg := bus.OutboundMessage{
-		ChannelType: bus.ChannelTypeTelegram,
-		UserID:      "123456789",
-		SessionID:   "987654321", // Legacy format
-		Content:     "Hello from bot!",
-		Timestamp:   time.Now(),
-	}
-
-	outboundCh <- outboundMsg
-
-	// Wait a bit for processing
-	time.Sleep(100 * time.Millisecond)
-
-	// Stop handler
-	cancel()
-	time.Sleep(100 * time.Millisecond)
-
-	// Verify bot was called with correct chat ID
 	mockBot.AssertCalled(t, "SendMessage", ctx, mock.MatchedBy(func(params *telego.SendMessageParams) bool {
 		return params.ChatID.ID == 987654321 && params.Text == "Hello from bot!"
 	}))

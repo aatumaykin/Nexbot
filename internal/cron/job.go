@@ -39,8 +39,7 @@ type WorkerPool interface {
 
 // CronTaskPayload represents the payload for a cron task
 type CronTaskPayload struct {
-	Command   string            // Deprecated: Used only for backward compatibility when tool=""
-	Tool      string            // Internal tool: "" (legacy) | "send_message" | "agent"
+	Tool      string            // Internal tool: "send_message" | "agent"
 	Payload   map[string]any    // Tool parameters (JSON). For send_message/agent: {"message": "text"}
 	SessionID string            // Session ID for context (format: "channel:chat_id")
 	Metadata  map[string]string // Job metadata
@@ -52,7 +51,6 @@ type Job struct {
 	Type       JobType           `json:"type"`                  // Job type: recurring or oneshot
 	Schedule   string            `json:"schedule"`              // Cron expression (e.g., "0 * * * *")
 	ExecuteAt  *time.Time        `json:"execute_at,omitempty"`  // Execution time for oneshot jobs
-	Command    string            `json:"command"`               // Message to send to agent when job executes
 	UserID     string            `json:"user_id"`               // User ID for the message
 	Tool       string            `json:"tool"`                  // Внутренний инструмент: "" | "send_message" | "agent"
 	Payload    map[string]any    `json:"payload"`               // Параметры для инструмента (JSON)

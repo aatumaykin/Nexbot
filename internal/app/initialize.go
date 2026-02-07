@@ -236,7 +236,6 @@ func (a *App) Initialize(ctx context.Context) error {
 				Type:       cron.JobType(storageJob.Type),
 				Schedule:   storageJob.Schedule,
 				ExecuteAt:  storageJob.ExecuteAt,
-				Command:    storageJob.Command,
 				UserID:     storageJob.UserID,
 				Tool:       storageJob.Tool,
 				Payload:    storageJob.Payload,

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/aatumaykin/nexbot/internal/bus"
-	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +27,6 @@ func TestPool_WorkerPanicRecovery(t *testing.T) {
 	task := Task{
 		ID:      "panic-task",
 		Type:    "cron",
-		Payload: cron.CronTaskPayload{Command: "test"},
 	}
 
 	pool.Submit(task)
@@ -46,7 +44,6 @@ func TestPool_WorkerPanicRecovery(t *testing.T) {
 	task2 := Task{
 		ID:      "recovery-task",
 		Type:    "cron",
-		Payload: cron.CronTaskPayload{Command: "test2"},
 	}
 	pool.Submit(task2)
 
@@ -79,7 +76,6 @@ func TestPool_ConcurrentSubmissions(t *testing.T) {
 				task := Task{
 					ID:      fmt.Sprintf("goroutine-%d-task-%d", goroutineID, j),
 					Type:    "cron",
-					Payload: cron.CronTaskPayload{Command: fmt.Sprintf("command %d", j)},
 				}
 				pool.Submit(task)
 			}

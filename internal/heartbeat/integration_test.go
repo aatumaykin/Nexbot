@@ -59,7 +59,6 @@ func TestIntegration_HeartbeatWithScheduler(t *testing.T) {
 		job := cron.Job{
 			ID:       fmt.Sprintf("heartbeat_%s", task.Name),
 			Schedule: task.Schedule,
-			Command:  task.Task,
 			UserID:   "system",
 			Metadata: map[string]string{
 				"type":        "heartbeat",
@@ -137,7 +136,6 @@ func TestIntegration_HeartbeatWithInvalidTasks(t *testing.T) {
 		job := cron.Job{
 			ID:       fmt.Sprintf("heartbeat_%s", task.Name),
 			Schedule: task.Schedule,
-			Command:  task.Task,
 			UserID:   "system",
 			Metadata: map[string]string{
 				"type":        "heartbeat",

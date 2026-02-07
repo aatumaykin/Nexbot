@@ -132,7 +132,6 @@ func TestCronExpressionValidation(t *testing.T) {
 			job := Job{
 				ID:       tt.name,
 				Schedule: tt.expression,
-				Command:  "test command",
 				UserID:   "test-user",
 			}
 
@@ -174,7 +173,6 @@ func TestSchedulerDuplicateJobID(t *testing.T) {
 	job1 := Job{
 		ID:       "duplicate-id",
 		Schedule: "* * * * * *",
-		Command:  "command 1",
 		UserID:   "user-1",
 	}
 
@@ -186,7 +184,6 @@ func TestSchedulerDuplicateJobID(t *testing.T) {
 	job2 := Job{
 		ID:       "duplicate-id",
 		Schedule: "*/2 * * * * *",
-		Command:  "command 2",
 		UserID:   "user-2",
 	}
 
@@ -202,7 +199,6 @@ func TestSchedulerDuplicateJobID(t *testing.T) {
 	// Verify the job has the second schedule
 	assert.Equal(t, "duplicate-id", jobs[0].ID)
 	assert.Equal(t, "*/2 * * * * *", jobs[0].Schedule)
-	assert.Equal(t, "command 2", jobs[0].Command)
 }
 
 // TestSchedulerRemoveNonExistentJob tests removing a job that doesn't exist
@@ -282,7 +278,6 @@ func TestSchedulerConcurrentAddRemove(t *testing.T) {
 			job := Job{
 				ID:       fmt.Sprintf("concurrent-job-%d", id),
 				Schedule: "* * * * * *",
-				Command:  fmt.Sprintf("command %d", id),
 				UserID:   "test-user",
 			}
 			jobID, err := scheduler.AddJob(job)

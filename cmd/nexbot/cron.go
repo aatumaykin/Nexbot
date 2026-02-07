@@ -16,13 +16,6 @@ var cronCmd = &cobra.Command{
 	Short: "Manage scheduled tasks",
 }
 
-var cronAddCmd = &cobra.Command{
-	Use:   "add <schedule> <command>",
-	Short: "Add a scheduled task",
-	Args:  cobra.ExactArgs(2),
-	Run:   runCronAdd,
-}
-
 var cronListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all scheduled tasks",
@@ -34,55 +27,6 @@ var cronRemoveCmd = &cobra.Command{
 	Short: "Remove a scheduled task",
 	Args:  cobra.ExactArgs(1),
 	Run:   runCronRemove,
-}
-
-func runCronAdd(cmd *cobra.Command, args []string) {
-	schedule := args[0]
-	command := args[1]
-
-	// Initialize a minimal logger for this command
-	log, err := logger.New(logger.Config{
-		Level:  "info",
-		Format: "text",
-		Output: "stdout",
-	})
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Load existing jobs
-	jobs, err := cron.LoadJobs(constants.DefaultWorkDir)
-	if err != nil && !os.IsNotExist(err) {
-		log.Error("Failed to load jobs", err)
-		os.Exit(1)
-	}
-
-	// Create new job
-	job := cron.Job{
-		ID:       cron.GenerateJobID(),
-		Schedule: schedule,
-		Command:  command,
-		UserID:   constants.CronDefaultUserID,
-	}
-
-	// Add to jobs map
-	if jobs == nil {
-		jobs = make(map[string]cron.Job)
-	}
-	jobs[job.ID] = job
-
-	// Save jobs
-	if err := cron.SaveJobs(constants.DefaultWorkDir, jobs); err != nil {
-		log.Error("Failed to save jobs", err)
-		os.Exit(1)
-	}
-
-	log.Info("Job added")
-	log.Info("Job ID", logger.Field{Key: "id", Value: job.ID})
-	log.Info("Job Schedule", logger.Field{Key: "schedule", Value: schedule})
-	log.Info("Job Command", logger.Field{Key: "command", Value: command})
-	log.Info("Note: remove job with: nexbot cron remove <job-id>")
 }
 
 func runCronList(cmd *cobra.Command, args []string) {
@@ -119,7 +63,7 @@ func runCronList(cmd *cobra.Command, args []string) {
 		log.Info("Job",
 			logger.Field{Key: "id", Value: job.ID},
 			logger.Field{Key: "schedule", Value: job.Schedule},
-			logger.Field{Key: "command", Value: job.Command})
+			logger.Field{Key: "tool", Value: job.Tool})
 		if len(job.Metadata) > 0 {
 			log.Info("Metadata")
 			for k, v := range job.Metadata {
@@ -177,7 +121,6 @@ func runCronRemove(cmd *cobra.Command, args []string) {
 
 func init() {
 	rootCmd.AddCommand(cronCmd)
-	cronCmd.AddCommand(cronAddCmd)
 	cronCmd.AddCommand(cronListCmd)
 	cronCmd.AddCommand(cronRemoveCmd)
 }

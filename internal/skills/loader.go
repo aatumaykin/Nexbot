@@ -353,16 +353,11 @@ func (l *Loader) Stats() (*Stats, error) {
 	stats := &Stats{
 		Total:      len(skillsMap),
 		Categories: make(map[string]int),
-		Deprecated: 0,
 	}
 
 	for _, skill := range skillsMap {
 		if skill.Metadata.Category != "" {
 			stats.Categories[skill.Metadata.Category]++
-		}
-
-		if skill.Metadata.Deprecated {
-			stats.Deprecated++
 		}
 
 		stats.ParameterCount += len(skill.Metadata.Parameters)
@@ -376,7 +371,6 @@ func (l *Loader) Stats() (*Stats, error) {
 type Stats struct {
 	Total          int            `json:"total"`
 	Categories     map[string]int `json:"categories"`
-	Deprecated     int            `json:"deprecated"`
 	ParameterCount int            `json:"parameter_count"`
 	ExampleCount   int            `json:"example_count"`
 }

@@ -81,7 +81,7 @@ func (p *WorkerPool) SubmitWithContext(ctx context.Context, task Task) error {
 }
 
 // SubmitCronTask submits a cron task to the worker pool.
-func (p *WorkerPool) SubmitCronTask(task CronTask) {
+func (p *WorkerPool) SubmitCronTask(task Task) {
 	p.incrementSubmitted()
 
 	p.logger.DebugCtx(p.ctx, "cron task submitted",

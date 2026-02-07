@@ -86,7 +86,6 @@ func TestSaveJobs(t *testing.T) {
 		"job_1": {
 			ID:       "job_1",
 			Schedule: "* * * * *",
-			Command:  "test command",
 			UserID:   "cli",
 		},
 	}
@@ -155,13 +154,11 @@ func TestCronJobPersistence(t *testing.T) {
 		"persistent-job-1": {
 			ID:       "persistent-job-1",
 			Schedule: "0 * * * * *",
-			Command:  "persistent command 1",
 			UserID:   "cli",
 		},
 		"persistent-job-2": {
 			ID:       "persistent-job-2",
 			Schedule: "*/30 * * * * *",
-			Command:  "persistent command 2",
 			UserID:   "cli",
 		},
 	}

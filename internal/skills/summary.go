@@ -21,19 +21,17 @@ func NewSummaryBuilder(loader *Loader) *SummaryBuilder {
 
 // SummaryOptions represents options for generating skill summaries.
 type SummaryOptions struct {
-	IncludeDeprecated bool     // Whether to include deprecated skills
-	Categories        []string // Specific categories to include (empty = all)
-	Format            string   // Format: "short", "medium", "long"
-	MaxSkills         int      // Maximum number of skills to include (0 = all)
+	Categories []string // Specific categories to include (empty = all)
+	Format     string   // Format: "short", "medium", "long"
+	MaxSkills  int      // Maximum number of skills to include (0 = all)
 }
 
 // DefaultSummaryOptions returns default summary options.
 func DefaultSummaryOptions() SummaryOptions {
 	return SummaryOptions{
-		IncludeDeprecated: false,
-		Categories:        nil,
-		Format:            "medium",
-		MaxSkills:         0,
+		Categories: nil,
+		Format:     "medium",
+		MaxSkills:  0,
 	}
 }
 
@@ -76,11 +74,6 @@ func (b *SummaryBuilder) filterSkills(skills map[string]*Skill, opts SummaryOpti
 	var filtered []*Skill
 
 	for _, skill := range skills {
-		// Skip deprecated skills if not requested
-		if !opts.IncludeDeprecated && skill.Metadata.Deprecated {
-			continue
-		}
-
 		// Filter by category if specified
 		if len(opts.Categories) > 0 {
 			found := false
@@ -178,11 +171,6 @@ func (b *SummaryBuilder) buildMediumSummary(skills []*Skill) string {
 				builder.WriteString("\n")
 			}
 
-			// Add deprecation warning if needed
-			if skill.Metadata.Deprecated {
-				builder.WriteString("**⚠️ DEPRECATED**: This skill is deprecated and may be removed in future versions.\n\n")
-			}
-
 			builder.WriteString("---\n\n")
 		}
 	}
@@ -262,11 +250,6 @@ func (b *SummaryBuilder) buildLongSummary(skills []*Skill) string {
 				preview := b.previewContent(skill.Content, 3)
 				builder.WriteString(fmt.Sprintf("```\n%s\n```\n", preview))
 				builder.WriteString("\n")
-			}
-
-			// Add deprecation warning
-			if skill.Metadata.Deprecated {
-				builder.WriteString("**⚠️ DEPRECATED**: This skill is deprecated and may be removed in future versions.\n\n")
 			}
 
 			builder.WriteString("---\n\n")

@@ -27,8 +27,7 @@ type SkillMetadata struct {
 		Input       string `yaml:"input"`       // Example input
 		Description string `yaml:"description"` // What the example demonstrates
 	} `yaml:"examples,omitempty"` // Usage examples
-	Author     string `yaml:"author,omitempty"`     // Author of the skill
-	Deprecated bool   `yaml:"deprecated,omitempty"` // Whether the skill is deprecated
+	Author string `yaml:"author,omitempty"` // Author of the skill
 }
 
 // Skill represents a fully parsed skill with metadata and content.

@@ -26,7 +26,6 @@ type StorageJob struct {
 	Type       string            `json:"type"`
 	Schedule   string            `json:"schedule,omitempty"`
 	ExecuteAt  *time.Time        `json:"execute_at,omitempty"`
-	Command    string            `json:"command"`
 	UserID     string            `json:"user_id,omitempty"`
 	Tool       string            `json:"tool,omitempty"`       // Внутренний инструмент: "" | "send_message" | "agent"
 	Payload    map[string]any    `json:"payload,omitempty"`    // Параметры для инструмента (JSON)
@@ -311,9 +310,6 @@ func (s *Storage) UpsertJob(job StorageJob) error {
 	// Normalize job data in the slice
 	if jobs[jobIndex].Type == string(JobTypeOneshot) {
 		jobs[jobIndex].Schedule = ""
-	}
-	if jobs[jobIndex].Tool != "" {
-		jobs[jobIndex].Command = ""
 	}
 
 	// Save all jobs
