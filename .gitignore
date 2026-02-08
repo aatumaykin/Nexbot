@@ -37,6 +37,7 @@ tmp/
 *.tmp
 *.log
 *.bak
+*.backup
 *.old
 
 # Workspace
