@@ -143,7 +143,7 @@ func (p *WorkerPool) executeSendMessage(ctx context.Context, task Task, payload 
 	outboundMsg := bus.OutboundMessage{
 		ChannelType: bus.ChannelType(channel),
 		UserID:      "",
-		SessionID:   chatID,
+		SessionID:   fmt.Sprintf("%s:%s", channel, chatID),
 		Content:     content,
 		Timestamp:   time.Now(),
 		Metadata: map[string]interface{}{
@@ -202,7 +202,7 @@ func (p *WorkerPool) executeAgent(ctx context.Context, task Task, payload cron.C
 	msg := bus.NewInboundMessage(
 		bus.ChannelType(channel),
 		"", // Empty user_id for cron tasks
-		chatID,
+		fmt.Sprintf("%s:%s", channel, chatID),
 		content,
 		map[string]interface{}{
 			"cron_job_id": task.ID,
