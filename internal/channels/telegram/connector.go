@@ -284,114 +284,162 @@ func (c *Connector) handleOutbound() {
 				continue
 			}
 
-			params := telego.SendMessageParams{
-				ChatID:    telego.ChatID{ID: chatID},
-				Text:      msg.Content,
-				ParseMode: telego.ModeMarkdown,
-			}
-
-			_, err = c.bot.SendMessage(c.ctx, &params)
+			// Prepare message with smart content detection
+			params, err := c.prepareMessage(msg.Content, chatID)
 			if err != nil {
-				// Парсим ошибку telego для получения деталей
-				var telErr *telegoapi.Error
-				isMarkdownError := false
-
-				if errors.As(err, &telErr) {
-					details := &channels.TelegramErrorDetails{
-						ErrorCode:       telErr.ErrorCode,
-						Description:     telErr.Description,
-						RetryAfterSec:   0,
-						OriginalMessage: msg.Content,
-						ChatID:          chatID,
-						Timestamp:       time.Now(),
-					}
-
-					if telErr.Parameters != nil {
-						details.RetryAfterSec = telErr.Parameters.RetryAfter
-					}
-
-					// Проверяем, если это ошибка парсинга markdown (400 Bad Request)
-					if telErr.ErrorCode == 400 {
-						desc := telErr.Description
-						isMarkdownError = strings.Contains(desc, "can't parse entities") ||
-							strings.Contains(desc, "Can't find end of the entity") ||
-							strings.Contains(desc, "wrong number of entities") ||
-							strings.Contains(desc, "specified new message entity")
-					}
-
-					// Fallback: отправка без форматирования при ошибке markdown
-					if isMarkdownError {
-						c.logger.WarnCtx(c.ctx, "markdown parse error, retrying without formatting",
-							logger.Field{Key: "chat_id", Value: chatID},
-							logger.Field{Key: "correlation_id", Value: msg.CorrelationID},
-							logger.Field{Key: "error", Value: telErr.Description})
-
-						params.ParseMode = ""
-						_, fallbackErr := c.bot.SendMessage(c.ctx, &params)
-						if fallbackErr == nil {
-							c.logger.InfoCtx(c.ctx, "message sent with fallback (no formatting)",
-								logger.Field{Key: "chat_id", Value: chatID},
-								logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
-
-							result := bus.MessageSendResult{
-								CorrelationID: msg.CorrelationID,
-								ChannelType:   bus.ChannelTypeTelegram,
-								Success:       true,
-								Timestamp:     time.Now(),
-							}
-
-							if pubErr := c.bus.PublishSendResult(result); pubErr != nil {
-								c.logger.ErrorCtx(c.ctx, "failed to publish send result", pubErr,
-									logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
-							}
-							continue
-						}
-
-						c.logger.ErrorCtx(c.ctx, "fallback send also failed", fallbackErr,
-							logger.Field{Key: "chat_id", Value: chatID},
-							logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
-					}
-
-					result := bus.MessageSendResult{
-						CorrelationID: msg.CorrelationID,
-						ChannelType:   bus.ChannelTypeTelegram,
-						Success:       false,
-						Error:         details,
-						Timestamp:     time.Now(),
-					}
-
-					if pubErr := c.bus.PublishSendResult(result); pubErr != nil {
-						c.logger.ErrorCtx(c.ctx, "failed to publish send result", pubErr,
-							logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
-					}
-				}
-
-				c.logger.ErrorCtx(c.ctx, "failed to send message to Telegram", err,
+				c.logger.ErrorCtx(c.ctx, "failed to prepare message", err,
 					logger.Field{Key: "chat_id", Value: chatID},
 					logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+				c.publishResult(msg, chatID, false, err)
 				continue
 			}
 
-			// Успешная отправка
-			result := bus.MessageSendResult{
-				CorrelationID: msg.CorrelationID,
-				ChannelType:   bus.ChannelTypeTelegram,
-				Success:       true,
-				Timestamp:     time.Now(),
+			// Try to send with detected formatting
+			_, err = c.bot.SendMessage(c.ctx, &params)
+			if err != nil {
+				// Smart fallback for markdown errors
+				c.handleSendError(err, msg, chatID, params)
+				continue
 			}
 
-			if pubErr := c.bus.PublishSendResult(result); pubErr != nil {
-				c.logger.ErrorCtx(c.ctx, "failed to publish send result", pubErr,
-					logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
-			}
-
-			c.logger.DebugCtx(c.ctx, "outbound message sent to Telegram",
-				logger.Field{Key: "chat_id", Value: chatID},
-				logger.Field{Key: "user_id", Value: msg.UserID},
-				logger.Field{Key: "correlation_id", Value: msg.CorrelationID},
-				logger.Field{Key: "content", Value: msg.Content})
+			// Успешная отправка - публикуем результат СРАЗУ
+			c.publishResult(msg, chatID, true, nil)
 		}
 	}
+}
+
+// publishResult публикует результат отправки сообщения
+func (c *Connector) publishResult(msg bus.OutboundMessage, chatID int64, success bool, err error) {
+	result := bus.MessageSendResult{
+		CorrelationID: msg.CorrelationID,
+		ChannelType:   bus.ChannelTypeTelegram,
+		Success:       success,
+		Timestamp:     time.Now(),
+	}
+
+	if !success && err != nil {
+		var telErr *telegoapi.Error
+
+		if errors.As(err, &telErr) {
+			details := &channels.TelegramErrorDetails{
+				ErrorCode:       telErr.ErrorCode,
+				Description:     telErr.Description,
+				RetryAfterSec:   0,
+				OriginalMessage: msg.Content,
+				ChatID:          chatID,
+				Timestamp:       time.Now(),
+			}
+
+			if telErr.Parameters != nil {
+				details.RetryAfterSec = telErr.Parameters.RetryAfter
+			}
+
+			result.Error = details
+		}
+	}
+
+	if pubErr := c.bus.PublishSendResult(result); pubErr != nil {
+		c.logger.ErrorCtx(c.ctx, "failed to publish send result", pubErr,
+			logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+	}
+}
+
+// handleSendError обрабатывает ошибки отправки с smart fallback для markdown
+func (c *Connector) handleSendError(err error, msg bus.OutboundMessage, chatID int64, params telego.SendMessageParams) {
+	var telErr *telegoapi.Error
+
+	if errors.As(err, &telErr) {
+		details := &channels.TelegramErrorDetails{
+			ErrorCode:       telErr.ErrorCode,
+			Description:     telErr.Description,
+			RetryAfterSec:   0,
+			OriginalMessage: msg.Content,
+			ChatID:          chatID,
+			Timestamp:       time.Now(),
+		}
+
+		if telErr.Parameters != nil {
+			details.RetryAfterSec = telErr.Parameters.RetryAfter
+		}
+
+		isMarkdownError := false
+
+		if telErr.ErrorCode == 400 {
+			desc := telErr.Description
+			isMarkdownError = strings.Contains(desc, "can't parse entities") ||
+				strings.Contains(desc, "Can't find end of the entity") ||
+				strings.Contains(desc, "wrong number of entities") ||
+				strings.Contains(desc, "specified new message entity")
+		}
+
+		// Smart fallback: try different parsing modes based on content type
+		if isMarkdownError {
+			c.logger.WarnCtx(c.ctx, "markdown parse error, trying fallback strategies",
+				logger.Field{Key: "chat_id", Value: chatID},
+				logger.Field{Key: "correlation_id", Value: msg.CorrelationID},
+				logger.Field{Key: "error", Value: telErr.Description})
+
+			// Fallback 1: Try HTML
+			c.logger.InfoCtx(c.ctx, "trying HTML fallback")
+			htmlContent := MarkdownToHTML(msg.Content)
+			params.ParseMode = telego.ModeHTML
+			params.Text = htmlContent
+			_, htmlErr := c.bot.SendMessage(c.ctx, &params)
+			if htmlErr == nil {
+				c.logger.InfoCtx(c.ctx, "message sent with HTML fallback")
+				c.publishResult(msg, chatID, true, nil)
+				return
+			}
+
+			c.logger.WarnCtx(c.ctx, "HTML fallback failed, trying plain text")
+			plainContent := StripFormatting(msg.Content)
+			params.ParseMode = ""
+			params.Text = plainContent
+			_, plainErr := c.bot.SendMessage(c.ctx, &params)
+			if plainErr == nil {
+				c.logger.InfoCtx(c.ctx, "message sent with plain text fallback")
+				c.publishResult(msg, chatID, true, nil)
+				return
+			}
+
+			c.logger.ErrorCtx(c.ctx, "all markdown fallbacks failed", plainErr,
+				logger.Field{Key: "chat_id", Value: chatID},
+				logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+			c.publishResult(msg, chatID, false, plainErr)
+		}
+
+		c.publishResult(msg, chatID, false, err)
+	}
+}
+
+// prepareMessage подготавливает параметры сообщения с определением типа контента
+func (c *Connector) prepareMessage(content string, chatID int64) (telego.SendMessageParams, error) {
+	params := telego.SendMessageParams{
+		ChatID: telego.ChatID{ID: chatID},
+		Text:   content,
+	}
+
+	// Detect content type
+	contentType := DetectContentType(content)
+
+	switch contentType {
+	case ContentTypeCode:
+		// Code content - use HTML for better code block support
+		params.ParseMode = telego.ModeHTML
+		params.Text = MarkdownToHTML(content)
+	case ContentTypeMarkdown:
+		// Markdown content - try HTML first (more robust)
+		params.ParseMode = telego.ModeHTML
+		params.Text = MarkdownToHTML(content)
+	case ContentTypePlain:
+		// Plain text - no formatting
+		params.ParseMode = ""
+	default:
+		// Default: no formatting
+		params.ParseMode = ""
+	}
+
+	return params, nil
 }
 
 // handleEvents processes lifecycle events from the message bus
