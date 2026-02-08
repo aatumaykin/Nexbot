@@ -86,10 +86,16 @@ type ChannelsConfig struct {
 
 // TelegramConfig представляет конфигурацию Telegram канала
 type TelegramConfig struct {
-	Enabled      bool     `toml:"enabled"`
-	Token        string   `toml:"token"`
-	AllowedUsers []string `toml:"allowed_users"`
-	AllowedChats []string `toml:"allowed_chats"`
+	Enabled               bool     `toml:"enabled"`
+	Token                 string   `toml:"token"`
+	AllowedUsers          []string `toml:"allowed_users"`
+	AllowedChats          []string `toml:"allowed_chats"`
+	SendTimeoutSeconds    int      `toml:"send_timeout_seconds"`
+	EnableInlineUpdates   bool     `toml:"enable_inline_updates"`
+	DefaultParseMode      string   `toml:"default_parse_mode"`
+	EnableInlineKeyboard  bool     `toml:"enable_inline_keyboard"`
+	QuietMode             bool     `toml:"quiet_mode"`
+	AnswerCallbackTimeout int      `toml:"answer_callback_timeout"`
 }
 
 // ToolsConfig представляет конфигурацию tools

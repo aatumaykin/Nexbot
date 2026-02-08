@@ -75,6 +75,24 @@ func (c *Config) Validate() []error {
 		} else if err := validateTelegramToken(c.Channels.Telegram.Token); err != nil {
 			errors = append(errors, err)
 		}
+
+		// Проверка default_parse_mode
+		if c.Channels.Telegram.DefaultParseMode != "" {
+			validParseModes := map[string]bool{"none": true, "markdown": true, "html": true}
+			if !validParseModes[strings.ToLower(c.Channels.Telegram.DefaultParseMode)] {
+				errors = append(errors, fmt.Errorf("invalid channels.telegram.default_parse_mode: %s (expected: none, markdown, html)", c.Channels.Telegram.DefaultParseMode))
+			}
+		}
+
+		// Проверка send_timeout_seconds
+		if c.Channels.Telegram.SendTimeoutSeconds < 0 {
+			errors = append(errors, fmt.Errorf("channels.telegram.send_timeout_seconds must be positive (got: %d)", c.Channels.Telegram.SendTimeoutSeconds))
+		}
+
+		// Проверка answer_callback_timeout
+		if c.Channels.Telegram.AnswerCallbackTimeout < 0 {
+			errors = append(errors, fmt.Errorf("channels.telegram.answer_callback_timeout must be positive (got: %d)", c.Channels.Telegram.AnswerCallbackTimeout))
+		}
 	}
 
 	// Проверка logging config
@@ -290,6 +308,26 @@ func applyDefaults(c *Config) {
 	}
 	if c.Subagent.SessionPrefix == "" {
 		c.Subagent.SessionPrefix = "subagent-"
+	}
+
+	// Telegram defaults
+	if c.Channels.Telegram.SendTimeoutSeconds == 0 {
+		c.Channels.Telegram.SendTimeoutSeconds = 5
+	}
+	if c.Channels.Telegram.EnableInlineUpdates == false {
+		c.Channels.Telegram.EnableInlineUpdates = true
+	}
+	if c.Channels.Telegram.DefaultParseMode == "" {
+		c.Channels.Telegram.DefaultParseMode = "markdown"
+	}
+	if c.Channels.Telegram.EnableInlineKeyboard == false {
+		c.Channels.Telegram.EnableInlineKeyboard = true
+	}
+	if c.Channels.Telegram.QuietMode == false {
+		c.Channels.Telegram.QuietMode = false
+	}
+	if c.Channels.Telegram.AnswerCallbackTimeout == 0 {
+		c.Channels.Telegram.AnswerCallbackTimeout = 5
 	}
 }
 

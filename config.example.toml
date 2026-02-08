@@ -85,6 +85,24 @@ allowed_users = []
 # Список разрешённых Telegram chat ID (пусто = разрешить всем)
 allowed_chats = []
 
+# Таймаут для отправки сообщений (в секундах)
+send_timeout_seconds = 5
+
+# Редактирование сообщений (inline mode)
+enable_inline_updates = true
+
+# Parse mode по умолчанию: "markdown", "html", "none"
+default_parse_mode = "markdown"
+
+# Inline keyboards поддержка
+enable_inline_keyboard = true
+
+# Тихий режим (без уведомлений пользователя)
+quiet_mode = false
+
+# Таймаут для ответа на callback queries (в секундах)
+answer_callback_timeout = 5
+
 # -----------------------------------------------------------------------------
 # File Tools Settings
 # -----------------------------------------------------------------------------

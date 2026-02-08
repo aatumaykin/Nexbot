@@ -23,6 +23,7 @@ func TestConfigDefaults(t *testing.T) {
 		{"logging level", "logging.level", "info", cfg.Logging.Level},
 		{"logging format", "logging.format", "json", cfg.Logging.Format},
 		{"logging output", "logging.output", "stdout", cfg.Logging.Output},
+		{"telegram default parse mode", "channels.telegram.default_parse_mode", "markdown", cfg.Channels.Telegram.DefaultParseMode},
 	}
 
 	for _, tt := range tests {
@@ -31,6 +32,25 @@ func TestConfigDefaults(t *testing.T) {
 				t.Errorf("Expected %s = %s, got %s", tt.field, tt.want, tt.got)
 			}
 		})
+	}
+
+	// Check numeric defaults
+	if cfg.Channels.Telegram.AnswerCallbackTimeout != 5 {
+		t.Errorf("Expected channels.telegram.answer_callback_timeout = 5, got %d", cfg.Channels.Telegram.AnswerCallbackTimeout)
+	}
+	if cfg.Channels.Telegram.SendTimeoutSeconds != 5 {
+		t.Errorf("Expected channels.telegram.send_timeout_seconds = 5, got %d", cfg.Channels.Telegram.SendTimeoutSeconds)
+	}
+
+	// Check boolean defaults
+	if cfg.Channels.Telegram.EnableInlineUpdates != true {
+		t.Errorf("Expected channels.telegram.enable_inline_updates = true, got %v", cfg.Channels.Telegram.EnableInlineUpdates)
+	}
+	if cfg.Channels.Telegram.EnableInlineKeyboard != true {
+		t.Errorf("Expected channels.telegram.enable_inline_keyboard = true, got %v", cfg.Channels.Telegram.EnableInlineKeyboard)
+	}
+	if cfg.Channels.Telegram.QuietMode != false {
+		t.Errorf("Expected channels.telegram.quiet_mode = false, got %v", cfg.Channels.Telegram.QuietMode)
 	}
 }
 
@@ -287,6 +307,110 @@ func TestConfigValidation(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "invalid telegram parse mode",
+			cfg: &Config{
+				Workspace: WorkspaceConfig{Path: "~/.nexbot"},
+				Agent: AgentConfig{
+					Provider: "zai",
+				},
+				LLM: LLMConfig{
+					ZAI: ZAIConfig{APIKey: "zai-test-key-valid"},
+				},
+				Logging: LoggingConfig{
+					Level:  "info",
+					Format: "json",
+					Output: "stdout",
+				},
+				Channels: ChannelsConfig{
+					Telegram: TelegramConfig{
+						Token:            "123456789:ABCDEF",
+						Enabled:          true,
+						DefaultParseMode: "invalid",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid telegram answer callback timeout (negative)",
+			cfg: &Config{
+				Workspace: WorkspaceConfig{Path: "~/.nexbot"},
+				Agent: AgentConfig{
+					Provider: "zai",
+				},
+				LLM: LLMConfig{
+					ZAI: ZAIConfig{APIKey: "zai-test-key-valid"},
+				},
+				Logging: LoggingConfig{
+					Level:  "info",
+					Format: "json",
+					Output: "stdout",
+				},
+				Channels: ChannelsConfig{
+					Telegram: TelegramConfig{
+						Token:                 "123456789:ABCDEF",
+						Enabled:               true,
+						AnswerCallbackTimeout: -1,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid telegram send timeout (negative)",
+			cfg: &Config{
+				Workspace: WorkspaceConfig{Path: "~/.nexbot"},
+				Agent: AgentConfig{
+					Provider: "zai",
+				},
+				LLM: LLMConfig{
+					ZAI: ZAIConfig{APIKey: "zai-test-key-valid"},
+				},
+				Logging: LoggingConfig{
+					Level:  "info",
+					Format: "json",
+					Output: "stdout",
+				},
+				Channels: ChannelsConfig{
+					Telegram: TelegramConfig{
+						Token:              "123456789:ABCDEF",
+						Enabled:            true,
+						SendTimeoutSeconds: -1,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid telegram config with new fields",
+			cfg: &Config{
+				Workspace: WorkspaceConfig{Path: "~/.nexbot"},
+				Agent: AgentConfig{
+					Provider: "zai",
+				},
+				LLM: LLMConfig{
+					ZAI: ZAIConfig{APIKey: "zai-test-key-valid"},
+				},
+				Logging: LoggingConfig{
+					Level:  "info",
+					Format: "json",
+					Output: "stdout",
+				},
+				Channels: ChannelsConfig{
+					Telegram: TelegramConfig{
+						Token:                 "1234567890:ABCDEFGHIJKLMNO",
+						Enabled:               true,
+						AnswerCallbackTimeout: 10,
+						SendTimeoutSeconds:    10,
+						DefaultParseMode:      "html",
+						EnableInlineUpdates:   true,
+						EnableInlineKeyboard:  true,
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -295,6 +419,11 @@ func TestConfigValidation(t *testing.T) {
 			hasErrors := len(errors) > 0
 			if hasErrors != tt.wantErr {
 				t.Errorf("Validate() hasErrors = %v, wantErr %v", hasErrors, tt.wantErr)
+				if hasErrors {
+					for _, err := range errors {
+						t.Logf("Validation error: %v", err)
+					}
+				}
 			}
 		})
 	}
