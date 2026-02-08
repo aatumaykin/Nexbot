@@ -37,6 +37,9 @@ type BotInterface interface {
 
 	// SendDocument sends a document to a chat.
 	SendDocument(ctx context.Context, params *telego.SendDocumentParams) (*telego.Message, error)
+
+	// AnswerCallbackQuery answers a callback query sent from inline keyboards.
+	AnswerCallbackQuery(ctx context.Context, params *telego.AnswerCallbackQueryParams) error
 }
 
 // telegoAdapter wraps telego.Bot to implement BotInterface.
@@ -96,4 +99,9 @@ func (a *telegoAdapter) SendPhoto(ctx context.Context, params *telego.SendPhotoP
 // SendDocument sends a document to a chat.
 func (a *telegoAdapter) SendDocument(ctx context.Context, params *telego.SendDocumentParams) (*telego.Message, error) {
 	return a.bot.SendDocument(ctx, params)
+}
+
+// AnswerCallbackQuery answers a callback query sent from inline keyboards.
+func (a *telegoAdapter) AnswerCallbackQuery(ctx context.Context, params *telego.AnswerCallbackQueryParams) error {
+	return a.bot.AnswerCallbackQuery(ctx, params)
 }

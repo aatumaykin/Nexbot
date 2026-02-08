@@ -61,7 +61,8 @@ func TestConnector_RegisterCommands_WithMock(t *testing.T) {
 	// Send a message
 	outboundCh <- bus.OutboundMessage{
 		ChannelType: bus.ChannelTypeTelegram,
-		SessionID:   "123456789",
+		SessionID:   "telegram:123456789",
+		Type:        bus.MessageTypeText,
 		Content:     "Test message",
 	}
 
@@ -115,7 +116,8 @@ func TestConnector_HandleOutbound_WithMockError(t *testing.T) {
 	// Send a message
 	outboundCh <- bus.OutboundMessage{
 		ChannelType: bus.ChannelTypeTelegram,
-		SessionID:   "123456789",
+		SessionID:   "telegram:123456789",
+		Type:        bus.MessageTypeText,
 		Content:     "Test message",
 	}
 

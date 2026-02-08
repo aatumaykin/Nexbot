@@ -87,6 +87,12 @@ func (m *MockBot) SendDocument(ctx context.Context, params *telego.SendDocumentP
 	return args.Get(0).(*telego.Message), args.Error(1)
 }
 
+// AnswerCallbackQuery answers a callback query sent from inline keyboards.
+func (m *MockBot) AnswerCallbackQuery(ctx context.Context, params *telego.AnswerCallbackQueryParams) error {
+	args := m.Called(ctx, params)
+	return args.Error(0)
+}
+
 // NewMockBotSuccess creates a MockBot that returns success for all operations.
 // This is a helper function for tests that don't need to verify specific behavior.
 // All expectations are optional (.Maybe()), so only called methods are checked.
@@ -125,6 +131,8 @@ func NewMockBotSuccess() *MockBot {
 		Document:  &telego.Document{FileID: "test"},
 	}, nil).Maybe()
 
+	mockBot.On("AnswerCallbackQuery", mock.Anything, mock.Anything).Return(nil).Maybe()
+
 	return mockBot
 }
 
@@ -141,6 +149,7 @@ func NewMockBotError(err error) *MockBot {
 	mockBot.On("DeleteMessage", mock.Anything, mock.Anything).Return(err).Maybe()
 	mockBot.On("SendPhoto", mock.Anything, mock.Anything).Return((*telego.Message)(nil), err).Maybe()
 	mockBot.On("SendDocument", mock.Anything, mock.Anything).Return((*telego.Message)(nil), err).Maybe()
+	mockBot.On("AnswerCallbackQuery", mock.Anything, mock.Anything).Return(err).Maybe()
 
 	return mockBot
 }
@@ -194,6 +203,7 @@ func NewMockBotWithUpdates(updates ...telego.Update) (*MockBot, <-chan telego.Up
 		MessageID: 3,
 		Document:  &telego.Document{FileID: "test"},
 	}, nil).Maybe()
+	mockBot.On("AnswerCallbackQuery", mock.Anything, mock.Anything).Return(nil).Maybe()
 
 	return mockBot, updateCh
 }

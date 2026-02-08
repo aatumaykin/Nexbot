@@ -866,7 +866,7 @@ func TestTypingManager(t *testing.T) {
 		event := bus.NewProcessingStartEvent(
 			bus.ChannelTypeTelegram,
 			"123456789",
-			"987654321",
+			"telegram:987654321",
 			nil,
 		)
 
@@ -880,7 +880,7 @@ func TestTypingManager(t *testing.T) {
 		endEvent := bus.NewProcessingEndEvent(
 			bus.ChannelTypeTelegram,
 			"123456789",
-			"987654321",
+			"telegram:987654321",
 			nil,
 		)
 		tm.Stop(*endEvent)
@@ -895,7 +895,7 @@ func TestTypingManager(t *testing.T) {
 		event := bus.NewProcessingStartEvent(
 			bus.ChannelTypeTelegram,
 			"123456789",
-			"987654321",
+			"telegram:987654321",
 			nil,
 		)
 
@@ -918,7 +918,7 @@ func TestTypingManager(t *testing.T) {
 		endEvent := bus.NewProcessingEndEvent(
 			bus.ChannelTypeTelegram,
 			"123456789",
-			"987654321",
+			"telegram:987654321",
 			nil,
 		)
 		tm.Stop(*endEvent)
@@ -942,7 +942,7 @@ func TestTypingManager(t *testing.T) {
 		event := bus.NewProcessingStartEvent(
 			bus.ChannelTypeTelegram,
 			"123456789",
-			"987654321",
+			"telegram:987654321",
 			nil,
 		)
 
@@ -970,7 +970,7 @@ func TestTypingManager(t *testing.T) {
 		endEvent := bus.NewProcessingEndEvent(
 			bus.ChannelTypeTelegram,
 			"123456789",
-			"987654321",
+			"telegram:987654321",
 			nil,
 		)
 		tm.Stop(*endEvent)
@@ -986,19 +986,19 @@ func TestTypingManager(t *testing.T) {
 		event1 := bus.NewProcessingStartEvent(
 			bus.ChannelTypeTelegram,
 			"user1",
-			"123",
+			"telegram:123",
 			nil,
 		)
 		event2 := bus.NewProcessingStartEvent(
 			bus.ChannelTypeTelegram,
 			"user2",
-			"456",
+			"telegram:456",
 			nil,
 		)
 		event3 := bus.NewProcessingStartEvent(
 			bus.ChannelTypeTelegram,
 			"user3",
-			"789",
+			"telegram:789",
 			nil,
 		)
 
@@ -1062,7 +1062,7 @@ func TestTypingManager_Send(t *testing.T) {
 		event := bus.NewProcessingStartEvent(
 			bus.ChannelTypeTelegram,
 			"123456789",
-			"987654321",
+			"telegram:987654321",
 			nil,
 		)
 
@@ -1483,7 +1483,7 @@ func TestConnector_handleEvents_EventTypes(t *testing.T) {
 		startEvent := bus.NewProcessingStartEvent(
 			bus.ChannelTypeTelegram,
 			"123456789",
-			"987654321",
+			"telegram:987654321",
 			nil,
 		)
 		eventCh <- *startEvent
@@ -1493,7 +1493,7 @@ func TestConnector_handleEvents_EventTypes(t *testing.T) {
 		endEvent := bus.NewProcessingEndEvent(
 			bus.ChannelTypeTelegram,
 			"123456789",
-			"987654321",
+			"telegram:987654321",
 			nil,
 		)
 		eventCh <- *endEvent

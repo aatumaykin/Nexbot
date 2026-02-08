@@ -76,7 +76,7 @@ func TestTelegramConnector_FullWorkflow_WithMock(t *testing.T) {
 	case msg := <-inboundCh:
 		assert.Equal(t, bus.ChannelTypeTelegram, msg.ChannelType)
 		assert.Equal(t, "123456789", msg.UserID)
-		assert.Equal(t, "987654321", msg.SessionID)
+		assert.Equal(t, "telegram:987654321", msg.SessionID)
 		assert.Equal(t, "Hello", msg.Content)
 
 	case <-time.After(1 * time.Second):
@@ -129,6 +129,7 @@ func TestTelegramConnector_Concurrent_WithMock(t *testing.T) {
 			outboundCh <- bus.OutboundMessage{
 				ChannelType: bus.ChannelTypeTelegram,
 				SessionID:   "telegram:987654321",
+				Type:        bus.MessageTypeText,
 				Content:     "Test message",
 			}
 		}(i)
@@ -194,6 +195,7 @@ func TestTelegramConnector_ErrorHandling_WithMock(t *testing.T) {
 	outboundCh <- bus.OutboundMessage{
 		ChannelType: bus.ChannelTypeTelegram,
 		SessionID:   "telegram:987654321",
+		Type:        bus.MessageTypeText,
 		Content:     "Test message",
 	}
 
@@ -252,8 +254,9 @@ func TestTelegramConnector_MultipleUsers_WithMock(t *testing.T) {
 	for i, userID := range users {
 		outboundCh <- bus.OutboundMessage{
 			ChannelType: bus.ChannelTypeTelegram,
-			SessionID:   userID,
+			SessionID:   "telegram:" + userID,
 			UserID:      userID,
+			Type:        bus.MessageTypeText,
 			Content:     "Message from user",
 		}
 		_ = i // Use variable

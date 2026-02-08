@@ -13,7 +13,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -247,34 +249,11 @@ func (c *Connector) handleOutbound() {
 			}
 
 			// Extract chat ID from session ID
-			// Format: "channel:chat_id"
-			var chatID int64
-			var err error
-
-			parts := strings.Split(msg.SessionID, ":")
-			if len(parts) != 2 {
-				c.logger.ErrorCtx(c.ctx, "invalid session ID format: expected 'channel:chat_id'",
-					nil,
-					logger.Field{Key: "session_id", Value: msg.SessionID})
-				continue
-			}
-			channel := parts[0]
-			chatIDStr := parts[1]
-
-			// Verify channel matches telegram
-			if channel != string(bus.ChannelTypeTelegram) {
-				c.logger.ErrorCtx(c.ctx, "session ID channel mismatch",
-					nil,
-					logger.Field{Key: "expected", Value: bus.ChannelTypeTelegram},
-					logger.Field{Key: "got", Value: channel},
-					logger.Field{Key: "session_id", Value: msg.SessionID})
-				continue
-			}
-
-			_, err = fmt.Sscanf(chatIDStr, "%d", &chatID)
+			chatID, err := c.extractChatID(msg.SessionID)
 			if err != nil {
-				c.logger.ErrorCtx(c.ctx, "invalid chat ID in session ID", err,
-					logger.Field{Key: "session_id", Value: msg.SessionID})
+				c.logger.ErrorCtx(c.ctx, "failed to extract chat ID", err,
+					logger.Field{Key: "session_id", Value: msg.SessionID},
+					logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
 				continue
 			}
 
@@ -284,28 +263,404 @@ func (c *Connector) handleOutbound() {
 				continue
 			}
 
-			// Prepare message with smart content detection
-			params, err := c.prepareMessage(msg.Content, chatID)
-			if err != nil {
-				c.logger.ErrorCtx(c.ctx, "failed to prepare message", err,
-					logger.Field{Key: "chat_id", Value: chatID},
+			// Route message based on type
+			switch msg.Type {
+			case bus.MessageTypeText:
+				c.sendTextMessage(msg, chatID)
+			case bus.MessageTypeEdit:
+				c.editMessage(msg, chatID)
+			case bus.MessageTypeDelete:
+				c.deleteMessage(msg, chatID)
+			case bus.MessageTypePhoto:
+				c.sendPhoto(msg, chatID)
+			case bus.MessageTypeDocument:
+				c.sendDocument(msg, chatID)
+			default:
+				c.logger.WarnCtx(c.ctx, "unknown message type",
+					logger.Field{Key: "message_type", Value: msg.Type},
 					logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
-				c.publishResult(msg, chatID, false, err)
-				continue
+				c.publishResult(msg, chatID, false, fmt.Errorf("unknown message type: %s", msg.Type))
 			}
-
-			// Try to send with detected formatting
-			_, err = c.bot.SendMessage(c.ctx, &params)
-			if err != nil {
-				// Smart fallback for markdown errors
-				c.handleSendError(err, msg, chatID, params)
-				continue
-			}
-
-			// Успешная отправка - публикуем результат СРАЗУ
-			c.publishResult(msg, chatID, true, nil)
 		}
 	}
+}
+
+// extractChatID extracts chat ID from session ID
+// Format: "telegram:chat_id"
+func (c *Connector) extractChatID(sessionID string) (int64, error) {
+	parts := strings.Split(sessionID, ":")
+	if len(parts) != 2 {
+		return 0, fmt.Errorf("invalid session ID format: expected 'channel:chat_id', got: %s", sessionID)
+	}
+
+	channel := parts[0]
+	chatIDStr := parts[1]
+
+	// Verify channel matches telegram
+	if channel != string(bus.ChannelTypeTelegram) {
+		return 0, fmt.Errorf("session ID channel mismatch: expected %s, got %s",
+			bus.ChannelTypeTelegram, channel)
+	}
+
+	var chatID int64
+	_, err := fmt.Sscanf(chatIDStr, "%d", &chatID)
+	if err != nil {
+		return 0, fmt.Errorf("invalid chat ID in session ID: %w", err)
+	}
+
+	return chatID, nil
+}
+
+// sendTextMessage sends a text message to Telegram
+func (c *Connector) sendTextMessage(msg bus.OutboundMessage, chatID int64) {
+	// Prepare message with smart content detection
+	params, err := c.prepareMessage(msg.Content, chatID)
+	if err != nil {
+		c.logger.ErrorCtx(c.ctx, "failed to prepare text message", err,
+			logger.Field{Key: "chat_id", Value: chatID},
+			logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+		c.publishResult(msg, chatID, false, err)
+		return
+	}
+
+	// Attach inline keyboard if present
+	if msg.InlineKeyboard != nil {
+		params.ReplyMarkup = c.buildInlineKeyboard(msg.InlineKeyboard)
+	}
+
+	// Try to send with detected formatting
+	_, err = c.bot.SendMessage(c.ctx, &params)
+	if err != nil {
+		// Smart fallback for markdown errors
+		c.handleSendError(err, msg, chatID, params)
+		return
+	}
+
+	// Successful send - publish result immediately
+	c.publishResult(msg, chatID, true, nil)
+}
+
+// editMessage edits an existing message in Telegram
+func (c *Connector) editMessage(msg bus.OutboundMessage, chatID int64) {
+	if msg.MessageID == "" {
+		c.logger.ErrorCtx(c.ctx, "message ID is required for edit", nil,
+			logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+		c.publishResult(msg, chatID, false, fmt.Errorf("message ID is required for edit"))
+		return
+	}
+
+	// Prepare message with smart content detection
+	params := c.prepareEditMessageParams(msg.Content, chatID, msg.MessageID)
+
+	// Attach inline keyboard if present
+	if msg.InlineKeyboard != nil {
+		params.ReplyMarkup = c.buildInlineKeyboard(msg.InlineKeyboard)
+	}
+
+	// Try to send with detected formatting
+	_, err := c.bot.EditMessageText(c.ctx, &params)
+	if err != nil {
+		c.handleSendError(err, msg, chatID, telego.SendMessageParams{}) // params not needed for edit fallback
+		return
+	}
+
+	// Successful send - publish result immediately
+	c.publishResult(msg, chatID, true, nil)
+}
+
+// deleteMessage deletes an existing message from Telegram
+func (c *Connector) deleteMessage(msg bus.OutboundMessage, chatID int64) {
+	if msg.MessageID == "" {
+		c.logger.ErrorCtx(c.ctx, "message ID is required for delete", nil,
+			logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+		c.publishResult(msg, chatID, false, fmt.Errorf("message ID is required for delete"))
+		return
+	}
+
+	messageID, err := strconv.Atoi(msg.MessageID)
+	if err != nil {
+		c.logger.ErrorCtx(c.ctx, "invalid message ID format", err,
+			logger.Field{Key: "message_id", Value: msg.MessageID},
+			logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+		c.publishResult(msg, chatID, false, fmt.Errorf("invalid message ID format: %w", err))
+		return
+	}
+
+	params := telego.DeleteMessageParams{
+		ChatID:    telego.ChatID{ID: chatID},
+		MessageID: messageID,
+	}
+
+	err = c.bot.DeleteMessage(c.ctx, &params)
+	if err != nil {
+		c.logger.ErrorCtx(c.ctx, "failed to delete message", err,
+			logger.Field{Key: "chat_id", Value: chatID},
+			logger.Field{Key: "message_id", Value: msg.MessageID},
+			logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+		c.publishResult(msg, chatID, false, err)
+		return
+	}
+
+	// Successful delete - publish result immediately
+	c.publishResult(msg, chatID, true, nil)
+}
+
+// sendPhoto sends a photo message to Telegram
+func (c *Connector) sendPhoto(msg bus.OutboundMessage, chatID int64) {
+	if msg.Media == nil {
+		c.logger.ErrorCtx(c.ctx, "media data is required for photo message", nil,
+			logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+		c.publishResult(msg, chatID, false, fmt.Errorf("media data is required for photo message"))
+		return
+	}
+
+	params, err := c.preparePhotoParams(msg, chatID)
+	if err != nil {
+		c.logger.ErrorCtx(c.ctx, "failed to prepare photo message", err,
+			logger.Field{Key: "chat_id", Value: chatID},
+			logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+		c.publishResult(msg, chatID, false, err)
+		return
+	}
+
+	// Attach inline keyboard if present
+	if msg.InlineKeyboard != nil {
+		params.ReplyMarkup = c.buildInlineKeyboard(msg.InlineKeyboard)
+	}
+
+	_, err = c.bot.SendPhoto(c.ctx, &params)
+	if err != nil {
+		c.logger.ErrorCtx(c.ctx, "failed to send photo", err,
+			logger.Field{Key: "chat_id", Value: chatID},
+			logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+		c.publishResult(msg, chatID, false, err)
+		return
+	}
+
+	// Successful send - publish result immediately
+	c.publishResult(msg, chatID, true, nil)
+}
+
+// sendDocument sends a document message to Telegram
+func (c *Connector) sendDocument(msg bus.OutboundMessage, chatID int64) {
+	if msg.Media == nil {
+		c.logger.ErrorCtx(c.ctx, "media data is required for document message", nil,
+			logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+		c.publishResult(msg, chatID, false, fmt.Errorf("media data is required for document message"))
+		return
+	}
+
+	params, err := c.prepareDocumentParams(msg, chatID)
+	if err != nil {
+		c.logger.ErrorCtx(c.ctx, "failed to prepare document message", err,
+			logger.Field{Key: "chat_id", Value: chatID},
+			logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+		c.publishResult(msg, chatID, false, err)
+		return
+	}
+
+	// Attach inline keyboard if present
+	if msg.InlineKeyboard != nil {
+		params.ReplyMarkup = c.buildInlineKeyboard(msg.InlineKeyboard)
+	}
+
+	_, err = c.bot.SendDocument(c.ctx, &params)
+	if err != nil {
+		c.logger.ErrorCtx(c.ctx, "failed to send document", err,
+			logger.Field{Key: "chat_id", Value: chatID},
+			logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+		c.publishResult(msg, chatID, false, err)
+		return
+	}
+
+	// Successful send - publish result immediately
+	c.publishResult(msg, chatID, true, nil)
+}
+
+// prepareEditMessageParams prepares parameters for editing a message
+func (c *Connector) prepareEditMessageParams(content string, chatID int64, messageID string) telego.EditMessageTextParams {
+	messageIDInt, err := strconv.Atoi(messageID)
+	if err != nil {
+		// If conversion fails, we'll let the API call handle the error
+		messageIDInt = 0
+	}
+
+	params := telego.EditMessageTextParams{
+		ChatID:    telego.ChatID{ID: chatID},
+		MessageID: messageIDInt,
+		Text:      content,
+	}
+
+	// Detect content type
+	contentType := DetectContentType(content)
+
+	switch contentType {
+	case ContentTypeCode:
+		// Code content - use HTML for better code block support
+		params.ParseMode = telego.ModeHTML
+		params.Text = MarkdownToHTML(content)
+	case ContentTypeMarkdown:
+		// Markdown content - try HTML first (more robust)
+		params.ParseMode = telego.ModeHTML
+		params.Text = MarkdownToHTML(content)
+	case ContentTypePlain:
+		// Plain text - no formatting
+		params.ParseMode = ""
+	default:
+		// Default: no formatting
+		params.ParseMode = ""
+	}
+
+	return params
+}
+
+// preparePhotoParams prepares parameters for sending a photo
+func (c *Connector) preparePhotoParams(msg bus.OutboundMessage, chatID int64) (telego.SendPhotoParams, error) {
+	params := telego.SendPhotoParams{
+		ChatID: telego.ChatID{ID: chatID},
+	}
+
+	// Set caption if provided
+	if msg.Content != "" {
+		params.Caption = msg.Content
+	}
+
+	media := msg.Media
+
+	// Priority order: LocalPath > FileID > URL
+	if media.LocalPath != "" {
+		if !c.isValidFilePath(media.LocalPath) {
+			return params, fmt.Errorf("invalid file path: %s", media.LocalPath)
+		}
+
+		// Open file for reading
+		file, err := os.Open(media.LocalPath)
+		if err != nil {
+			return params, fmt.Errorf("failed to open file: %w", err)
+		}
+		defer file.Close()
+
+		params.Photo = telego.InputFile{File: file}
+	} else if media.FileID != "" {
+		params.Photo = telego.InputFile{FileID: media.FileID}
+	} else if media.URL != "" {
+		params.Photo = telego.InputFile{URL: media.URL}
+	} else {
+		return params, fmt.Errorf("no valid media source provided (local_path, file_id, or url)")
+	}
+
+	return params, nil
+}
+
+// prepareDocumentParams prepares parameters for sending a document
+func (c *Connector) prepareDocumentParams(msg bus.OutboundMessage, chatID int64) (telego.SendDocumentParams, error) {
+	params := telego.SendDocumentParams{
+		ChatID: telego.ChatID{ID: chatID},
+	}
+
+	// Set caption if provided
+	if msg.Content != "" {
+		params.Caption = msg.Content
+	}
+
+	media := msg.Media
+
+	// Priority order: LocalPath > FileID > URL
+	if media.LocalPath != "" {
+		if !c.isValidFilePath(media.LocalPath) {
+			return params, fmt.Errorf("invalid file path: %s", media.LocalPath)
+		}
+
+		// Open file for reading
+		file, err := os.Open(media.LocalPath)
+		if err != nil {
+			return params, fmt.Errorf("failed to open file: %w", err)
+		}
+		defer file.Close()
+
+		params.Document = telego.InputFile{File: file}
+	} else if media.FileID != "" {
+		params.Document = telego.InputFile{FileID: media.FileID}
+	} else if media.URL != "" {
+		params.Document = telego.InputFile{URL: media.URL}
+	} else {
+		return params, fmt.Errorf("no valid media source provided (local_path, file_id, or url)")
+	}
+
+	return params, nil
+}
+
+// isValidFilePath validates a file path
+func (c *Connector) isValidFilePath(path string) bool {
+	if path == "" {
+		return false
+	}
+
+	// Check for absolute path
+	if strings.HasPrefix(path, "/") {
+		return true
+	}
+
+	// Check for relative path starting with . or ..
+	if strings.HasPrefix(path, "./") || strings.HasPrefix(path, "../") {
+		return true
+	}
+
+	// Path with just filename is also valid
+	return true
+}
+
+// buildInlineKeyboard converts an InlineKeyboard to Telegram's InlineKeyboardMarkup format
+func (c *Connector) buildInlineKeyboard(keyboard *bus.InlineKeyboard) *telego.InlineKeyboardMarkup {
+	if keyboard == nil {
+		return nil
+	}
+
+	markup := &telego.InlineKeyboardMarkup{
+		InlineKeyboard: make([][]telego.InlineKeyboardButton, len(keyboard.Rows)),
+	}
+
+	for i, row := range keyboard.Rows {
+		buttons := make([]telego.InlineKeyboardButton, len(row))
+		for j, button := range row {
+			buttons[j] = telego.InlineKeyboardButton{
+				Text:         button.Text,
+				CallbackData: button.Data,
+			}
+		}
+		markup.InlineKeyboard[i] = buttons
+	}
+
+	return markup
+}
+
+// tryFallbacks attempts to send message with different fallback strategies
+func (c *Connector) tryFallbacks(msg bus.OutboundMessage, chatID int64, originalErr error) bool {
+	c.logger.InfoCtx(c.ctx, "trying HTML fallback")
+	htmlContent := MarkdownToHTML(msg.Content)
+	htmlParams, _ := c.prepareMessage(htmlContent, chatID)
+	_, htmlErr := c.bot.SendMessage(c.ctx, &htmlParams)
+	if htmlErr == nil {
+		c.logger.InfoCtx(c.ctx, "message sent with HTML fallback")
+		c.publishResult(msg, chatID, true, nil)
+		return true
+	}
+
+	c.logger.WarnCtx(c.ctx, "HTML fallback failed, trying plain text")
+	plainContent := StripFormatting(msg.Content)
+	plainParams, _ := c.prepareMessage(plainContent, chatID)
+	_, plainErr := c.bot.SendMessage(c.ctx, &plainParams)
+	if plainErr == nil {
+		c.logger.InfoCtx(c.ctx, "message sent with plain text fallback")
+		c.publishResult(msg, chatID, true, nil)
+		return true
+	}
+
+	c.logger.ErrorCtx(c.ctx, "all fallbacks failed", originalErr,
+		logger.Field{Key: "chat_id", Value: chatID},
+		logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+	c.publishResult(msg, chatID, false, originalErr)
+	return false
 }
 
 // publishResult публикует результат отправки сообщения

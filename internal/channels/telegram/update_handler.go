@@ -10,22 +10,30 @@ import (
 
 // UpdateHandler handles processing of Telegram updates.
 type UpdateHandler struct {
-	connector *Connector
-	logger    *logger.Logger
-	bus       *bus.MessageBus
+	connector       *Connector
+	logger          *logger.Logger
+	bus             *bus.MessageBus
+	callbackHandler *CallbackHandler
 }
 
 // NewUpdateHandler creates a new update handler.
 func NewUpdateHandler(connector *Connector, logger *logger.Logger, bus *bus.MessageBus) *UpdateHandler {
-	return &UpdateHandler{
+	uh := &UpdateHandler{
 		connector: connector,
 		logger:    logger,
 		bus:       bus,
 	}
+	uh.callbackHandler = NewCallbackHandler(connector, logger, bus)
+	return uh
 }
 
 // Handle processes a Telegram update and publishes it to the message bus.
 func (uh *UpdateHandler) Handle(update telego.Update) error {
+	// Handle callback queries from inline keyboards
+	if update.CallbackQuery != nil {
+		return uh.callbackHandler.Handle(update.CallbackQuery)
+	}
+
 	// Only process message updates
 	if update.Message == nil {
 		return nil

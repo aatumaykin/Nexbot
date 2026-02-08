@@ -1072,6 +1072,7 @@ func TestConnector_handleOutbound_NewFormat(t *testing.T) {
 		ChannelType: bus.ChannelTypeTelegram,
 		UserID:      "123456789",
 		SessionID:   "telegram:987654321", // New format
+		Type:        bus.MessageTypeText,
 		Content:     "Hello from bot!",
 		Timestamp:   time.Now(),
 	}
@@ -1267,7 +1268,7 @@ func TestTypingManager_Start_WithMock(t *testing.T) {
 	event := bus.NewProcessingStartEvent(
 		bus.ChannelTypeTelegram,
 		"123456789",
-		"987654321",
+		"telegram:987654321",
 		nil,
 	)
 
