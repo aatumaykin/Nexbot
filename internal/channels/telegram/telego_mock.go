@@ -25,6 +25,18 @@ type BotInterface interface {
 
 	// SendChatAction sends a chat action (e.g., typing) to a chat.
 	SendChatAction(ctx context.Context, params *telego.SendChatActionParams) error
+
+	// EditMessageText edits text of a message sent via the bot.
+	EditMessageText(ctx context.Context, params *telego.EditMessageTextParams) (*telego.Message, error)
+
+	// DeleteMessage deletes a message sent via the bot.
+	DeleteMessage(ctx context.Context, params *telego.DeleteMessageParams) error
+
+	// SendPhoto sends a photo to a chat.
+	SendPhoto(ctx context.Context, params *telego.SendPhotoParams) (*telego.Message, error)
+
+	// SendDocument sends a document to a chat.
+	SendDocument(ctx context.Context, params *telego.SendDocumentParams) (*telego.Message, error)
 }
 
 // telegoAdapter wraps telego.Bot to implement BotInterface.
@@ -64,4 +76,24 @@ func (a *telegoAdapter) UpdatesViaLongPolling(ctx context.Context, params *teleg
 // SendChatAction sends a chat action (e.g., typing) to a chat.
 func (a *telegoAdapter) SendChatAction(ctx context.Context, params *telego.SendChatActionParams) error {
 	return a.bot.SendChatAction(ctx, params)
+}
+
+// EditMessageText edits text of a message sent via the bot.
+func (a *telegoAdapter) EditMessageText(ctx context.Context, params *telego.EditMessageTextParams) (*telego.Message, error) {
+	return a.bot.EditMessageText(ctx, params)
+}
+
+// DeleteMessage deletes a message sent via the bot.
+func (a *telegoAdapter) DeleteMessage(ctx context.Context, params *telego.DeleteMessageParams) error {
+	return a.bot.DeleteMessage(ctx, params)
+}
+
+// SendPhoto sends a photo to a chat.
+func (a *telegoAdapter) SendPhoto(ctx context.Context, params *telego.SendPhotoParams) (*telego.Message, error) {
+	return a.bot.SendPhoto(ctx, params)
+}
+
+// SendDocument sends a document to a chat.
+func (a *telegoAdapter) SendDocument(ctx context.Context, params *telego.SendDocumentParams) (*telego.Message, error) {
+	return a.bot.SendDocument(ctx, params)
 }

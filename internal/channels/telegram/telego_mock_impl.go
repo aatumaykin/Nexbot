@@ -54,6 +54,39 @@ func (m *MockBot) SendChatAction(ctx context.Context, params *telego.SendChatAct
 	return args.Error(0)
 }
 
+// EditMessageText edits text of a message sent via the bot.
+func (m *MockBot) EditMessageText(ctx context.Context, params *telego.EditMessageTextParams) (*telego.Message, error) {
+	args := m.Called(ctx, params)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*telego.Message), args.Error(1)
+}
+
+// DeleteMessage deletes a message sent via the bot.
+func (m *MockBot) DeleteMessage(ctx context.Context, params *telego.DeleteMessageParams) error {
+	args := m.Called(ctx, params)
+	return args.Error(0)
+}
+
+// SendPhoto sends a photo to a chat.
+func (m *MockBot) SendPhoto(ctx context.Context, params *telego.SendPhotoParams) (*telego.Message, error) {
+	args := m.Called(ctx, params)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*telego.Message), args.Error(1)
+}
+
+// SendDocument sends a document to a chat.
+func (m *MockBot) SendDocument(ctx context.Context, params *telego.SendDocumentParams) (*telego.Message, error) {
+	args := m.Called(ctx, params)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*telego.Message), args.Error(1)
+}
+
 // NewMockBotSuccess creates a MockBot that returns success for all operations.
 // This is a helper function for tests that don't need to verify specific behavior.
 // All expectations are optional (.Maybe()), so only called methods are checked.
@@ -75,6 +108,23 @@ func NewMockBotSuccess() *MockBot {
 
 	mockBot.On("SendChatAction", mock.Anything, mock.Anything).Return(nil).Maybe()
 
+	mockBot.On("EditMessageText", mock.Anything, mock.Anything).Return(&telego.Message{
+		MessageID: 1,
+		Text:      "edited message",
+	}, nil).Maybe()
+
+	mockBot.On("DeleteMessage", mock.Anything, mock.Anything).Return(nil).Maybe()
+
+	mockBot.On("SendPhoto", mock.Anything, mock.Anything).Return(&telego.Message{
+		MessageID: 2,
+		Photo:     []telego.PhotoSize{{FileID: "test"}},
+	}, nil).Maybe()
+
+	mockBot.On("SendDocument", mock.Anything, mock.Anything).Return(&telego.Message{
+		MessageID: 3,
+		Document:  &telego.Document{FileID: "test"},
+	}, nil).Maybe()
+
 	return mockBot
 }
 
@@ -87,6 +137,10 @@ func NewMockBotError(err error) *MockBot {
 	mockBot.On("SendMessage", mock.Anything, mock.Anything).Return((*telego.Message)(nil), err).Maybe()
 	mockBot.On("SetMyCommands", mock.Anything, mock.Anything).Return(err).Maybe()
 	mockBot.On("SendChatAction", mock.Anything, mock.Anything).Return(err).Maybe()
+	mockBot.On("EditMessageText", mock.Anything, mock.Anything).Return((*telego.Message)(nil), err).Maybe()
+	mockBot.On("DeleteMessage", mock.Anything, mock.Anything).Return(err).Maybe()
+	mockBot.On("SendPhoto", mock.Anything, mock.Anything).Return((*telego.Message)(nil), err).Maybe()
+	mockBot.On("SendDocument", mock.Anything, mock.Anything).Return((*telego.Message)(nil), err).Maybe()
 
 	return mockBot
 }
@@ -127,6 +181,19 @@ func NewMockBotWithUpdates(updates ...telego.Update) (*MockBot, <-chan telego.Up
 
 	mockBot.On("SetMyCommands", mock.Anything, mock.Anything).Return(nil).Maybe()
 	mockBot.On("SendChatAction", mock.Anything, mock.Anything).Return(nil).Maybe()
+	mockBot.On("EditMessageText", mock.Anything, mock.Anything).Return(&telego.Message{
+		MessageID: 1,
+		Text:      "edited message",
+	}, nil).Maybe()
+	mockBot.On("DeleteMessage", mock.Anything, mock.Anything).Return(nil).Maybe()
+	mockBot.On("SendPhoto", mock.Anything, mock.Anything).Return(&telego.Message{
+		MessageID: 2,
+		Photo:     []telego.PhotoSize{{FileID: "test"}},
+	}, nil).Maybe()
+	mockBot.On("SendDocument", mock.Anything, mock.Anything).Return(&telego.Message{
+		MessageID: 3,
+		Document:  &telego.Document{FileID: "test"},
+	}, nil).Maybe()
 
 	return mockBot, updateCh
 }
