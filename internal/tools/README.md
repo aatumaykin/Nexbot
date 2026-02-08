@@ -30,6 +30,14 @@ Tools обеспечивает систему инструментов (tools sy
 Инструмент для выполнения shell команд:
 - `ExecuteCommand(cmd string) (string, error)`
 
+### FetchTool
+Инструмент для загрузки веб-страниц по URL:
+- `url` (string, required) — URL для загрузки (должен начинаться с http:// или https://)
+- `format` (string, enum: "text", "html", default: "text") — формат вывода
+- Возвращает JSON с метаданными: `url`, `status`, `contentType`, `length`, `content`
+- Поддерживает удаление HTML тегов при format="text"
+- Ограничения: timeout (по умолчанию 30s), max_response_size (по умолчанию 5MB)
+
 ## Использование
 
 ### Реализация интерфейса

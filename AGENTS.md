@@ -87,6 +87,13 @@ workspace/            — Bootstrap files (~/.nexbot/)
 - Возвращает текущее системное время и дату в фиксированном формате
 - Форматы: RFC3339 (2026-02-07T10:30:00+03:00) + человекочитаемый
 
+**web_fetch** — загрузка контента по URL
+- Загружает содержимое веб-страницы по URL
+- Параметры: `url` (обязательный), `format` (text/html, default: text)
+- Возвращает JSON с метаданными: `url`, `status`, `contentType`, `length`, `content`
+- Ограничения: timeout (30s), max_size (5MB)
+- При format=text очищает HTML теги (script, style)
+
 ## Commands
 
 ```bash
