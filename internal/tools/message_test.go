@@ -13,10 +13,21 @@ import (
 
 // mockMessageSender is a simple mock implementation of agent.MessageSender.
 type mockMessageSender struct {
-	sendFunc func(userID, channelType, sessionID, message string) (*agent.MessageResult, error)
+	sendFunc         func(userID, channelType, sessionID, message string) (*agent.MessageResult, error)
+	sendKeyboardFunc func(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) (*agent.MessageResult, error)
 }
 
 func (m *mockMessageSender) SendMessage(userID, channelType, sessionID, message string) (*agent.MessageResult, error) {
+	if m.sendFunc != nil {
+		return m.sendFunc(userID, channelType, sessionID, message)
+	}
+	return &agent.MessageResult{Success: true}, nil
+}
+
+func (m *mockMessageSender) SendMessageWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) (*agent.MessageResult, error) {
+	if m.sendKeyboardFunc != nil {
+		return m.sendKeyboardFunc(userID, channelType, sessionID, message, keyboard)
+	}
 	if m.sendFunc != nil {
 		return m.sendFunc(userID, channelType, sessionID, message)
 	}
@@ -220,6 +231,18 @@ func TestSendMessageToolParameters(t *testing.T) {
 	assert.Equal(t, "string", messageProp["type"], "message type should be 'string'")
 	assert.Nil(t, messageProp["default"], "message should not have default")
 
+	// Check inline_keyboard property (optional)
+	inlineKeyboardProp, ok := props["inline_keyboard"].(map[string]interface{})
+	assert.True(t, ok, "inline_keyboard property should be a map")
+	assert.Equal(t, "object", inlineKeyboardProp["type"], "inline_keyboard type should be 'object'")
+
+	// Verify inline_keyboard structure
+	inlineKeyboardProps, ok := inlineKeyboardProp["properties"].(map[string]interface{})
+	assert.True(t, ok, "inline_keyboard properties should be a map")
+	rowsProp, ok := inlineKeyboardProps["rows"].(map[string]interface{})
+	assert.True(t, ok, "rows property should be a map")
+	assert.Equal(t, "array", rowsProp["type"], "rows type should be 'array'")
+
 	// Check required fields - try both types
 	required := params["required"]
 	switch v := required.(type) {
@@ -242,4 +265,98 @@ func TestSendMessageToolToSchema(t *testing.T) {
 	schema := tool.ToSchema()
 	assert.NotNil(t, schema, "Schema should not be nil")
 	assert.Equal(t, tool.Parameters(), schema, "Schema should match parameters")
+}
+
+// TestSendMessageToolWithInlineKeyboard tests sending message with inline keyboard.
+func TestSendMessageToolWithInlineKeyboard(t *testing.T) {
+	log, err := logger.New(logger.Config{
+		Level:  "error",
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err, "Failed to create logger")
+
+	var capturedKeyboard *bus.InlineKeyboard
+	sender := &mockMessageSender{
+		sendKeyboardFunc: func(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) (*agent.MessageResult, error) {
+			capturedKeyboard = keyboard
+			return &agent.MessageResult{Success: true}, nil
+		},
+	}
+
+	tool := NewSendMessageTool(sender, log)
+
+	args := `{
+		"message": "Choose an option:",
+		"session_id": "telegram:123456789",
+		"inline_keyboard": {
+			"rows": [
+				[
+					{"text": "Button 1", "data": "btn1"},
+					{"text": "Button 2", "data": "btn2"}
+				],
+				[
+					{"text": "Go to website", "url": "https://example.com"}
+				]
+			]
+		}
+	}`
+
+	result, err := tool.Execute(args)
+	assert.NoError(t, err, "Execute should not return error")
+	assert.Contains(t, result, "Message sent successfully", "Result should contain success message")
+	assert.Contains(t, result, "Keyboard: 2 row(s)", "Result should mention keyboard")
+
+	// Verify keyboard structure
+	assert.NotNil(t, capturedKeyboard, "Keyboard should be captured")
+	assert.Len(t, capturedKeyboard.Rows, 2, "Should have 2 rows")
+
+	// Check first row
+	assert.Len(t, capturedKeyboard.Rows[0], 2, "First row should have 2 buttons")
+	assert.Equal(t, "Button 1", capturedKeyboard.Rows[0][0].Text, "First button text should match")
+	assert.Equal(t, "btn1", capturedKeyboard.Rows[0][0].Data, "First button data should match")
+	assert.Equal(t, "", capturedKeyboard.Rows[0][0].URL, "First button URL should be empty")
+
+	// Check second row
+	assert.Len(t, capturedKeyboard.Rows[1], 1, "Second row should have 1 button")
+	assert.Equal(t, "Go to website", capturedKeyboard.Rows[1][0].Text, "URL button text should match")
+	assert.Equal(t, "", capturedKeyboard.Rows[1][0].Data, "URL button data should be empty")
+	assert.Equal(t, "https://example.com", capturedKeyboard.Rows[1][0].URL, "URL should match")
+}
+
+// TestSendMessageToolWithEmptyKeyboard tests that message is sent without keyboard when inline_keyboard is empty.
+func TestSendMessageToolWithEmptyKeyboard(t *testing.T) {
+	log, err := logger.New(logger.Config{
+		Level:  "error",
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err, "Failed to create logger")
+
+	var sentWithKeyboard bool
+	sender := &mockMessageSender{
+		sendFunc: func(userID, channelType, sessionID, message string) (*agent.MessageResult, error) {
+			sentWithKeyboard = false
+			return &agent.MessageResult{Success: true}, nil
+		},
+		sendKeyboardFunc: func(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) (*agent.MessageResult, error) {
+			sentWithKeyboard = true
+			return &agent.MessageResult{Success: true}, nil
+		},
+	}
+
+	tool := NewSendMessageTool(sender, log)
+
+	args := `{
+		"message": "Test message",
+		"session_id": "telegram:123456789",
+		"inline_keyboard": {
+			"rows": []
+		}
+	}`
+
+	result, err := tool.Execute(args)
+	assert.NoError(t, err, "Execute should not return error")
+	assert.False(t, sentWithKeyboard, "Should not use SendMessageWithKeyboard for empty keyboard")
+	assert.Contains(t, result, "Message sent successfully", "Result should contain success message")
 }

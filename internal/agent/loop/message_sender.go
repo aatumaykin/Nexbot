@@ -29,6 +29,12 @@ func NewAgentMessageSender(messageBus *bus.MessageBus, logger *logger.Logger) *A
 // SendMessage sends a message through the message bus and waits for result.
 // Implements agent.MessageSender interface.
 func (a *AgentMessageSender) SendMessage(userID, channelType, sessionID, message string) (*agent.MessageResult, error) {
+	return a.SendMessageWithKeyboard(userID, channelType, sessionID, message, nil)
+}
+
+// SendMessageWithKeyboard sends a message with inline keyboard through the message bus and waits for result.
+// Implements agent.MessageSender interface.
+func (a *AgentMessageSender) SendMessageWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) (*agent.MessageResult, error) {
 	// Генерируем correlation ID
 	correlationID := uuid.New().String()
 
@@ -37,14 +43,27 @@ func (a *AgentMessageSender) SendMessage(userID, channelType, sessionID, message
 	resultCh := tracker.Register(correlationID)
 
 	// Публикуем сообщение в bus
-	event := bus.NewOutboundMessage(
-		bus.ChannelType(channelType),
-		userID,
-		sessionID,
-		message,
-		correlationID,
-		nil, // metadata
-	)
+	var event *bus.OutboundMessage
+	if keyboard != nil {
+		event = bus.NewOutboundMessageWithKeyboard(
+			bus.ChannelType(channelType),
+			userID,
+			sessionID,
+			message,
+			correlationID,
+			keyboard,
+			nil, // metadata
+		)
+	} else {
+		event = bus.NewOutboundMessage(
+			bus.ChannelType(channelType),
+			userID,
+			sessionID,
+			message,
+			correlationID,
+			nil, // metadata
+		)
+	}
 
 	if err := a.messageBus.PublishOutbound(*event); err != nil {
 		// Удаляем регистрацию при ошибке публикации

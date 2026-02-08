@@ -1,6 +1,9 @@
 package agent
 
-import "github.com/aatumaykin/nexbot/internal/channels"
+import (
+	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/channels"
+)
 
 // MessageResult - результат отправки сообщения
 type MessageResult struct {
@@ -14,4 +17,5 @@ type MessageResult struct {
 // directly on the message bus implementation.
 type MessageSender interface {
 	SendMessage(userID, channelType, sessionID, message string) (*MessageResult, error)
+	SendMessageWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) (*MessageResult, error)
 }

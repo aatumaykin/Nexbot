@@ -80,18 +80,31 @@ type MediaData struct {
 	FileName  string `json:"file_name"`  // Original file name
 }
 
+// InlineButton represents a single button in an inline keyboard
+type InlineButton struct {
+	Text string `json:"text"`          // Button label
+	Data string `json:"data"`          // Callback data for button clicks
+	URL  string `json:"url,omitempty"` // URL to open when button is clicked (optional)
+}
+
+// InlineKeyboard represents an inline keyboard layout
+type InlineKeyboard struct {
+	Rows [][]InlineButton `json:"rows"` // Array of button rows
+}
+
 // OutboundMessage represents a message to be sent to an external channel
 type OutboundMessage struct {
-	ChannelType   ChannelType    `json:"channel_type"`
-	UserID        string         `json:"user_id"`
-	SessionID     string         `json:"session_id"`
-	Type          MessageType    `json:"type"`                     // Message type (text, edit, delete, photo, document)
-	Content       string         `json:"content"`                  // Text content (for text/edit messages)
-	CorrelationID string         `json:"correlation_id,omitempty"` // для отслеживания результата отправки
-	MessageID     string         `json:"message_id,omitempty"`     // ID of message to edit/delete
-	Media         *MediaData     `json:"media,omitempty"`          // Media data (for photo/document messages)
-	Timestamp     time.Time      `json:"timestamp"`
-	Metadata      map[string]any `json:"metadata,omitempty"`
+	ChannelType    ChannelType     `json:"channel_type"`
+	UserID         string          `json:"user_id"`
+	SessionID      string          `json:"session_id"`
+	Type           MessageType     `json:"type"`                      // Message type (text, edit, delete, photo, document)
+	Content        string          `json:"content"`                   // Text content (for text/edit messages)
+	CorrelationID  string          `json:"correlation_id,omitempty"`  // для отслеживания результата отправки
+	MessageID      string          `json:"message_id,omitempty"`      // ID of message to edit/delete
+	Media          *MediaData      `json:"media,omitempty"`           // Media data (for photo/document messages)
+	InlineKeyboard *InlineKeyboard `json:"inline_keyboard,omitempty"` // Inline keyboard for interactive buttons
+	Timestamp      time.Time       `json:"timestamp"`
+	Metadata       map[string]any  `json:"metadata,omitempty"`
 }
 
 // MessageSendResult - результат отправки сообщения в канал
@@ -146,6 +159,21 @@ func NewOutboundMessage(channelType ChannelType, userID, sessionID, content stri
 		CorrelationID: correlationID,
 		Timestamp:     time.Now(),
 		Metadata:      metadata,
+	}
+}
+
+// NewOutboundMessageWithKeyboard creates a new OutboundMessage with inline keyboard
+func NewOutboundMessageWithKeyboard(channelType ChannelType, userID, sessionID, content string, correlationID string, keyboard *InlineKeyboard, metadata map[string]any) *OutboundMessage {
+	return &OutboundMessage{
+		ChannelType:    channelType,
+		UserID:         userID,
+		SessionID:      sessionID,
+		Type:           MessageTypeText,
+		Content:        content,
+		CorrelationID:  correlationID,
+		InlineKeyboard: keyboard,
+		Timestamp:      time.Now(),
+		Metadata:       metadata,
 	}
 }
 
