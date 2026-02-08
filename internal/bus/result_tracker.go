@@ -12,16 +12,18 @@ import (
 // ResultTracker отслеживает результаты отправки сообщений
 // Позволяет преобразовать асинхронную отправку в синхронное ожидание
 type ResultTracker struct {
-	mu      sync.Mutex
-	pending map[string]chan MessageSendResult
-	logger  *logger.Logger
+	mu           sync.Mutex
+	pending      map[string]chan MessageSendResult
+	pendingTimes map[string]time.Time
+	logger       *logger.Logger
 }
 
 // NewResultTracker создает новый ResultTracker
 func NewResultTracker(logger *logger.Logger) *ResultTracker {
 	rt := &ResultTracker{
-		pending: make(map[string]chan MessageSendResult),
-		logger:  logger,
+		pending:      make(map[string]chan MessageSendResult),
+		pendingTimes: make(map[string]time.Time),
+		logger:       logger,
 	}
 
 	// Запускаем cleanup для удаления зависших запросов
@@ -37,6 +39,8 @@ func (rt *ResultTracker) Register(correlationID string) chan MessageSendResult {
 
 	ch := make(chan MessageSendResult, 1)
 	rt.pending[correlationID] = ch
+	rt.pendingTimes[correlationID] = time.Now()
+
 	rt.logger.DebugCtx(context.Background(), "registered send result tracker",
 		logger.Field{Key: "correlation_id", Value: correlationID},
 		logger.Field{Key: "pending_count", Value: len(rt.pending)})
@@ -59,16 +63,19 @@ func (rt *ResultTracker) Wait(ctx context.Context, correlationID string, timeout
 	case result := <-ch:
 		rt.mu.Lock()
 		delete(rt.pending, correlationID)
+		delete(rt.pendingTimes, correlationID)
 		rt.mu.Unlock()
 		return &result, nil
 	case <-time.After(timeout):
 		rt.mu.Lock()
 		delete(rt.pending, correlationID)
+		delete(rt.pendingTimes, correlationID)
 		rt.mu.Unlock()
 		return nil, fmt.Errorf("timeout waiting for send result: %s", timeout)
 	case <-ctx.Done():
 		rt.mu.Lock()
 		delete(rt.pending, correlationID)
+		delete(rt.pendingTimes, correlationID)
 		rt.mu.Unlock()
 		return nil, ctx.Err()
 	}
@@ -78,6 +85,7 @@ func (rt *ResultTracker) Wait(ctx context.Context, correlationID string, timeout
 func (rt *ResultTracker) Complete(correlationID string, result MessageSendResult) {
 	rt.mu.Lock()
 	ch, ok := rt.pending[correlationID]
+	regTime, timeOk := rt.pendingTimes[correlationID]
 	rt.mu.Unlock()
 
 	if !ok {
@@ -86,9 +94,13 @@ func (rt *ResultTracker) Complete(correlationID string, result MessageSendResult
 		return
 	}
 
-	rt.logger.DebugCtx(context.Background(), "completing send result",
-		logger.Field{Key: "correlation_id", Value: correlationID},
-		logger.Field{Key: "success", Value: result.Success})
+	if timeOk {
+		duration := time.Since(regTime)
+		rt.logger.DebugCtx(context.Background(), "completing send result",
+			logger.Field{Key: "correlation_id", Value: correlationID},
+			logger.Field{Key: "success", Value: result.Success},
+			logger.Field{Key: "duration_ms", Value: duration.Milliseconds()})
+	}
 
 	// Неблокирующая отправка
 	select {
@@ -97,6 +109,13 @@ func (rt *ResultTracker) Complete(correlationID string, result MessageSendResult
 		rt.logger.WarnCtx(context.Background(), "failed to send result: channel blocked",
 			logger.Field{Key: "correlation_id", Value: correlationID})
 	}
+}
+
+// GetPendingCount возвращает количество ожидающих результатов
+func (rt *ResultTracker) GetPendingCount() int {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
+	return len(rt.pending)
 }
 
 // cleanupLoop периодически очищает старые запросы

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/aatumaykin/nexbot/internal/logger"
 )
@@ -79,12 +80,13 @@ func New(capacity int, logger *logger.Logger) *MessageBus {
 		inboundCh:           make(chan InboundMessage, capacity),
 		outboundCh:          make(chan OutboundMessage, capacity),
 		eventCh:             make(chan Event, capacity),
-		resultCh:            make(chan MessageSendResult, capacity),
+		resultCh:            make(chan MessageSendResult, 500),
 		tracker:             NewResultTracker(logger),
 		inboundSubscribers:  make(map[int64]chan InboundMessage),
 		outboundSubscribers: make(map[int64]chan OutboundMessage),
 		eventSubscribers:    make(map[int64]chan Event),
 		resultSubscribers:   make(map[int64]chan MessageSendResult),
+		subscriberID:        0,
 	}
 }
 
@@ -363,8 +365,13 @@ func (mb *MessageBus) PublishSendResult(result MessageSendResult) error {
 			logger.Field{Key: "correlation_id", Value: result.CorrelationID},
 			logger.Field{Key: "success", Value: result.Success})
 		return nil
-	default:
-		return ErrQueueFull
+	case <-time.After(100 * time.Millisecond):
+		mb.logger.WarnCtx(mb.ctx, "result channel full, forcing publish",
+			logger.Field{Key: "correlation_id", Value: result.CorrelationID},
+			logger.Field{Key: "queue_size", Value: len(mb.resultCh)})
+		mb.resultCh <- result
+		mb.tracker.Complete(result.CorrelationID, result)
+		return nil
 	}
 }
 
