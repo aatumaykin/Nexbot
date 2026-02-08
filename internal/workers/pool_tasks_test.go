@@ -25,8 +25,8 @@ func TestPool_ExecuteCronTask(t *testing.T) {
 	defer pool.Stop()
 
 	task := Task{
-		ID:      "cron-task-1",
-		Type:    "cron",
+		ID:   "cron-task-1",
+		Type: "cron",
 	}
 
 	// Submit task

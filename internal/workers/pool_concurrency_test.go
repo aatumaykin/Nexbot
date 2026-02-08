@@ -25,8 +25,8 @@ func TestPool_WorkerPanicRecovery(t *testing.T) {
 	defer pool.Stop()
 
 	task := Task{
-		ID:      "panic-task",
-		Type:    "cron",
+		ID:   "panic-task",
+		Type: "cron",
 	}
 
 	pool.Submit(task)
@@ -42,8 +42,8 @@ func TestPool_WorkerPanicRecovery(t *testing.T) {
 	}
 
 	task2 := Task{
-		ID:      "recovery-task",
-		Type:    "cron",
+		ID:   "recovery-task",
+		Type: "cron",
 	}
 	pool.Submit(task2)
 
@@ -74,8 +74,8 @@ func TestPool_ConcurrentSubmissions(t *testing.T) {
 		go func(goroutineID int) {
 			for j := 0; j < tasksPerGoroutine; j++ {
 				task := Task{
-					ID:      fmt.Sprintf("goroutine-%d-task-%d", goroutineID, j),
-					Type:    "cron",
+					ID:   fmt.Sprintf("goroutine-%d-task-%d", goroutineID, j),
+					Type: "cron",
 				}
 				pool.Submit(task)
 			}

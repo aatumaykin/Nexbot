@@ -2,7 +2,7 @@ package llm
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"os"
 	"testing"
 	"time"
@@ -174,29 +174,18 @@ func ExampleZAIProvider_Chat() {
 		MaxTokens:   500,
 	}
 
-	// Send the request
 	resp, err := provider.Chat(ctx, req)
 	if err != nil {
-		// Handle error
-		// Common errors:
-		// - context.DeadlineExceeded: request timed out
-		// - HTTP 401/403: invalid API key or permissions
-		// - HTTP 429: rate limit exceeded
-		// - HTTP 5xx: server error
-		fmt.Printf("Error: %v\n", err)
+		slog.Error("request failed", "error", err)
 		return
 	}
 
-	// Process the response
-	fmt.Printf("Response: %s\n", resp.Content)
-	fmt.Printf("Finish Reason: %s\n", resp.FinishReason)
-	fmt.Printf("Tokens Used: %d\n", resp.Usage.TotalTokens)
+	slog.Info("response received", "content", resp.Content, "finish_reason", resp.FinishReason, "tokens", resp.Usage.TotalTokens)
 
-	// Check for tool calls (if tool calling is enabled)
 	if len(resp.ToolCalls) > 0 {
-		fmt.Printf("Tool Calls: %d\n", len(resp.ToolCalls))
+		slog.Info("tool calls", "count", len(resp.ToolCalls))
 		for _, tc := range resp.ToolCalls {
-			fmt.Printf("  - %s(%s)\n", tc.Name, tc.Arguments)
+			slog.Info("tool call", "name", tc.Name, "arguments", tc.Arguments)
 		}
 	}
 }

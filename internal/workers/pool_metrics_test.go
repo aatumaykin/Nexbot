@@ -39,8 +39,8 @@ func TestPool_Metrics(t *testing.T) {
 	defer pool.Stop()
 
 	task := Task{
-		ID:      "metrics-task",
-		Type:    "cron",
+		ID:   "metrics-task",
+		Type: "cron",
 	}
 	pool.Submit(task)
 

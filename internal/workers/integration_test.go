@@ -34,7 +34,7 @@ func TestWorkerPool_Integration_CronTasks(t *testing.T) {
 	numCronJobs := 5
 	for i := 0; i < numCronJobs; i++ {
 		task := Task{
-			ID:      fmt.Sprintf("cron-job-%d", i),
+			ID: fmt.Sprintf("cron-job-%d", i),
 		}
 		pool.Submit(task)
 	}
@@ -256,7 +256,7 @@ func TestWorkerPool_Integration_HighLoad(t *testing.T) {
 	// Submit many tasks rapidly
 	for i := 0; i < numTasks; i++ {
 		task := Task{
-			ID:      fmt.Sprintf("load-task-%d", i),
+			ID: fmt.Sprintf("load-task-%d", i),
 		}
 		pool.Submit(task)
 	}
@@ -312,7 +312,7 @@ func TestWorkerPool_Integration_GracefulShutdownWithTasks(t *testing.T) {
 	numTasks := 10
 	for i := 0; i < numTasks; i++ {
 		task := Task{
-			ID:      fmt.Sprintf("shutdown-task-%d", i),
+			ID: fmt.Sprintf("shutdown-task-%d", i),
 		}
 		pool.Submit(task)
 	}
@@ -407,7 +407,7 @@ func TestWorkerPool_Integration_SequentialSubmissions(t *testing.T) {
 		// Submit batch of tasks
 		for i := 0; i < tasksPerBatch; i++ {
 			task := Task{
-				ID:      fmt.Sprintf("batch-%d-task-%d", batch, i),
+				ID: fmt.Sprintf("batch-%d-task-%d", batch, i),
 			}
 			pool.Submit(task)
 		}
@@ -456,7 +456,7 @@ func TestWorkerPool_Integration_MetricsTracking(t *testing.T) {
 	// Submit successful tasks
 	for i := 0; i < 5; i++ {
 		task := Task{
-			ID:      fmt.Sprintf("success-%d", i),
+			ID: fmt.Sprintf("success-%d", i),
 		}
 		pool.Submit(task)
 		successfulTasks++
@@ -514,7 +514,7 @@ func TestWorkerPool_Integration_Restart(t *testing.T) {
 	// Submit and complete some tasks
 	for i := 0; i < 3; i++ {
 		task := Task{
-			ID:      fmt.Sprintf("run1-task-%d", i),
+			ID: fmt.Sprintf("run1-task-%d", i),
 		}
 		pool.Submit(task)
 	}
@@ -542,7 +542,7 @@ func TestWorkerPool_Integration_Restart(t *testing.T) {
 	// Submit tasks to new pool
 	for i := 0; i < 3; i++ {
 		task := Task{
-			ID:      fmt.Sprintf("run2-task-%d", i),
+			ID: fmt.Sprintf("run2-task-%d", i),
 		}
 		newPool.Submit(task)
 	}

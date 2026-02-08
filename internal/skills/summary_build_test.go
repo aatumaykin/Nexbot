@@ -38,7 +38,7 @@ Git commit functionality.
 	builder := NewSummaryBuilder(loader)
 
 	opts := SummaryOptions{
-		Format:            "short",
+		Format: "short",
 	}
 
 	summary, err := builder.Build(opts)
@@ -333,7 +333,7 @@ func TestSummaryBuilder_NoSkills(t *testing.T) {
 	builder := NewSummaryBuilder(loader)
 
 	opts := SummaryOptions{
-		Format:            "short",
+		Format: "short",
 	}
 
 	summary, err := builder.Build(opts)

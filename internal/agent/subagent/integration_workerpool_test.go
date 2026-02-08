@@ -93,7 +93,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		for i := 0; i < 3; i++ {
 			// Cron task
 			cronTask := workers.Task{
-				ID:      fmt.Sprintf("cron-%d", i),
+				ID: fmt.Sprintf("cron-%d", i),
 			}
 			pool.Submit(cronTask)
 
@@ -212,7 +212,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		// Submit tasks
 		for i := 0; i < 5; i++ {
 			task := workers.Task{
-				ID:      fmt.Sprintf("shutdown-%d", i),
+				ID: fmt.Sprintf("shutdown-%d", i),
 			}
 			pool.Submit(task)
 		}

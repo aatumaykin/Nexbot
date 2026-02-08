@@ -42,8 +42,8 @@ func TestPool_GracefulShutdown(t *testing.T) {
 
 	for i := 0; i < 5; i++ {
 		task := Task{
-			ID:      fmt.Sprintf("shutdown-task-%d", i),
-			Type:    "cron",
+			ID:   fmt.Sprintf("shutdown-task-%d", i),
+			Type: "cron",
 		}
 		pool.Submit(task)
 	}

@@ -4,6 +4,7 @@ package retry
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 )
@@ -39,48 +40,42 @@ func DoWithRetry(ctx context.Context, fn func() (string, error), cfg Config) (st
 	var lastErr error
 
 	for attempt := 0; attempt < cfg.MaxAttempts; attempt++ {
-		// Log attempt
-		fmt.Printf("[DEBUG] Retry attempt %d/%d\n", attempt+1, cfg.MaxAttempts)
+		slog.Debug("retry attempt", "attempt", attempt+1, "max_attempts", cfg.MaxAttempts)
 
-		// Execute function
 		result, err := fn()
 		if err == nil {
-			fmt.Printf("[DEBUG] Retry success on attempt %d\n", attempt+1)
+			slog.Debug("retry success", "attempt", attempt+1)
 			return result, nil
 		}
 
 		lastErr = err
 
-		// Check if error is retryable
 		if !IsRetryable(err) {
-			fmt.Printf("[DEBUG] Non-retryable error: %v\n", err)
+			slog.Debug("non-retryable error", "error", err)
 			return "", err
 		}
 
-		fmt.Printf("[DEBUG] Retryable error on attempt %d: %v\n", attempt+1, err)
+		slog.Debug("retryable error", "attempt", attempt+1, "error", err)
 
-		// Check if this was the last attempt
 		if attempt == cfg.MaxAttempts-1 {
-			fmt.Printf("[DEBUG] Max attempts reached, giving up\n")
+			slog.Debug("max attempts reached, giving up")
 			break
 		}
 
-		// Check context before waiting
 		select {
 		case <-ctx.Done():
-			fmt.Printf("[DEBUG] Context cancelled during retry\n")
+			slog.Debug("context cancelled during retry")
 			return "", ctx.Err()
 		default:
 		}
 
-		// Calculate and apply backoff
 		backoff := calculateBackoff(attempt, cfg.InitialBackoff, cfg.MaxBackoff)
-		fmt.Printf("[DEBUG] Waiting %v before next attempt\n", backoff)
+		slog.Debug("waiting before next attempt", "backoff", backoff)
 
 		select {
 		case <-time.After(backoff):
 		case <-ctx.Done():
-			fmt.Printf("[DEBUG] Context cancelled during backoff\n")
+			slog.Debug("context cancelled during backoff")
 			return "", ctx.Err()
 		}
 	}
