@@ -249,6 +249,15 @@ func applyDefaults(c *Config) {
 	if c.Tools.Shell.TimeoutSeconds == 0 {
 		c.Tools.Shell.TimeoutSeconds = 30
 	}
+	if c.Tools.Fetch.TimeoutSeconds == 0 {
+		c.Tools.Fetch.TimeoutSeconds = 30
+	}
+	if c.Tools.Fetch.MaxResponseSize == 0 {
+		c.Tools.Fetch.MaxResponseSize = 5 * 1024 * 1024 // 5MB
+	}
+	if c.Tools.Fetch.UserAgent == "" {
+		c.Tools.Fetch.UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+	}
 
 	if c.MessageBus.Capacity == 0 {
 		c.MessageBus.Capacity = 1000

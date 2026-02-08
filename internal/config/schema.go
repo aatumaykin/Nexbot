@@ -96,6 +96,7 @@ type TelegramConfig struct {
 type ToolsConfig struct {
 	File  FileToolConfig  `toml:"file"`
 	Shell ShellToolConfig `toml:"shell"`
+	Fetch FetchToolConfig `toml:"fetch"`
 }
 
 // FileToolConfig представляет конфигурацию file tool
@@ -112,6 +113,14 @@ type ShellToolConfig struct {
 	DenyCommands    []string `toml:"deny_commands"`
 	AskCommands     []string `toml:"ask_commands"`
 	TimeoutSeconds  int      `toml:"timeout_seconds"`
+}
+
+// FetchToolConfig представляет конфигурацию fetch tool
+type FetchToolConfig struct {
+	Enabled         bool   `toml:"enabled"`
+	TimeoutSeconds  int    `toml:"timeout_seconds"`
+	MaxResponseSize int64  `toml:"max_response_size"`
+	UserAgent       string `toml:"user_agent"`
 }
 
 const (

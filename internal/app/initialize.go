@@ -15,6 +15,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/tools"
+	"github.com/aatumaykin/nexbot/internal/tools/fetch"
 	"github.com/aatumaykin/nexbot/internal/tools/file"
 	"github.com/aatumaykin/nexbot/internal/workers"
 	"github.com/aatumaykin/nexbot/internal/workspace"
@@ -194,6 +195,15 @@ func (a *App) Initialize(ctx context.Context) error {
 		if err := a.agentLoop.RegisterTool(deleteFileTool); err != nil {
 			return fmt.Errorf("failed to register delete file tool: %w", err)
 		}
+	}
+
+	// Register fetch tool if enabled
+	if a.config.Tools.Fetch.Enabled {
+		fetchTool := fetch.NewFetchTool(a.config, a.logger)
+		if err := a.agentLoop.RegisterTool(fetchTool); err != nil {
+			return fmt.Errorf("failed to register fetch tool: %w", err)
+		}
+		a.logger.Info("Fetch tool registered")
 	}
 
 	// Register SystemTimeTool
