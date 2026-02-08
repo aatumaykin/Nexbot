@@ -28,6 +28,17 @@ const (
 	EventTypeProcessingEnd   EventType = "processing_end"   // Event when LLM processing ends
 )
 
+// MessageType represents the type of outbound message
+type MessageType string
+
+const (
+	MessageTypeText     MessageType = "text"     // Plain text message
+	MessageTypeEdit     MessageType = "edit"     // Edit existing message
+	MessageTypeDelete   MessageType = "delete"   // Delete existing message
+	MessageTypePhoto    MessageType = "photo"    // Photo message
+	MessageTypeDocument MessageType = "document" // Document message
+)
+
 // Event represents a lifecycle event for message processing
 type Event struct {
 	Type        EventType      `json:"type"`
@@ -59,13 +70,26 @@ type InboundMessage struct {
 	Metadata    map[string]any `json:"metadata,omitempty"`
 }
 
+// MediaData represents media attachments in outbound messages
+type MediaData struct {
+	Type      string `json:"type"`       // Media type (e.g., "photo", "document")
+	URL       string `json:"url"`        // Direct URL to media (for web)
+	FileID    string `json:"file_id"`    // Platform-specific file ID (for telegram, etc.)
+	LocalPath string `json:"local_path"` // Path to local file
+	Caption   string `json:"caption"`    // Media caption/description
+	FileName  string `json:"file_name"`  // Original file name
+}
+
 // OutboundMessage represents a message to be sent to an external channel
 type OutboundMessage struct {
 	ChannelType   ChannelType    `json:"channel_type"`
 	UserID        string         `json:"user_id"`
 	SessionID     string         `json:"session_id"`
-	Content       string         `json:"content"`
+	Type          MessageType    `json:"type"`                     // Message type (text, edit, delete, photo, document)
+	Content       string         `json:"content"`                  // Text content (for text/edit messages)
 	CorrelationID string         `json:"correlation_id,omitempty"` // для отслеживания результата отправки
+	MessageID     string         `json:"message_id,omitempty"`     // ID of message to edit/delete
+	Media         *MediaData     `json:"media,omitempty"`          // Media data (for photo/document messages)
 	Timestamp     time.Time      `json:"timestamp"`
 	Metadata      map[string]any `json:"metadata,omitempty"`
 }
@@ -117,8 +141,66 @@ func NewOutboundMessage(channelType ChannelType, userID, sessionID, content stri
 		ChannelType:   channelType,
 		UserID:        userID,
 		SessionID:     sessionID,
+		Type:          MessageTypeText,
 		Content:       content,
 		CorrelationID: correlationID,
+		Timestamp:     time.Now(),
+		Metadata:      metadata,
+	}
+}
+
+// NewEditMessage creates a new edit message with the current timestamp
+func NewEditMessage(channelType ChannelType, userID, sessionID, messageID, content string, correlationID string, metadata map[string]any) *OutboundMessage {
+	return &OutboundMessage{
+		ChannelType:   channelType,
+		UserID:        userID,
+		SessionID:     sessionID,
+		Type:          MessageTypeEdit,
+		Content:       content,
+		CorrelationID: correlationID,
+		MessageID:     messageID,
+		Timestamp:     time.Now(),
+		Metadata:      metadata,
+	}
+}
+
+// NewDeleteMessage creates a new delete message with the current timestamp
+func NewDeleteMessage(channelType ChannelType, userID, sessionID, messageID string, correlationID string, metadata map[string]any) *OutboundMessage {
+	return &OutboundMessage{
+		ChannelType:   channelType,
+		UserID:        userID,
+		SessionID:     sessionID,
+		Type:          MessageTypeDelete,
+		CorrelationID: correlationID,
+		MessageID:     messageID,
+		Timestamp:     time.Now(),
+		Metadata:      metadata,
+	}
+}
+
+// NewPhotoMessage creates a new photo message with the current timestamp
+func NewPhotoMessage(channelType ChannelType, userID, sessionID string, media *MediaData, correlationID string, metadata map[string]any) *OutboundMessage {
+	return &OutboundMessage{
+		ChannelType:   channelType,
+		UserID:        userID,
+		SessionID:     sessionID,
+		Type:          MessageTypePhoto,
+		CorrelationID: correlationID,
+		Media:         media,
+		Timestamp:     time.Now(),
+		Metadata:      metadata,
+	}
+}
+
+// NewDocumentMessage creates a new document message with the current timestamp
+func NewDocumentMessage(channelType ChannelType, userID, sessionID string, media *MediaData, correlationID string, metadata map[string]any) *OutboundMessage {
+	return &OutboundMessage{
+		ChannelType:   channelType,
+		UserID:        userID,
+		SessionID:     sessionID,
+		Type:          MessageTypeDocument,
+		CorrelationID: correlationID,
+		Media:         media,
 		Timestamp:     time.Now(),
 		Metadata:      metadata,
 	}
