@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 	"testing"
 
@@ -13,45 +14,26 @@ import (
 // mockSpawnManager is a mock subagent manager for integration testing.
 // It avoids circular imports by not importing the actual subagent package.
 type mockSpawnManager struct {
-	mu            sync.Mutex
-	subagents     map[string]*mockSubagent
-	subagentCount int
-}
-
-type mockSubagent struct {
-	ID      string
-	Session string
+	mu        sync.Mutex
+	taskCount int
 }
 
 func newMockSpawnManager() *mockSpawnManager {
-	return &mockSpawnManager{
-		subagents: make(map[string]*mockSubagent),
-	}
+	return &mockSpawnManager{}
 }
 
 func (m *mockSpawnManager) Spawn(ctx context.Context, parentSession string, task string) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.subagentCount++
-	subagent := &mockSubagent{
-		ID:      "mock-subagent-" + string(rune(m.subagentCount)),
-		Session: "mock-session-" + string(rune(m.subagentCount)),
-	}
-	m.subagents[subagent.ID] = subagent
-
-	result := map[string]string{
-		"id":      subagent.ID,
-		"session": subagent.Session,
-	}
-	data, _ := json.Marshal(result)
-	return string(data), nil
+	m.taskCount++
+	return fmt.Sprintf("Task %d completed: %s", m.taskCount, task), nil
 }
 
 func (m *mockSpawnManager) Count() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return len(m.subagents)
+	return m.taskCount
 }
 
 // TestSpawnToolIntegration tests spawn tool with registry and execution flow.
@@ -92,9 +74,10 @@ func TestSpawnToolIntegration(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "test-call-123", result.ToolCallID)
 	assert.Nil(t, result.Error) // No error expected
-	assert.Contains(t, result.Content, "Subagent spawned with ID")
+	assert.Contains(t, result.Content, "Task 1 completed")
+	assert.Contains(t, result.Content, "Test integration task")
 
-	// Verify subagent was created in mock manager
+	// Verify task was executed in mock manager
 	assert.Equal(t, 1, mockMgr.Count())
 }
 
@@ -119,10 +102,11 @@ func TestSpawnToolIntegrationMultipleCalls(t *testing.T) {
 		result, err := ExecuteToolCall(registry, toolCall)
 		require.NoError(t, err)
 		assert.Nil(t, result.Error)
-		assert.Contains(t, result.Content, "Subagent spawned with ID")
+		assert.Contains(t, result.Content, "Task")
+		assert.Contains(t, result.Content, "completed")
 	}
 
-	// Verify all subagents were created
+	// Verify all tasks were executed
 	assert.Equal(t, 5, mockMgr.Count())
 }
 
@@ -147,7 +131,8 @@ func TestSpawnToolIntegrationWithTimeout(t *testing.T) {
 	result, err := ExecuteToolCall(registry, toolCall)
 	require.NoError(t, err)
 	assert.Nil(t, result.Error)
-	assert.Contains(t, result.Content, "Subagent spawned with ID")
+	assert.Contains(t, result.Content, "Task 1 completed")
+	assert.Contains(t, result.Content, "Task with custom timeout")
 }
 
 // TestSpawnToolIntegrationErrorHandling tests error handling in integration.
@@ -194,7 +179,7 @@ func TestSpawnToolIntegrationErrorHandling(t *testing.T) {
 	result, err = ExecuteToolCall(registry, toolCall)
 	require.NoError(t, err)
 	assert.NotNil(t, result.Error)
-	assert.Contains(t, result.Error.Message, "failed to spawn")
+	assert.Contains(t, result.Error.Message, "failed to execute task via subagent")
 }
 
 // TestSpawnToolIntegrationSchema tests schema generation and serialization.
@@ -260,7 +245,7 @@ func TestSpawnToolIntegrationEmptyTask(t *testing.T) {
 	assert.NotNil(t, result.Error)
 	assert.Contains(t, result.Error.Message, "required")
 
-	// No subagent should be created
+	// No task should be executed
 	assert.Equal(t, 0, mockMgr.Count())
 }
 

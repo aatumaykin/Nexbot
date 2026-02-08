@@ -107,6 +107,12 @@ func (a *App) shutdownInternal() error {
 		a.workerPool.Stop()
 	}
 
+	// Stop subagent manager if not nil
+	if a.subagentManager != nil {
+		a.logger.Info("🛑 Stopping subagent manager")
+		a.subagentManager.StopAll()
+	}
+
 	// Stop heartbeat checker if not nil
 	if a.heartbeatChecker != nil {
 		if err := a.heartbeatChecker.Stop(); err != nil {

@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-02-08
+
+### Added
+- **Spawn tool integration** — LLM может создавать subagents для выполнения задач
+- **Synchronous task execution** — subagents выполняют задачи и возвращают результаты
+- **Automatic cleanup** — subagents удаляются после выполнения задачи
+- **Session isolation** — каждый subagent имеет изолированную сессию
+- **Nested spawning** — subagents могут создавать другие subagents
+- **ExecuteTask method** — новый метод в Subagent Manager для синхронного выполнения
+- **DeleteSession method** — новый метод в Session Manager для очистки сессий
+
+### Changed
+- Improved agent capabilities with parallel task execution
+- Enhanced documentation with spawn tool examples
+- Updated architecture docs with spawn integration details
+- SpawnTool now returns task result instead of subagent ID
+
+### Fixed
+- Subagent sessions are now properly cleaned up after task completion
+- No memory leaks from subagent registry
+
+### Testing
+- Added tests for spawn tool execution
+- Added tests for subagent lifecycle (spawn, process, stop, delete)
+- Added integration tests for nested subagents
+
+### Documentation
+- Updated README.md with spawn tool usage
+- Updated QUICKSTART.md with subagent spawning guide
+- Updated EXAMPLES.md with subagent examples
+- Created docs/examples/subagent-usage.md with detailed examples
+- Updated docs/workspace/TOOLS.md with spawn tool reference
+- Updated docs/workspace/AGENTS.md with subagent usage guide
+- Updated docs/workspace/IDENTITY.md with spawn core truths
+- Updated docs/architecture/subagent_manager.md with spawn integration details
+
 ## [Unreleased]
 
 ## [0.2.0] - 2026-02-05

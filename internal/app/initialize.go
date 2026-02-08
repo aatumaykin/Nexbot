@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/aatumaykin/nexbot/internal/agent/loop"
+	"github.com/aatumaykin/nexbot/internal/agent/subagent"
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/channels/telegram"
 	"github.com/aatumaykin/nexbot/internal/commands"
@@ -120,6 +122,50 @@ func (a *App) Initialize(ctx context.Context) error {
 	workerPool := workers.NewPool(a.config.Workers.PoolSize, a.config.Workers.QueueSize, a.logger, a.messageBus)
 	workerPool.Start()
 	a.workerPool = workerPool
+
+	// 4.1.1. Initialize subagent manager if enabled
+	if a.config.Subagent.Enabled {
+		a.logger.Info("🧬 Initializing subagent manager")
+
+		var err error
+		a.subagentManager, err = subagent.NewManager(subagent.Config{
+			SessionDir: ws.Subpath("sessions"),
+			Logger:     a.logger,
+			LoopConfig: loop.Config{
+				Workspace:         ws.Path(),
+				SessionDir:        ws.Subpath("sessions"),
+				LLMProvider:       provider,
+				Logger:            a.logger,
+				Model:             a.config.Agent.Model,
+				MaxTokens:         a.config.Agent.MaxTokens,
+				Temperature:       a.config.Agent.Temperature,
+				MaxToolIterations: a.config.Agent.MaxIterations,
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to initialize subagent manager: %w", err)
+		}
+
+		// Создаём адаптер для spawn tool
+		spawnAdapterFunc := func(ctx context.Context, parentSession string, task string) (string, error) {
+			// Извлекаем timeout из контекста или используем дефолт (300s)
+			timeout := 300
+			if deadline, ok := ctx.Deadline(); ok {
+				timeout = int(time.Until(deadline).Seconds())
+			}
+
+			// Делегируем выполнение Manager.ExecuteTask
+			return a.subagentManager.ExecuteTask(ctx, parentSession, task, timeout)
+		}
+
+		// Регистрируем SpawnTool
+		spawnTool := tools.NewSpawnTool(spawnAdapterFunc)
+		if err := a.agentLoop.RegisterTool(spawnTool); err != nil {
+			return fmt.Errorf("failed to register spawn tool: %w", err)
+		}
+
+		a.logger.Info("✅ Spawn tool registered")
+	}
 
 	// 4.2. Initialize cron storage
 	cronStorage := cron.NewStorage(ws.Path(), a.logger)

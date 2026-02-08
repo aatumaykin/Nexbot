@@ -15,17 +15,6 @@
 - Confirmation before executing commands
 - Ask for permission before file operations
 
-## Contact Information
-
-- **Email**: {{USER_EMAIL}}
-- **Telegram**: {{USER_TELEGRAM}}
-- **GitHub**: {{USER_GITHUB}}
-
-## Reminders
-
-- {{REMINDER_1}}
-- {{REMINDER_2}}
-- {{REMINDER_3}}
 
 ---
 

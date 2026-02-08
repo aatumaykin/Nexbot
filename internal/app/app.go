@@ -17,6 +17,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/workers"
 	"sync"
 
+	"github.com/aatumaykin/nexbot/internal/agent/subagent"
 	"github.com/aatumaykin/nexbot/internal/ipc"
 )
 
@@ -42,6 +43,9 @@ type App struct {
 
 	// Background task execution
 	workerPool *workers.WorkerPool
+
+	// Subagent manager
+	subagentManager *subagent.Manager
 
 	// Heartbeat checker
 	heartbeatChecker *heartbeat.Checker

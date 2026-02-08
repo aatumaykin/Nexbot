@@ -96,15 +96,15 @@ func (t *SpawnTool) ExecuteWithContext(ctx context.Context, args string) (string
 	defer cancel()
 	ctx = timeoutCtx
 
-	// Spawn subagent using "parent" as parent session ID
+	// Execute task via subagent using "parent" as parent session ID
 	// Note: In a future enhancement, this could be the actual parent agent's session ID
-	subagentJSON, err := t.spawnFunc(ctx, "parent", spawnArgs.Task)
+	result, err := t.spawnFunc(ctx, "parent", spawnArgs.Task)
 	if err != nil {
-		return "", fmt.Errorf("failed to spawn subagent: %w", err)
+		return "", fmt.Errorf("failed to execute task via subagent: %w", err)
 	}
 
-	// Format response with subagent information
-	return fmt.Sprintf("Subagent spawned with ID: %s", subagentJSON), nil
+	// Return result directly
+	return result, nil
 }
 
 // Ensure SpawnTool implements Tool interface

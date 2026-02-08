@@ -354,6 +354,109 @@ func Spawn(ctx context.Context, parentSession string, task string)
 4. Управляйте количеством активных subagents через `Count()`
 5. Обрабатывайте ошибки из `Process()`
 
+## Spawn Tool Integration
+
+### Tool Registration
+
+Spawn tool регистрируется в `internal/app/initialize.go`:
+
+```go
+if cfg.Subagent.Enabled && subagentManager != nil {
+    spawnTool := tools.NewSpawnTool(spawnAdapter(subagentManager))
+    if err := a.agentLoop.RegisterTool(spawnTool); err != nil {
+        return fmt.Errorf("failed to register spawn tool: %w", err)
+    }
+}
+```
+
+### Execution Flow
+
+```
+User Message
+    ↓
+LLM Analysis
+    ↓
+Tool Call: spawn("task description")
+    ↓
+SpawnTool.ExecuteWithContext()
+    ↓
+Manager.ExecuteTask(ctx, parentSession, task, timeout)
+    ↓
+  ┌─────────────────┐
+  │ 1. Spawn()    │ — Создаёт subagent
+  │ 2. Process()   │ — Выполняет задачу
+  │ 3. Stop()      │ — Удаляет из registry
+  │ 4. Delete()    │ — Очищает сессию
+  └─────────────────┘
+    ↓
+Result returned to LLM
+    ↓
+LLM continues conversation
+```
+
+### Synchronous Execution
+
+Механизм гарантирует синхронное выполнение:
+1. `Spawn()` — создаёт subagent и возвращает его
+2. `Process()` — **блокирует** до завершения задачи
+3. `Stop()` — удаляет subagent после получения результата
+4. Возврат результата — только после полного выполнения
+
+Это означает, что LLM видит результат **сразу же** после завершения задачи.
+
+### Lifecycle with Spawn
+
+```
+[Idle]
+    │
+    │ LLM calls spawn("task")
+    ▼
+[Spawning] ──> [Created] ──> [Processing Task] ──> [Result Ready]
+    │                                                      │
+    │                                                      │ Subagent.Process() returns
+    │                                                      │
+    │                                                      ▼
+    │                                                  [Stopping]
+    │                                                      │
+    │                                                      ▼
+    │                                                  [Stopped]
+    │                                                      │
+    │                                                      ▼
+    │                                              [Deleted] ──> [Idle]
+    │
+    └─> Result returned to LLM
+```
+
+### Session Cleanup
+
+Subagent сессии хранятся изолированно:
+
+```
+~/.nexbot/sessions/subagents/
+├── <uuid-1>/
+│   └── session.jsonl
+├── <uuid-2>/
+│   └── session.jsonl
+└── ...
+```
+
+После выполнения:
+- Subagent удаляется из `Manager.subagents` map
+- Сессия удаляется из файловой системы
+- Нет утечек памяти и дискового пространства
+
+### Error Handling
+
+**Spawn errors:**
+- Invalid arguments → немедленно возвращаются в LLM
+- Timeout → subagent останавливается, возвращается ошибка
+- Execution failure → ошибка возвращается в LLM с контекстом
+
+**Process errors:**
+- Tool execution failures → логируются, возвращаются с деталями
+- Context cancellation → graceful shutdown
+- Loop errors → возвращаются в родительский агент
+
 ## Limitations
 
 - Нет встроенной очереди задач для subagents

@@ -247,3 +247,18 @@ func (s *Session) Clear() error {
 
 	return nil
 }
+
+// DeleteSession removes a session directory by sessionID.
+// This is used to clean up subagent sessions after completion.
+// The session directory structure is: baseDir/<sessionID>/
+func (m *Manager) DeleteSession(sessionID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	sessionDir := filepath.Join(m.baseDir, sessionID)
+	if err := os.RemoveAll(sessionDir); err != nil {
+		return fmt.Errorf("failed to delete session directory: %w", err)
+	}
+
+	return nil
+}

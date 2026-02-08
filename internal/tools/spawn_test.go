@@ -10,10 +10,8 @@ import (
 
 // mockSpawnFunc is a mock spawn function for testing.
 type mockSpawnFunc struct {
-	subagentID       string
-	sessionID        string
+	result           string
 	shouldError      bool
-	errorMsg         string
 	checkCtxCanceled bool
 }
 
@@ -27,13 +25,8 @@ func (m *mockSpawnFunc) Spawn(ctx context.Context, parentSession string, task st
 		return "", assert.AnError
 	}
 
-	// Return JSON with subagent ID
-	result := map[string]string{
-		"id":      m.subagentID,
-		"session": m.sessionID,
-	}
-	data, _ := json.Marshal(result)
-	return string(data), nil
+	// Return result directly
+	return m.result, nil
 }
 
 func TestSpawnTool_Name(t *testing.T) {
@@ -115,8 +108,7 @@ func TestSpawnTool_Parameters(t *testing.T) {
 
 func TestSpawnTool_Execute_Success(t *testing.T) {
 	mock := &mockSpawnFunc{
-		subagentID: "test-subagent-123",
-		sessionID:  "subagent-session-456",
+		result: "Task completed successfully",
 	}
 
 	tool := NewSpawnTool(mock.Spawn)
@@ -127,16 +119,15 @@ func TestSpawnTool_Execute_Success(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	// Check result contains subagent ID
-	if !contains(result, "test-subagent-123") {
-		t.Errorf("Expected result to contain subagent ID, got: %s", result)
+	// Check result contains expected output
+	if !contains(result, "Task completed successfully") {
+		t.Errorf("Expected result to contain 'Task completed successfully', got: %s", result)
 	}
 }
 
 func TestSpawnTool_ExecuteWithContext_Success(t *testing.T) {
 	mock := &mockSpawnFunc{
-		subagentID: "test-subagent-789",
-		sessionID:  "subagent-session-012",
+		result: "Another task completed",
 	}
 
 	tool := NewSpawnTool(mock.Spawn)
@@ -148,16 +139,15 @@ func TestSpawnTool_ExecuteWithContext_Success(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	// Check result contains subagent ID
-	if !contains(result, "test-subagent-789") {
-		t.Errorf("Expected result to contain subagent ID, got: %s", result)
+	// Check result contains expected output
+	if !contains(result, "Another task completed") {
+		t.Errorf("Expected result to contain 'Another task completed', got: %s", result)
 	}
 }
 
 func TestSpawnTool_Execute_WithTimeout(t *testing.T) {
 	mock := &mockSpawnFunc{
-		subagentID: "test-subagent-timeout",
-		sessionID:  "subagent-session-timeout",
+		result: "Task with timeout completed",
 	}
 
 	tool := NewSpawnTool(mock.Spawn)
@@ -168,9 +158,9 @@ func TestSpawnTool_Execute_WithTimeout(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	// Check result contains subagent ID
-	if !contains(result, "test-subagent-timeout") {
-		t.Errorf("Expected result to contain subagent ID, got: %s", result)
+	// Check result contains expected output
+	if !contains(result, "Task with timeout completed") {
+		t.Errorf("Expected result to contain 'Task with timeout completed', got: %s", result)
 	}
 }
 
@@ -234,7 +224,6 @@ func TestSpawnTool_Execute_InvalidJSON(t *testing.T) {
 func TestSpawnTool_Execute_SpawnError(t *testing.T) {
 	mock := &mockSpawnFunc{
 		shouldError: true,
-		errorMsg:    "spawn failed",
 	}
 	tool := NewSpawnTool(mock.Spawn)
 
@@ -244,8 +233,8 @@ func TestSpawnTool_Execute_SpawnError(t *testing.T) {
 		t.Error("Expected error for spawn failure")
 	}
 
-	if !contains(err.Error(), "failed to spawn") {
-		t.Errorf("Expected error to mention 'failed to spawn', got: %v", err)
+	if !contains(err.Error(), "failed to execute task via subagent") {
+		t.Errorf("Expected error to mention 'failed to execute task via subagent', got: %v", err)
 	}
 }
 
@@ -352,8 +341,7 @@ func TestSpawnTool_SchemaToJSON(t *testing.T) {
 
 func TestSpawnTool_RegistryIntegration(t *testing.T) {
 	mock := &mockSpawnFunc{
-		subagentID: "registry-test-subagent",
-		sessionID:  "registry-test-session",
+		result: "Registry integration test completed",
 	}
 
 	registry := NewRegistry()
@@ -393,8 +381,6 @@ func TestSpawnTool_RegistryIntegration(t *testing.T) {
 
 func TestSpawnTool_ExecuteWithContext_Cancellation(t *testing.T) {
 	mock := &mockSpawnFunc{
-		subagentID:       "cancellation-test",
-		sessionID:        "cancellation-session",
 		checkCtxCanceled: true,
 	}
 
@@ -434,8 +420,7 @@ func TestSpawnTool_Execute_ContextTimeout(t *testing.T) {
 	// This test verifies that when timeout is provided in arguments,
 	// it's applied to the context passed to spawnFunc
 	mock := &mockSpawnFunc{
-		subagentID: "timeout-test",
-		sessionID:  "timeout-session",
+		result: "Context timeout test completed",
 	}
 
 	tool := NewSpawnTool(mock.Spawn)
@@ -446,7 +431,7 @@ func TestSpawnTool_Execute_ContextTimeout(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	if !contains(result, "timeout-test") {
-		t.Errorf("Expected result to contain subagent ID, got: %s", result)
+	if !contains(result, "Context timeout test completed") {
+		t.Errorf("Expected result to contain 'Context timeout test completed', got: %s", result)
 	}
 }

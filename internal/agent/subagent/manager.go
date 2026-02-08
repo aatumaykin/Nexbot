@@ -207,6 +207,54 @@ func (m *Manager) Count() int {
 	return len(m.subagents)
 }
 
+// ExecuteTask spawns a subagent, executes a task, and cleans up after completion.
+// This is a one-shot operation: subagent is created, task is executed, and subagent is removed.
+// Returns the response from the subagent or an error.
+func (m *Manager) ExecuteTask(ctx context.Context, parentSession string, task string, timeout int) (string, error) {
+	// Spawn a new subagent for this task
+	subagent, err := m.Spawn(ctx, parentSession, task)
+	if err != nil {
+		return "", fmt.Errorf("failed to spawn subagent: %w", err)
+	}
+
+	// Ensure subagent is stopped and session is cleaned up, even on panic
+	defer func() {
+		// Stop the subagent (removes from registry)
+		if stopErr := m.Stop(subagent.ID); stopErr != nil {
+			m.logger.Error("failed to stop subagent during cleanup", stopErr,
+				logger.Field{Key: "subagent_id", Value: subagent.ID})
+		}
+
+		// Delete the subagent session from storage
+		if deleteErr := m.sessionMgr.DeleteSession(subagent.Session); deleteErr != nil {
+			m.logger.Error("failed to delete subagent session during cleanup", deleteErr,
+				logger.Field{Key: "session_id", Value: subagent.Session},
+				logger.Field{Key: "subagent_id", Value: subagent.ID})
+		}
+	}()
+
+	// Set timeout if provided
+	taskCtx := ctx
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		taskCtx, cancel = context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+		defer cancel()
+	}
+
+	// Process the task through the subagent
+	response, err := subagent.Process(taskCtx, task)
+	if err != nil {
+		return "", fmt.Errorf("failed to execute task in subagent: %w", err)
+	}
+
+	m.logger.Info("subagent task completed",
+		logger.Field{Key: "subagent_id", Value: subagent.ID},
+		logger.Field{Key: "session_id", Value: subagent.Session},
+		logger.Field{Key: "response_length", Value: len(response)})
+
+	return response, nil
+}
+
 // Process sends a task to a subagent for processing.
 // Returns the response or an error.
 func (s *Subagent) Process(ctx context.Context, task string) (string, error) {
