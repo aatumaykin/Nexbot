@@ -268,8 +268,22 @@ func (c *Connector) handleOutbound() {
 			case bus.MessageTypeText:
 				c.sendTextMessage(msg, chatID)
 			case bus.MessageTypeEdit:
+				if !c.cfg.EnableInlineUpdates {
+					c.logger.WarnCtx(c.ctx, "inline updates disabled in config",
+						logger.Field{Key: "message_type", Value: msg.Type},
+						logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+					c.publishResult(msg, chatID, false, fmt.Errorf("inline updates disabled"))
+					continue
+				}
 				c.editMessage(msg, chatID)
 			case bus.MessageTypeDelete:
+				if !c.cfg.EnableInlineUpdates {
+					c.logger.WarnCtx(c.ctx, "inline updates disabled in config",
+						logger.Field{Key: "message_type", Value: msg.Type},
+						logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
+					c.publishResult(msg, chatID, false, fmt.Errorf("inline updates disabled"))
+					continue
+				}
 				c.deleteMessage(msg, chatID)
 			case bus.MessageTypePhoto:
 				c.sendPhoto(msg, chatID)
@@ -311,6 +325,12 @@ func (c *Connector) extractChatID(sessionID string) (int64, error) {
 	return chatID, nil
 }
 
+// getSendTimeout возвращает контекст с таймаутом для отправки
+func (c *Connector) getSendTimeout() (context.Context, context.CancelFunc) {
+	timeout := time.Duration(c.cfg.SendTimeoutSeconds) * time.Second
+	return context.WithTimeout(c.ctx, timeout)
+}
+
 // sendTextMessage sends a text message to Telegram
 func (c *Connector) sendTextMessage(msg bus.OutboundMessage, chatID int64) {
 	// Prepare message with smart content detection
@@ -323,13 +343,15 @@ func (c *Connector) sendTextMessage(msg bus.OutboundMessage, chatID int64) {
 		return
 	}
 
-	// Attach inline keyboard if present
-	if msg.InlineKeyboard != nil {
+	// Attach inline keyboard if enabled and present
+	if msg.InlineKeyboard != nil && c.cfg.EnableInlineKeyboard {
 		params.ReplyMarkup = c.buildInlineKeyboard(msg.InlineKeyboard)
 	}
 
-	// Try to send with detected formatting
-	_, err = c.bot.SendMessage(c.ctx, &params)
+	// Try to send with detected formatting and timeout
+	sendCtx, cancel := c.getSendTimeout()
+	defer cancel()
+	_, err = c.bot.SendMessage(sendCtx, &params)
 	if err != nil {
 		// Smart fallback for markdown errors
 		c.handleSendError(err, msg, chatID, params)
@@ -352,13 +374,15 @@ func (c *Connector) editMessage(msg bus.OutboundMessage, chatID int64) {
 	// Prepare message with smart content detection
 	params := c.prepareEditMessageParams(msg.Content, chatID, msg.MessageID)
 
-	// Attach inline keyboard if present
-	if msg.InlineKeyboard != nil {
+	// Attach inline keyboard if enabled and present
+	if msg.InlineKeyboard != nil && c.cfg.EnableInlineKeyboard {
 		params.ReplyMarkup = c.buildInlineKeyboard(msg.InlineKeyboard)
 	}
 
-	// Try to send with detected formatting
-	_, err := c.bot.EditMessageText(c.ctx, &params)
+	// Try to send with detected formatting and timeout
+	sendCtx, cancel := c.getSendTimeout()
+	defer cancel()
+	_, err := c.bot.EditMessageText(sendCtx, &params)
 	if err != nil {
 		c.handleSendError(err, msg, chatID, telego.SendMessageParams{}) // params not needed for edit fallback
 		return
@@ -423,12 +447,15 @@ func (c *Connector) sendPhoto(msg bus.OutboundMessage, chatID int64) {
 		return
 	}
 
-	// Attach inline keyboard if present
-	if msg.InlineKeyboard != nil {
+	// Attach inline keyboard if enabled and present
+	if msg.InlineKeyboard != nil && c.cfg.EnableInlineKeyboard {
 		params.ReplyMarkup = c.buildInlineKeyboard(msg.InlineKeyboard)
 	}
 
-	_, err = c.bot.SendPhoto(c.ctx, &params)
+	// Send with timeout
+	sendCtx, cancel := c.getSendTimeout()
+	defer cancel()
+	_, err = c.bot.SendPhoto(sendCtx, &params)
 	if err != nil {
 		c.logger.ErrorCtx(c.ctx, "failed to send photo", err,
 			logger.Field{Key: "chat_id", Value: chatID},
@@ -459,12 +486,15 @@ func (c *Connector) sendDocument(msg bus.OutboundMessage, chatID int64) {
 		return
 	}
 
-	// Attach inline keyboard if present
-	if msg.InlineKeyboard != nil {
+	// Attach inline keyboard if enabled and present
+	if msg.InlineKeyboard != nil && c.cfg.EnableInlineKeyboard {
 		params.ReplyMarkup = c.buildInlineKeyboard(msg.InlineKeyboard)
 	}
 
-	_, err = c.bot.SendDocument(c.ctx, &params)
+	// Send with timeout
+	sendCtx, cancel := c.getSendTimeout()
+	defer cancel()
+	_, err = c.bot.SendDocument(sendCtx, &params)
 	if err != nil {
 		c.logger.ErrorCtx(c.ctx, "failed to send document", err,
 			logger.Field{Key: "chat_id", Value: chatID},
@@ -774,6 +804,11 @@ func (c *Connector) prepareMessage(content string, chatID int64) (telego.SendMes
 		Text:   content,
 	}
 
+	// Apply quiet mode - disable notifications
+	if c.cfg.QuietMode {
+		params.DisableNotification = true
+	}
+
 	// Detect content type
 	contentType := DetectContentType(content)
 
@@ -790,8 +825,15 @@ func (c *Connector) prepareMessage(content string, chatID int64) (telego.SendMes
 		// Plain text - no formatting
 		params.ParseMode = ""
 	default:
-		// Default: no formatting
-		params.ParseMode = ""
+		// Default: use parse mode from config
+		switch c.cfg.DefaultParseMode {
+		case "markdown":
+			params.ParseMode = telego.ModeMarkdown
+		case "html":
+			params.ParseMode = telego.ModeHTML
+		default:
+			params.ParseMode = ""
+		}
 	}
 
 	return params, nil

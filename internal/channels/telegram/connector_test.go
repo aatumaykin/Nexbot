@@ -1051,7 +1051,9 @@ func TestConnector_handleOutbound_NewFormat(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cfg := config.TelegramConfig{}
+	cfg := config.TelegramConfig{
+		SendTimeoutSeconds: 5,
+	}
 
 	conn := New(cfg, log, msgBus)
 	conn.ctx = ctx
@@ -1087,10 +1089,10 @@ func TestConnector_handleOutbound_NewFormat(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Verify bot was called with correct chat ID
-	mockBot.AssertCalled(t, "SendMessage", ctx, mock.MatchedBy(func(params *telego.SendMessageParams) bool {
+	mockBot.AssertCalled(t, "SendMessage", mock.Anything, mock.MatchedBy(func(params *telego.SendMessageParams) bool {
 		return params.ChatID.ID == 987654321 && params.Text == "Hello from bot!"
 	}))
-	mockBot.AssertCalled(t, "SendMessage", ctx, mock.MatchedBy(func(params *telego.SendMessageParams) bool {
+	mockBot.AssertCalled(t, "SendMessage", mock.Anything, mock.MatchedBy(func(params *telego.SendMessageParams) bool {
 		return params.ChatID.ID == 987654321 && params.Text == "Hello from bot!"
 	}))
 }

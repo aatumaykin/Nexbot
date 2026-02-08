@@ -111,7 +111,10 @@ func TestCallbackHandler_Handle_AuthorizedUser(t *testing.T) {
 
 	// Create connector with specific allowed users
 	connector := &Connector{
-		cfg:    config.TelegramConfig{AllowedUsers: []string{"123456"}},
+		cfg: config.TelegramConfig{
+			AllowedUsers:          []string{"123456"},
+			AnswerCallbackTimeout: 5,
+		},
 		ctx:    ctx,
 		logger: log,
 		bus:    mockBus,
@@ -152,7 +155,7 @@ func TestCallbackHandler_Handle_AuthorizedUser(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify bot.AnswerCallbackQuery was called
-	mockBot.AssertCalled(t, "AnswerCallbackQuery", ctx, mock.Anything)
+	mockBot.AssertCalled(t, "AnswerCallbackQuery", mock.Anything, mock.Anything)
 
 	// Wait for inbound message
 	select {
@@ -184,9 +187,12 @@ func TestCallbackHandler_Handle_InlineMessage(t *testing.T) {
 	mockBot := NewMockBotSuccess()
 	mockBot.On("AnswerCallbackQuery", mock.Anything, mock.Anything).Return(nil)
 
-	// Create connector with no whitelist (allow all)
+	// Create connector with specific allowed users
 	connector := &Connector{
-		cfg:    config.TelegramConfig{AllowedUsers: []string{}},
+		cfg: config.TelegramConfig{
+			AllowedUsers:          []string{"123456", "789012"},
+			AnswerCallbackTimeout: 5,
+		},
 		ctx:    ctx,
 		logger: log,
 		bus:    mockBus,

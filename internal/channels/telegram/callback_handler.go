@@ -1,7 +1,9 @@
 package telegram
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/logger"
@@ -48,7 +50,13 @@ func (ch *CallbackHandler) Handle(callbackQuery *telego.CallbackQuery) error {
 				Text:            "Sorry, you are not authorized to use this bot.",
 				ShowAlert:       true,
 			}
-			if err := ch.connector.bot.AnswerCallbackQuery(ch.connector.ctx, answerParams); err != nil {
+
+			// Use timeout from config
+			timeout := time.Duration(ch.connector.cfg.AnswerCallbackTimeout) * time.Second
+			ctx, cancel := context.WithTimeout(ch.connector.ctx, timeout)
+			defer cancel()
+
+			if err := ch.connector.bot.AnswerCallbackQuery(ctx, answerParams); err != nil {
 				ch.logger.ErrorCtx(ch.connector.ctx, "failed to answer callback query for unauthorized user", err)
 			}
 		}
@@ -124,7 +132,13 @@ func (ch *CallbackHandler) Handle(callbackQuery *telego.CallbackQuery) error {
 		answerParams := &telego.AnswerCallbackQueryParams{
 			CallbackQueryID: callbackQuery.ID,
 		}
-		if err := ch.connector.bot.AnswerCallbackQuery(ch.connector.ctx, answerParams); err != nil {
+
+		// Use timeout from config
+		timeout := time.Duration(ch.connector.cfg.AnswerCallbackTimeout) * time.Second
+		ctx, cancel := context.WithTimeout(ch.connector.ctx, timeout)
+		defer cancel()
+
+		if err := ch.connector.bot.AnswerCallbackQuery(ctx, answerParams); err != nil {
 			ch.logger.ErrorCtx(ch.connector.ctx, "failed to answer callback query", err,
 				logger.Field{Key: "callback_query_id", Value: callbackQuery.ID},
 				logger.Field{Key: "user_id", Value: userID})
