@@ -60,6 +60,8 @@ func TestIntegration_HeartbeatWithScheduler(t *testing.T) {
 			ID:       fmt.Sprintf("heartbeat_%s", task.Name),
 			Schedule: task.Schedule,
 			UserID:   "system",
+			Tool:     "agent",
+			Payload:  map[string]any{"message": task.Task},
 			Metadata: map[string]string{
 				"type":        "heartbeat",
 				"task_name":   task.Name,
@@ -80,7 +82,8 @@ func TestIntegration_HeartbeatWithScheduler(t *testing.T) {
 	for i, job := range jobs {
 		assert.Contains(t, job.ID, "heartbeat_")
 		assert.NotEmpty(t, job.Schedule)
-		assert.NotEmpty(t, job.Command)
+		assert.Equal(t, "agent", job.Tool)
+		assert.Equal(t, tasks[i].Task, job.Payload["message"])
 		assert.Equal(t, "system", job.UserID)
 		assert.Equal(t, "heartbeat", job.Metadata["type"])
 		assert.Equal(t, tasks[i].Name, job.Metadata["task_name"])
@@ -137,6 +140,8 @@ func TestIntegration_HeartbeatWithInvalidTasks(t *testing.T) {
 			ID:       fmt.Sprintf("heartbeat_%s", task.Name),
 			Schedule: task.Schedule,
 			UserID:   "system",
+			Tool:     "agent",
+			Payload:  map[string]any{"message": task.Task},
 			Metadata: map[string]string{
 				"type":        "heartbeat",
 				"task_name":   task.Name,

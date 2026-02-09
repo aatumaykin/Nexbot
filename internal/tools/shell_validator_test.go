@@ -2,9 +2,49 @@ package tools
 
 import (
 	"testing"
+
+	"github.com/aatumaykin/nexbot/internal/config"
 )
 
-func TestMatchPattern(t *testing.T) {
+func TestNewShellValidator(t *testing.T) {
+	deny := []string{"rm *"}
+	ask := []string{"docker *"}
+	allowed := []string{"ls"}
+
+	validator := NewShellValidator(deny, ask, allowed)
+
+	if validator.denyCommands == nil {
+		t.Error("denyCommands should not be nil")
+	}
+	if validator.askCommands == nil {
+		t.Error("askCommands should not be nil")
+	}
+	if validator.allowedCommands == nil {
+		t.Error("allowedCommands should not be nil")
+	}
+}
+
+func TestNewShellValidatorFromConfig(t *testing.T) {
+	cfg := config.ShellToolConfig{
+		DenyCommands:    []string{"rm *"},
+		AskCommands:     []string{"docker *"},
+		AllowedCommands: []string{"ls"},
+	}
+
+	validator := NewShellValidatorFromConfig(cfg)
+
+	if len(validator.denyCommands) != 1 {
+		t.Errorf("expected 1 deny command, got %d", len(validator.denyCommands))
+	}
+	if len(validator.askCommands) != 1 {
+		t.Errorf("expected 1 ask command, got %d", len(validator.askCommands))
+	}
+	if len(validator.allowedCommands) != 1 {
+		t.Errorf("expected 1 allowed command, got %d", len(validator.allowedCommands))
+	}
+}
+
+func TestShellValidator_MatchPattern(t *testing.T) {
 	validator := NewShellValidator([]string{}, []string{}, []string{})
 
 	tests := []struct {
@@ -188,7 +228,7 @@ func TestMatchPattern(t *testing.T) {
 	}
 }
 
-func TestValidateCommand(t *testing.T) {
+func TestShellValidator_Validate(t *testing.T) {
 	tests := []struct {
 		name              string
 		denyCommands      []string
@@ -333,20 +373,7 @@ func TestValidateCommand(t *testing.T) {
 	}
 }
 
-func containsSubstring(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && findSubstring(s, substr))
-}
-
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
-
-func TestValidateCommand_PathTraversal(t *testing.T) {
+func TestShellValidator_Validate_PathTraversal(t *testing.T) {
 	tests := []struct {
 		name          string
 		command       string

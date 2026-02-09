@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"github.com/aatumaykin/nexbot/internal/workspace"
@@ -16,6 +15,7 @@ type Loader struct {
 	workspace          *workspace.Workspace
 	builtinDir         string
 	parser             *Parser
+	searcher           SkillSearcher
 	cache              map[string]*Skill
 	cacheMutex         sync.RWMutex
 	cacheEnabled       bool
@@ -32,7 +32,7 @@ type LoaderConfig struct {
 
 // NewLoader creates a new Loader instance.
 func NewLoader(cfg LoaderConfig) *Loader {
-	return &Loader{
+	loader := &Loader{
 		workspace:    cfg.Workspace,
 		builtinDir:   cfg.BuiltinDir,
 		parser:       NewParser(),
@@ -40,6 +40,8 @@ func NewLoader(cfg LoaderConfig) *Loader {
 		cacheEnabled: cfg.CacheEnabled,
 		loaded:       false,
 	}
+	loader.searcher = newSkillSearcher(loader)
+	return loader
 }
 
 // Load loads all skills from configured directories.
@@ -244,85 +246,18 @@ func (l *Loader) copyCache() map[string]*Skill {
 
 // GetSkillsByCategory returns all skills in a given category.
 func (l *Loader) GetSkillsByCategory(category string) ([]*Skill, error) {
-	skillsMap, err := l.Load()
-	if err != nil {
-		return nil, err
-	}
-
-	var skills []*Skill
-	for _, skill := range skillsMap {
-		if skill.Metadata.Category == category {
-			skills = append(skills, skill)
-		}
-	}
-
-	return skills, nil
+	return l.searcher.GetSkillsByCategory(category)
 }
 
 // GetSkillsByTags returns all skills that have any of the given tags.
 func (l *Loader) GetSkillsByTags(tags []string) ([]*Skill, error) {
-	skillsMap, err := l.Load()
-	if err != nil {
-		return nil, err
-	}
-
-	var skills []*Skill
-	for _, skill := range skillsMap {
-		for _, tag := range tags {
-			if l.hasTag(skill, tag) {
-				skills = append(skills, skill)
-				break
-			}
-		}
-	}
-
-	return skills, nil
-}
-
-// hasTag checks if a skill has a specific tag.
-func (l *Loader) hasTag(skill *Skill, tag string) bool {
-	for _, skillTag := range skill.Metadata.Tags {
-		if strings.EqualFold(skillTag, tag) {
-			return true
-		}
-	}
-	return false
+	return l.searcher.GetSkillsByTags(tags)
 }
 
 // SearchSkills searches for skills by name or description.
 // The search is case-insensitive.
 func (l *Loader) SearchSkills(query string) ([]*Skill, error) {
-	skillsMap, err := l.Load()
-	if err != nil {
-		return nil, err
-	}
-
-	var results []*Skill
-	queryLower := strings.ToLower(query)
-
-	for _, skill := range skillsMap {
-		// Search in name
-		if strings.Contains(strings.ToLower(skill.Metadata.Name), queryLower) {
-			results = append(results, skill)
-			continue
-		}
-
-		// Search in description
-		if strings.Contains(strings.ToLower(skill.Metadata.Description), queryLower) {
-			results = append(results, skill)
-			continue
-		}
-
-		// Search in tags
-		for _, tag := range skill.Metadata.Tags {
-			if strings.Contains(strings.ToLower(tag), queryLower) {
-				results = append(results, skill)
-				break
-			}
-		}
-	}
-
-	return results, nil
+	return l.searcher.SearchSkills(query)
 }
 
 // ValidateAll validates all loaded skills.

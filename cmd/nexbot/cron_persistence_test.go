@@ -47,13 +47,14 @@ func TestLoadJobsWithFile(t *testing.T) {
 	// Create jobs file
 	jobsPath := filepath.Join(tempDir, "jobs.json")
 	jobsContent := `{
-  "job_1": {
-    "id": "job_1",
-    "schedule": "* * * * *",
-    "command": "test command",
-    "user_id": "cli"
-  }
-}`
+   "job_1": {
+     "id": "job_1",
+     "schedule": "* * * * *",
+     "tool": "agent",
+     "payload": {"message": "test command"},
+     "user_id": "cli"
+   }
+ }`
 	err := os.WriteFile(jobsPath, []byte(jobsContent), 0644)
 	require.NoError(t, err)
 
@@ -67,7 +68,8 @@ func TestLoadJobsWithFile(t *testing.T) {
 	job := jobs["job_1"]
 	assert.Equal(t, "job_1", job.ID)
 	assert.Equal(t, "* * * * *", job.Schedule)
-	assert.Equal(t, "test command", job.Command)
+	assert.Equal(t, "agent", job.Tool)
+	assert.Equal(t, "test command", job.Payload["message"])
 }
 
 func TestSaveJobs(t *testing.T) {
@@ -87,6 +89,8 @@ func TestSaveJobs(t *testing.T) {
 			ID:       "job_1",
 			Schedule: "* * * * *",
 			UserID:   "cli",
+			Tool:     "agent",
+			Payload:  map[string]any{"message": "test command"},
 		},
 	}
 
@@ -102,6 +106,7 @@ func TestSaveJobs(t *testing.T) {
 	// Verify content
 	assert.Contains(t, string(data), "job_1")
 	assert.Contains(t, string(data), "test command")
+	assert.Contains(t, string(data), "agent")
 }
 
 func TestGenerateJobID(t *testing.T) {
@@ -155,11 +160,15 @@ func TestCronJobPersistence(t *testing.T) {
 			ID:       "persistent-job-1",
 			Schedule: "0 * * * * *",
 			UserID:   "cli",
+			Tool:     "agent",
+			Payload:  map[string]any{"message": "persistent command 1"},
 		},
 		"persistent-job-2": {
 			ID:       "persistent-job-2",
 			Schedule: "*/30 * * * * *",
 			UserID:   "cli",
+			Tool:     "agent",
+			Payload:  map[string]any{"message": "persistent command 2"},
 		},
 	}
 
@@ -194,9 +203,11 @@ func TestCronJobPersistence(t *testing.T) {
 	// Verify job details persisted
 	assert.Equal(t, "persistent-job-1", reloadedJobs["persistent-job-1"].ID)
 	assert.Equal(t, "0 * * * * *", reloadedJobs["persistent-job-1"].Schedule)
-	assert.Equal(t, "persistent command 1", reloadedJobs["persistent-job-1"].Command)
+	assert.Equal(t, "agent", reloadedJobs["persistent-job-1"].Tool)
+	assert.Equal(t, "persistent command 1", reloadedJobs["persistent-job-1"].Payload["message"])
 
 	assert.Equal(t, "persistent-job-2", reloadedJobs["persistent-job-2"].ID)
 	assert.Equal(t, "*/30 * * * * *", reloadedJobs["persistent-job-2"].Schedule)
-	assert.Equal(t, "persistent command 2", reloadedJobs["persistent-job-2"].Command)
+	assert.Equal(t, "agent", reloadedJobs["persistent-job-2"].Tool)
+	assert.Equal(t, "persistent command 2", reloadedJobs["persistent-job-2"].Payload["message"])
 }

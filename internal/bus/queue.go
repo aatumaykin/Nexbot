@@ -161,48 +161,73 @@ func (mb *MessageBus) Stop() error {
 	return nil
 }
 
-// PublishInbound publishes an inbound message to the queue
-func (mb *MessageBus) PublishInbound(msg InboundMessage) error {
-	mb.mu.RLock()
-	defer mb.mu.RUnlock()
+// publishMessage publishes a message of any type to a channel.
+// This is a generic function to eliminate code duplication between
+// PublishInbound, PublishOutbound, and PublishEvent.
+func publishMessage[T any](
+	ctx context.Context,
+	mu *sync.RWMutex,
+	started bool,
+	ch chan<- T,
+	msg T,
+	logDebug func(),
+	logWarn func(),
+) error {
+	mu.RLock()
+	defer mu.RUnlock()
 
-	if !mb.started {
+	if !started {
 		return ErrNotStarted
 	}
 
 	select {
-	case mb.inboundCh <- msg:
-		mb.logger.DebugCtx(mb.ctx, "inbound message published",
-			logger.Field{Key: "session_id", Value: msg.SessionID},
-			logger.Field{Key: "user_id", Value: msg.UserID})
+	case ch <- msg:
+		logDebug()
 		return nil
 	default:
-		mb.logger.WarnCtx(mb.ctx, "inbound queue full",
-			logger.Field{Key: "capacity", Value: cap(mb.inboundCh)})
+		logWarn()
 		return ErrQueueFull
 	}
 }
 
+// PublishInbound publishes an inbound message to the queue
+func (mb *MessageBus) PublishInbound(msg InboundMessage) error {
+	return publishMessage(
+		mb.ctx,
+		&mb.mu,
+		mb.started,
+		mb.inboundCh,
+		msg,
+		func() {
+			mb.logger.DebugCtx(mb.ctx, "inbound message published",
+				logger.Field{Key: "session_id", Value: msg.SessionID},
+				logger.Field{Key: "user_id", Value: msg.UserID})
+		},
+		func() {
+			mb.logger.WarnCtx(mb.ctx, "inbound queue full",
+				logger.Field{Key: "capacity", Value: cap(mb.inboundCh)})
+		},
+	)
+}
+
 // PublishOutbound publishes an outbound message to the queue
 func (mb *MessageBus) PublishOutbound(msg OutboundMessage) error {
-	mb.mu.RLock()
-	defer mb.mu.RUnlock()
-
-	if !mb.started {
-		return ErrNotStarted
-	}
-
-	select {
-	case mb.outboundCh <- msg:
-		mb.logger.DebugCtx(mb.ctx, "outbound message published",
-			logger.Field{Key: "session_id", Value: msg.SessionID},
-			logger.Field{Key: "user_id", Value: msg.UserID})
-		return nil
-	default:
-		mb.logger.WarnCtx(mb.ctx, "outbound queue full",
-			logger.Field{Key: "capacity", Value: cap(mb.outboundCh)})
-		return ErrQueueFull
-	}
+	return publishMessage(
+		mb.ctx,
+		&mb.mu,
+		mb.started,
+		mb.outboundCh,
+		msg,
+		func() {
+			mb.logger.DebugCtx(mb.ctx, "outbound message published",
+				logger.Field{Key: "session_id", Value: msg.SessionID},
+				logger.Field{Key: "user_id", Value: msg.UserID})
+		},
+		func() {
+			mb.logger.WarnCtx(mb.ctx, "outbound queue full",
+				logger.Field{Key: "capacity", Value: cap(mb.outboundCh)})
+		},
+	)
 }
 
 // SubscribeInbound subscribes to inbound messages
@@ -301,25 +326,75 @@ func (mb *MessageBus) IsStarted() bool {
 
 // PublishEvent publishes a lifecycle event to the queue
 func (mb *MessageBus) PublishEvent(event Event) error {
-	mb.mu.RLock()
-	defer mb.mu.RUnlock()
+	return publishMessage(
+		mb.ctx,
+		&mb.mu,
+		mb.started,
+		mb.eventCh,
+		event,
+		func() {
+			mb.logger.DebugCtx(mb.ctx, "event published",
+				logger.Field{Key: "event_type", Value: event.Type},
+				logger.Field{Key: "session_id", Value: event.SessionID},
+				logger.Field{Key: "user_id", Value: event.UserID})
+		},
+		func() {
+			mb.logger.WarnCtx(mb.ctx, "event queue full",
+				logger.Field{Key: "capacity", Value: cap(mb.eventCh)})
+		},
+	)
+}
 
-	if !mb.started {
+// publishMessageWithTimeout publishes a message with custom timeout handling.
+// This is used for PublishSendResult which has special force-publish logic.
+func publishMessageWithTimeout[T any](
+	ctx context.Context,
+	mu *sync.RWMutex,
+	started bool,
+	ch chan<- T,
+	msg T,
+	onSuccess func(),
+	onTimeout func(),
+) error {
+	mu.RLock()
+	defer mu.RUnlock()
+
+	if !started {
 		return ErrNotStarted
 	}
 
 	select {
-	case mb.eventCh <- event:
-		mb.logger.DebugCtx(mb.ctx, "event published",
-			logger.Field{Key: "event_type", Value: event.Type},
-			logger.Field{Key: "session_id", Value: event.SessionID},
-			logger.Field{Key: "user_id", Value: event.UserID})
+	case ch <- msg:
+		onSuccess()
 		return nil
-	default:
-		mb.logger.WarnCtx(mb.ctx, "event queue full",
-			logger.Field{Key: "capacity", Value: cap(mb.eventCh)})
-		return ErrQueueFull
+	case <-time.After(100 * time.Millisecond):
+		onTimeout()
+		return nil
 	}
+}
+
+// PublishSendResult публикует результат отправки сообщения
+func (mb *MessageBus) PublishSendResult(result MessageSendResult) error {
+	return publishMessageWithTimeout(
+		mb.ctx,
+		&mb.mu,
+		mb.started,
+		mb.resultCh,
+		result,
+		func() {
+			mb.tracker.Complete(result.CorrelationID, result)
+			mb.logger.DebugCtx(mb.ctx, "send result published",
+				logger.Field{Key: "correlation_id", Value: result.CorrelationID},
+				logger.Field{Key: "success", Value: result.Success})
+		},
+		func() {
+			mb.logger.WarnCtx(mb.ctx, "result channel full, forcing publish",
+				logger.Field{Key: "correlation_id", Value: result.CorrelationID},
+				logger.Field{Key: "queue_size", Value: len(mb.resultCh)})
+			mb.resultCh <- result
+			mb.tracker.Complete(result.CorrelationID, result)
+		},
+	)
 }
 
 // SubscribeEvent subscribes to lifecycle events
@@ -347,32 +422,6 @@ func (mb *MessageBus) distributeEvents() {
 	distributeMessages(mb.ctx, mb.logger, &mb.mu, mb.eventCh, func() map[int64]chan Event {
 		return mb.eventSubscribers
 	}, "event subscriber channel full, skipping event")
-}
-
-// PublishSendResult публикует результат отправки сообщения
-func (mb *MessageBus) PublishSendResult(result MessageSendResult) error {
-	mb.mu.RLock()
-	defer mb.mu.RUnlock()
-
-	if !mb.started {
-		return ErrNotStarted
-	}
-
-	select {
-	case mb.resultCh <- result:
-		mb.tracker.Complete(result.CorrelationID, result)
-		mb.logger.DebugCtx(mb.ctx, "send result published",
-			logger.Field{Key: "correlation_id", Value: result.CorrelationID},
-			logger.Field{Key: "success", Value: result.Success})
-		return nil
-	case <-time.After(100 * time.Millisecond):
-		mb.logger.WarnCtx(mb.ctx, "result channel full, forcing publish",
-			logger.Field{Key: "correlation_id", Value: result.CorrelationID},
-			logger.Field{Key: "queue_size", Value: len(mb.resultCh)})
-		mb.resultCh <- result
-		mb.tracker.Complete(result.CorrelationID, result)
-		return nil
-	}
 }
 
 // SubscribeSendResults подписывается на результаты отправки

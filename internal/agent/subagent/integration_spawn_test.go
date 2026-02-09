@@ -43,7 +43,9 @@ func TestSpawnWorkflow(t *testing.T) {
 		task := "Analyze code quality for the project"
 		response, err := agentLoop.processMessage(ctx, task)
 		require.NoError(t, err)
-		assert.Contains(t, response, "Subagent spawned with ID")
+		// Verify response is JSON with id and session fields
+		assert.Contains(t, response, `"id"`)
+		assert.Contains(t, response, `"session"`)
 
 		// Verify subagent was created
 		assert.Equal(t, 1, manager.Count())
@@ -123,7 +125,9 @@ func TestSubagentWithScheduler(t *testing.T) {
 		// Spawn subagent for scheduled task
 		response, err := agentLoop.processMessage(ctx, scheduledTask)
 		require.NoError(t, err)
-		assert.Contains(t, response, "Subagent spawned with ID")
+		// Verify response is JSON with id and session fields
+		assert.Contains(t, response, `"id"`)
+		assert.Contains(t, response, `"session"`)
 
 		// Verify subagent exists
 		assert.Equal(t, 1, manager.Count())

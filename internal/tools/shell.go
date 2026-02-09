@@ -15,8 +15,9 @@ import (
 // ShellExecTool implements the Tool interface for executing shell commands.
 // It executes shell commands with security restrictions (whitelist, timeout).
 type ShellExecTool struct {
-	cfg    *config.Config
-	logger *logger.Logger
+	cfg       *config.Config
+	logger    *logger.Logger
+	validator *ShellValidator
 }
 
 // ShellExecArgs represents the arguments for the shell_exec tool.
@@ -28,8 +29,9 @@ type ShellExecArgs struct {
 // The config parameter provides the shell tool configuration (whitelist, timeout, etc.).
 func NewShellExecTool(cfg *config.Config, log *logger.Logger) *ShellExecTool {
 	return &ShellExecTool{
-		cfg:    cfg,
-		logger: log,
+		cfg:       cfg,
+		logger:    log,
+		validator: NewShellValidatorFromConfig(cfg.Tools.Shell),
 	}
 }
 
@@ -80,7 +82,7 @@ func (t *ShellExecTool) Execute(args string) (string, error) {
 	}
 
 	// Validate command against deny/ask/allowed lists
-	if err := t.validateCommand(shellArgs.Command); err != nil {
+	if err := t.validator.Validate(shellArgs.Command); err != nil {
 		// Check if confirmation is required
 		if strings.Contains(err.Error(), "# CONFIRM_REQUIRED:") {
 			return err.Error(), nil
@@ -126,111 +128,6 @@ func (t *ShellExecTool) Execute(args string) (string, error) {
 	}
 
 	return result, nil
-}
-
-// validateCommand validates a command against deny/ask/allowed lists in order.
-// Validation order: deny → ask → allowed
-func (t *ShellExecTool) validateCommand(command string) error {
-	denyCommands := t.cfg.Tools.Shell.DenyCommands
-	askCommands := t.cfg.Tools.Shell.AskCommands
-	allowedCommands := t.cfg.Tools.Shell.AllowedCommands
-
-	// Step 0: Check for path traversal in arguments
-	for _, arg := range strings.Fields(command) {
-		if strings.Contains(arg, "..") {
-			return fmt.Errorf("argument contains path traversal: %s", arg)
-		}
-	}
-
-	// Step 1: Check deny_commands - if command matches, deny immediately
-	for _, denyPattern := range denyCommands {
-		if t.matchPattern(command, denyPattern) {
-			return fmt.Errorf("denied by deny_commands")
-		}
-	}
-
-	// Step 2: Check ask_commands - if command matches, require confirmation
-	for _, askPattern := range askCommands {
-		if t.matchPattern(command, askPattern) {
-			return fmt.Errorf("# CONFIRM_REQUIRED: Command '%s' requires confirmation", command)
-		}
-	}
-
-	// Step 3: Check allowed_commands
-	// If allowed_commands is empty and both deny and ask are empty, allow all (fail-open)
-	if len(allowedCommands) == 0 && len(denyCommands) == 0 && len(askCommands) == 0 {
-		return nil // All commands allowed
-	}
-
-	// If allowed_commands is configured, command must match at least one pattern
-	if len(allowedCommands) > 0 {
-		for _, allowedPattern := range allowedCommands {
-			if t.matchPattern(command, allowedPattern) {
-				return nil // Command is allowed
-			}
-		}
-		// Command didn't match any allowed pattern
-		return fmt.Errorf("command not allowed")
-	}
-
-	// allowed_commands is empty, but deny or ask was configured - command is allowed
-	return nil
-}
-
-// matchPattern checks if a command matches a given pattern.
-// Pattern types:
-//   - Exact match: "echo hello" matches "echo hello"
-//   - Base command: "echo hello" matches "echo"
-//   - Wildcard with one *: "git status" matches "git *"
-//   - Full wildcard: "echo hello" matches "*"
-func (t *ShellExecTool) matchPattern(command, pattern string) bool {
-	// Trim whitespace
-	command = strings.TrimSpace(command)
-	pattern = strings.TrimSpace(pattern)
-
-	// Full wildcard: allow all commands
-	if pattern == "*" {
-		return true
-	}
-
-	// Both empty is not a match
-	if command == "" && pattern == "" {
-		return false
-	}
-
-	// Exact match
-	if command == pattern {
-		return true
-	}
-
-	// Base command match: pattern contains only the command name
-	parts := strings.Fields(command)
-	if len(parts) == 0 {
-		return false
-	}
-	baseCommand := parts[0]
-	if pattern == baseCommand {
-		return true
-	}
-
-	// Wildcard with one *: e.g., "git *" matches "git status"
-	if strings.HasSuffix(pattern, "*") {
-		prefix := strings.TrimSuffix(pattern, "*")
-		prefix = strings.TrimSpace(prefix)
-		// Validate prefix doesn't contain dangerous characters
-		if prefix != "" && strings.ContainsAny(prefix, "|&;<>`$()") {
-			// Unsafe pattern - reject to prevent command injection
-			return false
-		}
-		// Command must start with the prefix
-		if prefix != "" && strings.HasPrefix(command, prefix) {
-			// Ensure the prefix is followed by whitespace or nothing
-			remaining := strings.TrimPrefix(command, prefix)
-			return remaining == "" || strings.HasPrefix(remaining, " ")
-		}
-	}
-
-	return false
 }
 
 // executeCommand executes a shell command and returns its combined stdout/stderr.

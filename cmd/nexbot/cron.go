@@ -64,6 +64,9 @@ func runCronList(cmd *cobra.Command, args []string) {
 			logger.Field{Key: "id", Value: job.ID},
 			logger.Field{Key: "schedule", Value: job.Schedule},
 			logger.Field{Key: "tool", Value: job.Tool})
+		if len(job.Payload) > 0 {
+			log.Info("Payload", logger.Field{Key: "message", Value: job.Payload["message"]})
+		}
 		if len(job.Metadata) > 0 {
 			log.Info("Metadata")
 			for k, v := range job.Metadata {

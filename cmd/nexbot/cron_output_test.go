@@ -25,22 +25,24 @@ func TestCronListCommandOutput(t *testing.T) {
 	// Create jobs file with multiple jobs
 	jobsPath := filepath.Join(tempDir, "jobs.json")
 	jobsContent := `{
-  "job_1": {
-    "id": "job_1",
-    "schedule": "* * * * *",
-    "command": "command 1",
-    "user_id": "cli",
-    "metadata": {
-      "env": "production"
-    }
-  },
-  "job_2": {
-    "id": "job_2",
-    "schedule": "*/5 * * * *",
-    "command": "command 2",
-    "user_id": "cli"
-  }
-}`
+   "job_1": {
+     "id": "job_1",
+     "schedule": "* * * * *",
+     "tool": "agent",
+     "payload": {"message": "command 1"},
+     "user_id": "cli",
+     "metadata": {
+       "env": "production"
+     }
+   },
+   "job_2": {
+     "id": "job_2",
+     "schedule": "*/5 * * * *",
+     "tool": "agent",
+     "payload": {"message": "command 2"},
+     "user_id": "cli"
+   }
+ }`
 	err := os.WriteFile(jobsPath, []byte(jobsContent), 0644)
 	require.NoError(t, err)
 
@@ -70,9 +72,11 @@ func TestCronListCommandOutput(t *testing.T) {
 	// Verify output contains expected information (logger structured format)
 	assert.Contains(t, output, "Scheduled jobs:")
 	assert.Contains(t, output, "id=job_1")
-	assert.Contains(t, output, "command=\"command 1\"")
+	assert.Contains(t, output, "tool=agent")
+	assert.Contains(t, output, "message=\"command 1\"")
 	assert.Contains(t, output, "id=job_2")
-	assert.Contains(t, output, "command=\"command 2\"")
+	assert.Contains(t, output, "tool=agent")
+	assert.Contains(t, output, "message=\"command 2\"")
 	assert.Contains(t, output, "Total jobs")
 	assert.Contains(t, output, "count=2")
 }

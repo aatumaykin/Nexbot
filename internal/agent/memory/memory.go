@@ -20,8 +20,9 @@ const (
 
 // Store manages message history storage in various formats.
 type Store struct {
-	baseDir string        // Base directory for memory files
-	format  StorageFormat // Storage format interface
+	baseDir string          // Base directory for memory files
+	format  StorageFormat   // Storage format interface
+	parser  *MarkdownParser // Markdown parser for markdown format
 	mu      sync.RWMutex
 }
 
@@ -49,6 +50,7 @@ func NewStore(config Config) (*Store, error) {
 	return &Store{
 		baseDir: config.BaseDir,
 		format:  NewStorageFormat(config.Format),
+		parser:  NewMarkdownParser(),
 	}, nil
 }
 
@@ -88,7 +90,7 @@ func (s *Store) Read(sessionID string) ([]llm.Message, error) {
 
 	// Special handling for Markdown format (requires full content parsing)
 	if _, isMarkdown := s.format.(*MarkdownFormat); isMarkdown {
-		return s.parseMarkdown(string(data)), nil
+		return s.parser.Parse(string(data)), nil
 	}
 
 	// Default line-by-line parsing for JSONL and other formats
@@ -193,93 +195,6 @@ func (s *Store) GetSessions() ([]string, error) {
 	}
 
 	return sessions, nil
-}
-
-// Markdown parsing helpers
-
-func (s *Store) parseMarkdown(content string) []llm.Message {
-	var messages []llm.Message
-
-	lines := strings.Split(content, "\n")
-	var currentRole llm.Role
-	var currentContent strings.Builder
-
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-
-		// Detect headers to identify role
-		if strings.HasPrefix(trimmed, "### User [") {
-			if currentRole != "" && currentContent.Len() > 0 {
-				messages = append(messages, llm.Message{
-					Role:    currentRole,
-					Content: strings.TrimSpace(currentContent.String()),
-				})
-			}
-			currentRole = llm.RoleUser
-			currentContent.Reset()
-			continue
-		} else if strings.HasPrefix(trimmed, "### Assistant [") {
-			if currentRole != "" && currentContent.Len() > 0 {
-				messages = append(messages, llm.Message{
-					Role:    currentRole,
-					Content: strings.TrimSpace(currentContent.String()),
-				})
-			}
-			currentRole = llm.RoleAssistant
-			currentContent.Reset()
-			continue
-		} else if strings.HasPrefix(trimmed, "## System [") {
-			if currentRole != "" && currentContent.Len() > 0 {
-				messages = append(messages, llm.Message{
-					Role:    currentRole,
-					Content: strings.TrimSpace(currentContent.String()),
-				})
-			}
-			currentRole = llm.RoleSystem
-			currentContent.Reset()
-			continue
-		} else if strings.HasPrefix(trimmed, "#### Tool:") {
-			if currentRole != "" && currentContent.Len() > 0 {
-				messages = append(messages, llm.Message{
-					Role:    currentRole,
-					Content: strings.TrimSpace(currentContent.String()),
-				})
-			}
-			// Extract tool call ID
-			parts := strings.Fields(trimmed)
-			if len(parts) >= 3 {
-				toolCallID := strings.TrimSuffix(parts[2], "]")
-				// Create tool message and add it immediately
-				messages = append(messages, llm.Message{
-					Role:       llm.RoleTool,
-					ToolCallID: toolCallID,
-					Content:    "",
-				})
-			}
-			currentContent.Reset()
-			// Reset currentRole to avoid adding duplicate
-			currentRole = ""
-			continue
-		}
-
-		// Skip header lines
-		if strings.HasPrefix(trimmed, "#") {
-			continue
-		}
-
-		currentContent.WriteString(line)
-		currentContent.WriteString("\n")
-	}
-
-	// Add last message if exists
-	if currentRole != "" && currentContent.Len() > 0 {
-		messages = append(messages, llm.Message{
-			Role:    currentRole,
-			Content: strings.TrimSpace(currentContent.String()),
-		})
-	}
-
-	return messages
 }
 
 // Helper functions
