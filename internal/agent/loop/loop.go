@@ -3,7 +3,6 @@ package loop
 import (
 	stdcontext "context"
 	"fmt"
-	"os"
 
 	agentcontext "github.com/aatumaykin/nexbot/internal/agent/context"
 	"github.com/aatumaykin/nexbot/internal/agent/session"
@@ -134,17 +133,43 @@ func (l *Loop) Process(ctx stdcontext.Context, sessionID, userMessage string) (s
 // processWithToolCalling processes a message, handling tool calls recursively.
 func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, iteration int) (string, error) {
 	// Prevent infinite loops
-	maxIterations := l.config.MaxToolIterations
-	if iteration >= maxIterations {
+	if iteration >= l.config.MaxToolIterations {
 		l.logger.ErrorCtx(ctx, "Maximum tool call iterations reached", nil,
 			logger.Field{Key: "iterations", Value: iteration})
-		return "", fmt.Errorf("reached maximum tool call iterations (%d)", maxIterations)
+		return "", fmt.Errorf("reached maximum tool call iterations (%d)", l.config.MaxToolIterations)
 	}
 
-	// Prepare request
+	// Prepare LLM request
+	req, err := l.prepareLLMRequest(ctx, sessionID, iteration)
+	if err != nil {
+		return "", err
+	}
+
+	// Call LLM
+	resp, err := l.provider.Chat(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("LLM call failed: %w", err)
+	}
+
+	l.logger.DebugCtx(ctx, "LLM response received",
+		logger.Field{Key: "finish_reason", Value: resp.FinishReason},
+		logger.Field{Key: "content_length", Value: len(resp.Content)},
+		logger.Field{Key: "tool_calls_count", Value: len(resp.ToolCalls)},
+		logger.Field{Key: "iteration", Value: iteration})
+
+	// Handle tool calls or normal response
+	if resp.FinishReason == llm.FinishReasonToolCalls && len(resp.ToolCalls) > 0 {
+		return l.handleToolCalls(ctx, sessionID, iteration, *resp)
+	}
+
+	return l.handleNormalResponse(ctx, sessionID, *resp)
+}
+
+// prepareLLMRequest prepares the LLM chat request with context and tools.
+func (l *Loop) prepareLLMRequest(ctx stdcontext.Context, sessionID string, iteration int) (llm.ChatRequest, error) {
 	sessionHistory, err := l.sessionOps.GetSessionHistory(ctx, sessionID)
 	if err != nil {
-		return "", fmt.Errorf("failed to get session history: %w", err)
+		return llm.ChatRequest{}, fmt.Errorf("failed to get session history: %w", err)
 	}
 
 	// Build system prompt (only on first iteration)
@@ -162,7 +187,6 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 		}
 	}
 
-	// Create LLM request
 	req := llm.ChatRequest{
 		Messages:    messages,
 		Model:       l.config.Model,
@@ -174,7 +198,6 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 	if l.provider.SupportsToolCalling() {
 		toolSchemas := l.tools.ToSchema()
 		if len(toolSchemas) > 0 {
-			// Convert tools.ToolDefinition to llm.ToolDefinition
 			llmTools := make([]llm.ToolDefinition, len(toolSchemas))
 			for i, schema := range toolSchemas {
 				llmTools[i] = llm.ToolDefinition{
@@ -190,75 +213,46 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 		}
 	}
 
-	// Call LLM
-	resp, err := l.provider.Chat(ctx, req)
-	if err != nil {
-		return "", fmt.Errorf("LLM call failed: %w", err)
-	}
+	return req, nil
+}
 
-	// Debug: response received
-	l.logger.DebugCtx(ctx, "LLM response received",
-		logger.Field{Key: "finish_reason", Value: resp.FinishReason},
-		logger.Field{Key: "content_length", Value: len(resp.Content)},
-		logger.Field{Key: "tool_calls_count", Value: len(resp.ToolCalls)},
+// handleToolCalls processes tool calls from LLM response.
+func (l *Loop) handleToolCalls(ctx stdcontext.Context, sessionID string, iteration int, resp llm.ChatResponse) (string, error) {
+	l.logger.DebugCtx(ctx, "LLM requested tool calls",
+		logger.Field{Key: "tool_call_count", Value: len(resp.ToolCalls)},
 		logger.Field{Key: "iteration", Value: iteration})
 
-	// Handle tool calls
-	if resp.FinishReason == llm.FinishReasonToolCalls && len(resp.ToolCalls) > 0 {
-		l.logger.DebugCtx(ctx, "LLM requested tool calls",
-			logger.Field{Key: "tool_call_count", Value: len(resp.ToolCalls)},
-			logger.Field{Key: "iteration", Value: iteration})
-
-		// Add assistant message with tool calls to session
-		if err := l.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{
-			Role:    llm.RoleAssistant,
-			Content: resp.Content,
-		}); err != nil {
-			return "", fmt.Errorf("failed to add assistant message: %w", err)
-		}
-
-		// Prepare tool calls for execution
-		toolCalls := l.toolExecutor.PrepareToolCalls(resp.ToolCalls)
-
-		// Execute tools
-		results, err := l.toolExecutor.ProcessToolCalls(ctx, toolCalls)
-		if err != nil {
-			return "", fmt.Errorf("failed to execute tools: %w", err)
-		}
-
-		// Add tool results to session
-		for _, result := range results {
-			var content string
-			if result.Error != nil {
-				// Структурированное описание ошибки для LLM
-				if result.TimedOut {
-					content = fmt.Sprintf("❌ Tool execution timed out\n\n%s", result.Error.ToLLMContext())
-				} else {
-					content = fmt.Sprintf("❌ Tool execution failed\n\n%s", result.Error.ToLLMContext())
-				}
-			} else {
-				content = result.Content
-			}
-
-			if err := l.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{
-				Role:       llm.RoleTool,
-				Content:    content,
-				ToolCallID: result.ToolCallID,
-			}); err != nil {
-				return "", fmt.Errorf("failed to add tool result: %w", err)
-			}
-		}
-
-		// Recursively process again with tool results
-		l.logger.DebugCtx(ctx, "Recursively processing with tool results",
-			logger.Field{Key: "next_iteration", Value: iteration + 1})
-		return l.processWithToolCalling(ctx, sessionID, iteration+1)
+	// Add assistant message with tool calls to session
+	if err := l.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{
+		Role:    llm.RoleAssistant,
+		Content: resp.Content,
+	}); err != nil {
+		return "", fmt.Errorf("failed to add assistant message: %w", err)
 	}
 
-	// Normal response without tool calls
+	// Prepare and execute tool calls
+	toolCalls := l.toolExecutor.PrepareToolCalls(resp.ToolCalls)
+	results, err := l.toolExecutor.ProcessToolCalls(ctx, toolCalls)
+	if err != nil {
+		return "", fmt.Errorf("failed to execute tools: %w", err)
+	}
+
+	// Add tool results to session
+	if err := l.addToolResultsToSession(ctx, sessionID, results); err != nil {
+		return "", err
+	}
+
+	// Recursively process again with tool results
+	l.logger.DebugCtx(ctx, "Recursively processing with tool results",
+		logger.Field{Key: "next_iteration", Value: iteration + 1})
+	return l.processWithToolCalling(ctx, sessionID, iteration+1)
+}
+
+// handleNormalResponse processes a normal LLM response without tool calls.
+func (l *Loop) handleNormalResponse(ctx stdcontext.Context, sessionID string, resp llm.ChatResponse) (string, error) {
 	l.logger.DebugCtx(ctx, "Returning final response",
 		logger.Field{Key: "response_length", Value: len(resp.Content)},
-		logger.Field{Key: "iteration", Value: iteration})
+		logger.Field{Key: "iteration", Value: resp.Content})
 	if err := l.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{
 		Role:    llm.RoleAssistant,
 		Content: resp.Content,
@@ -267,6 +261,31 @@ func (l *Loop) processWithToolCalling(ctx stdcontext.Context, sessionID string, 
 	}
 
 	return resp.Content, nil
+}
+
+// addToolResultsToSession adds tool execution results to the session history.
+func (l *Loop) addToolResultsToSession(ctx stdcontext.Context, sessionID string, results []tools.ToolResult) error {
+	for _, result := range results {
+		var content string
+		if result.Error != nil {
+			if result.TimedOut {
+				content = fmt.Sprintf("❌ Tool execution timed out\n\n%s", result.Error.ToLLMContext())
+			} else {
+				content = fmt.Sprintf("❌ Tool execution failed\n\n%s", result.Error.ToLLMContext())
+			}
+		} else {
+			content = result.Content
+		}
+
+		if err := l.sessionOps.AddMessageToSession(ctx, sessionID, llm.Message{
+			Role:       llm.RoleTool,
+			Content:    content,
+			ToolCallID: result.ToolCallID,
+		}); err != nil {
+			return fmt.Errorf("failed to add tool result: %w", err)
+		}
+	}
+	return nil
 }
 
 // buildSystemPrompt builds the system prompt from workspace context.
@@ -418,21 +437,4 @@ func (l *Loop) ProcessRecovery(ctx stdcontext.Context, sessionID string, origina
 
 	// Process with normal timeout (not reduced)
 	return l.Process(ctx, sessionID, recoveryPrompt)
-}
-
-func getFileInfo(path string) (os.FileInfo, error) {
-	return os.Stat(path)
-}
-
-func formatBytes(bytes int64) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-	div, exp := int64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }

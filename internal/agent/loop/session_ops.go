@@ -3,6 +3,7 @@ package loop
 import (
 	stdcontext "context"
 	"fmt"
+	"os"
 
 	"github.com/aatumaykin/nexbot/internal/agent/session"
 	"github.com/aatumaykin/nexbot/internal/llm"
@@ -84,4 +85,23 @@ func (so *SessionOperations) GetSessionStatus(ctx stdcontext.Context, sessionID 
 		"temperature":     loop.config.Temperature,
 		"max_tokens":      loop.config.MaxTokens,
 	}, nil
+}
+
+// getFileInfo returns file information for a given path.
+func getFileInfo(path string) (os.FileInfo, error) {
+	return os.Stat(path)
+}
+
+// formatBytes formats a byte count into a human-readable string.
+func formatBytes(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
