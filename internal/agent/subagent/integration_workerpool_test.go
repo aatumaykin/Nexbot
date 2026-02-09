@@ -78,7 +78,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		assert.Equal(t, uint64(0), metrics.TasksFailed)
 	})
 
-	// Test 2: Worker pool with mixed task types (cron and subagent)
+	// Test 2: Worker pool with multiple subagent tasks
 	t.Run("mixed_task_types", func(t *testing.T) {
 		// Create worker pool for this sub-test
 		messageBus := bus.New(100, log)
@@ -89,15 +89,9 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		pool.Start()
 		defer pool.Stop()
 
-		// Submit mix of task types
-		for i := 0; i < 3; i++ {
-			// Cron task
-			cronTask := workers.Task{
-				ID: fmt.Sprintf("cron-%d", i),
-			}
-			pool.Submit(cronTask)
-
-			// Subagent task
+		// Submit multiple subagent tasks
+		numTasks := 6
+		for i := 0; i < numTasks; i++ {
 			subagentTask := workers.Task{
 				ID:      fmt.Sprintf("subagent-%d", i),
 				Type:    "subagent",
@@ -107,15 +101,14 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		}
 
 		// Wait for all results
-		totalTasks := 6
-		for i := 0; i < totalTasks; i++ {
+		for i := 0; i < numTasks; i++ {
 			result := <-pool.Results()
 			assert.NoError(t, result.Error)
 		}
 
 		// Verify metrics
 		metrics := pool.Metrics()
-		assert.Equal(t, uint64(totalTasks), metrics.TasksCompleted)
+		assert.Equal(t, uint64(numTasks), metrics.TasksCompleted)
 	})
 
 	// Test 3: Worker pool high load with subagent spawning

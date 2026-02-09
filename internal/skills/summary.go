@@ -48,6 +48,10 @@ func (b *SummaryBuilder) Build(opts SummaryOptions) (string, error) {
 
 	// Limit number of skills
 	if opts.MaxSkills > 0 && len(filtered) > opts.MaxSkills {
+		// Sort skills by name for deterministic ordering
+		slices.SortFunc(filtered, func(a, b *Skill) int {
+			return strings.Compare(a.Metadata.Name, b.Metadata.Name)
+		})
 		filtered = filtered[:opts.MaxSkills]
 	}
 
@@ -328,6 +332,10 @@ func (b *SummaryBuilder) BuildForPrompt(opts SummaryOptions) (string, error) {
 
 	// Limit number of skills
 	if opts.MaxSkills > 0 && len(filtered) > opts.MaxSkills {
+		// Sort skills by name for deterministic ordering
+		slices.SortFunc(filtered, func(a, b *Skill) int {
+			return strings.Compare(a.Metadata.Name, b.Metadata.Name)
+		})
 		filtered = filtered[:opts.MaxSkills]
 	}
 

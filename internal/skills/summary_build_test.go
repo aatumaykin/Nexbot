@@ -96,7 +96,7 @@ Git commit functionality.
 	builder := NewSummaryBuilder(loader)
 
 	opts := SummaryOptions{
-		Format: "short",
+		Format: "medium",
 	}
 
 	summary, err := builder.Build(opts)
@@ -175,7 +175,7 @@ With proper formatting.
 	builder := NewSummaryBuilder(loader)
 
 	opts := SummaryOptions{
-		Format: "medium",
+		Format: "long",
 	}
 
 	summary, err := builder.Build(opts)

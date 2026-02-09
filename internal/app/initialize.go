@@ -123,11 +123,36 @@ func (a *App) Initialize(ctx context.Context) error {
 	workerPool.Start()
 	a.workerPool = workerPool
 
-	// 4.1.1. Initialize subagent manager if enabled
+	// 4.2. Initialize cron storage
+	cronStorage := cron.NewStorage(ws.Path(), a.logger)
+	cronJobs, err := cronStorage.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load cron jobs from storage: %w", err)
+	}
+	a.logger.Info("loaded cron jobs from storage",
+		logger.Field{Key: "count", Value: len(cronJobs)})
+
+	// 5. Initialize agent loop
+	agentLoop, err := loop.NewLoop(loop.Config{
+		Workspace:         ws.Path(),
+		SessionDir:        ws.Subpath("sessions"),
+		Timezone:          a.config.Cron.Timezone,
+		LLMProvider:       provider,
+		Logger:            a.logger,
+		Model:             a.config.Agent.Model,
+		MaxTokens:         a.config.Agent.MaxTokens,
+		Temperature:       a.config.Agent.Temperature,
+		MaxToolIterations: a.config.Agent.MaxIterations,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create agent loop: %w", err)
+	}
+	a.agentLoop = agentLoop
+
+	// 5.1. Initialize subagent manager if enabled
 	if a.config.Subagent.Enabled {
 		a.logger.Info("🧬 Initializing subagent manager")
 
-		var err error
 		a.subagentManager, err = subagent.NewManager(subagent.Config{
 			SessionDir: ws.Subpath("sessions"),
 			Logger:     a.logger,
@@ -166,32 +191,6 @@ func (a *App) Initialize(ctx context.Context) error {
 
 		a.logger.Info("✅ Spawn tool registered")
 	}
-
-	// 4.2. Initialize cron storage
-	cronStorage := cron.NewStorage(ws.Path(), a.logger)
-	cronJobs, err := cronStorage.Load()
-	if err != nil {
-		return fmt.Errorf("failed to load cron jobs from storage: %w", err)
-	}
-	a.logger.Info("loaded cron jobs from storage",
-		logger.Field{Key: "count", Value: len(cronJobs)})
-
-	// 5. Initialize agent loop
-	agentLoop, err := loop.NewLoop(loop.Config{
-		Workspace:         ws.Path(),
-		SessionDir:        ws.Subpath("sessions"),
-		Timezone:          a.config.Cron.Timezone,
-		LLMProvider:       provider,
-		Logger:            a.logger,
-		Model:             a.config.Agent.Model,
-		MaxTokens:         a.config.Agent.MaxTokens,
-		Temperature:       a.config.Agent.Temperature,
-		MaxToolIterations: a.config.Agent.MaxIterations,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create agent loop: %w", err)
-	}
-	a.agentLoop = agentLoop
 
 	// 6. Create command handler
 	a.commandHandler = commands.NewHandler(
