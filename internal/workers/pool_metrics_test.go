@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,6 +42,11 @@ func TestPool_Metrics(t *testing.T) {
 	task := Task{
 		ID:   "metrics-task",
 		Type: "cron",
+		Payload: cron.CronTaskPayload{
+			Tool:      "send_message",
+			Payload:   map[string]any{"message": "test message"},
+			SessionID: "telegram:123456",
+		},
 	}
 	pool.Submit(task)
 

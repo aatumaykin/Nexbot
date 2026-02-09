@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -76,6 +77,11 @@ func TestPool_ConcurrentSubmissions(t *testing.T) {
 				task := Task{
 					ID:   fmt.Sprintf("goroutine-%d-task-%d", goroutineID, j),
 					Type: "cron",
+					Payload: cron.CronTaskPayload{
+						Tool:      "send_message",
+						Payload:   map[string]any{"message": fmt.Sprintf("message %d", j)},
+						SessionID: fmt.Sprintf("telegram:goroutine-%d-task-%d", goroutineID, j),
+					},
 				}
 				pool.Submit(task)
 			}

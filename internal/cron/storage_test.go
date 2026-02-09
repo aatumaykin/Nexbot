@@ -227,7 +227,39 @@ func TestStorage_RemoveExecutedOneshots(t *testing.T) {
 	storage := NewStorage(tempDir, log)
 
 	// Create test jobs
-	jobs := []StorageJob{}
+	now := time.Now()
+	jobs := []StorageJob{
+		{
+			ID:       "recurrent-1",
+			Type:     "recurring",
+			Schedule: "* * * * *",
+		},
+		{
+			ID:       "recurrent-2",
+			Type:     "recurring",
+			Schedule: "*/5 * * * *",
+		},
+		{
+			ID:        "oneshot-new",
+			Type:      "oneshot",
+			ExecuteAt: &now,
+			Executed:  false,
+		},
+		{
+			ID:         "oneshot-done",
+			Type:       "oneshot",
+			ExecuteAt:  &now,
+			Executed:   true,
+			ExecutedAt: &now,
+		},
+		{
+			ID:         "oneshot-done-2",
+			Type:       "oneshot",
+			ExecuteAt:  &now,
+			Executed:   true,
+			ExecutedAt: &now,
+		},
+	}
 
 	// Save initial jobs
 	require.NoError(t, storage.Save(jobs))

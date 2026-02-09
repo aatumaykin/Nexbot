@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,6 +28,11 @@ func TestPool_ExecuteCronTask(t *testing.T) {
 	task := Task{
 		ID:   "cron-task-1",
 		Type: "cron",
+		Payload: cron.CronTaskPayload{
+			Tool:      "send_message",
+			Payload:   map[string]any{"message": "hello"},
+			SessionID: "telegram:123456",
+		},
 	}
 
 	// Submit task
@@ -41,7 +47,7 @@ func TestPool_ExecuteCronTask(t *testing.T) {
 		assert.Equal(t, task.ID, result.TaskID)
 		assert.NoError(t, result.Error)
 		assert.NotEmpty(t, result.Output)
-		assert.Contains(t, result.Output, "echo 'hello'")
+		assert.Contains(t, result.Output, "message sent to telegram:123456")
 		assert.Greater(t, result.Duration, time.Duration(0))
 
 	case <-ctx.Done():
@@ -198,6 +204,11 @@ func TestPool_MultipleTasks(t *testing.T) {
 		}
 		payload := interface{}(fmt.Sprintf("command %d", i))
 		if taskType == "cron" {
+			payload = cron.CronTaskPayload{
+				Tool:      "send_message",
+				Payload:   map[string]any{"message": fmt.Sprintf("cron message %d", i)},
+				SessionID: fmt.Sprintf("telegram:task-%d", i),
+			}
 		}
 		tasks[i] = Task{
 			ID:      fmt.Sprintf("task-%d", i),

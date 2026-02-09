@@ -228,7 +228,7 @@ func TestPool_ExecuteSendMessage_Success(t *testing.T) {
 	select {
 	case msg := <-outboundCh:
 		assert.Equal(t, bus.ChannelTypeTelegram, msg.ChannelType)
-		assert.Equal(t, "987654321", msg.SessionID)
+		assert.Equal(t, "telegram:987654321", msg.SessionID)
 		assert.Equal(t, "Hello from cron!", msg.Content)
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("Timeout waiting for outbound message")
@@ -253,7 +253,7 @@ func TestPool_ExecuteAgent_Success(t *testing.T) {
 	payload := cron.CronTaskPayload{
 		Tool:      "agent",
 		SessionID: "telegram:987654321",
-		Payload:   map[string]interface{}{"data": "test"},
+		Payload:   map[string]interface{}{"message": "Process this task"},
 	}
 
 	task := Task{
@@ -272,7 +272,7 @@ func TestPool_ExecuteAgent_Success(t *testing.T) {
 	select {
 	case msg := <-inboundCh:
 		assert.Equal(t, bus.ChannelTypeTelegram, msg.ChannelType)
-		assert.Equal(t, "987654321", msg.SessionID)
+		assert.Equal(t, "telegram:987654321", msg.SessionID)
 		assert.Equal(t, "Process this task", msg.Content)
 		assert.Equal(t, "agent", msg.Metadata["tool"])
 	case <-time.After(100 * time.Millisecond):
@@ -388,7 +388,7 @@ func TestPool_ExecuteSendMessage_ChannelMismatch(t *testing.T) {
 	payload := cron.CronTaskPayload{
 		Tool:      "agent",
 		SessionID: "discord:123456", // Wrong channel
-		Payload:   nil,
+		Payload:   map[string]interface{}{"message": "test message"},
 	}
 
 	task := Task{

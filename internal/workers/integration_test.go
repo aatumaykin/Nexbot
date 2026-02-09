@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aatumaykin/nexbot/internal/bus"
+	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,7 +35,14 @@ func TestWorkerPool_Integration_CronTasks(t *testing.T) {
 	numCronJobs := 5
 	for i := 0; i < numCronJobs; i++ {
 		task := Task{
-			ID: fmt.Sprintf("cron-job-%d", i),
+			ID:   fmt.Sprintf("cron-job-%d", i),
+			Type: "cron",
+			Payload: cron.CronTaskPayload{
+				Tool:      "send_message",
+				Payload:   map[string]any{"message": "test cron message"},
+				SessionID: fmt.Sprintf("cron:cron-job-%d", i),
+				Metadata:  map[string]string{"index": fmt.Sprintf("%d", i)},
+			},
 		}
 		pool.Submit(task)
 	}
@@ -56,9 +64,9 @@ func TestWorkerPool_Integration_CronTasks(t *testing.T) {
 	// Verify all cron jobs completed successfully
 	assert.Len(t, results, numCronJobs)
 	for _, result := range results {
-		assert.NoError(t, result.Error)
+		assert.NoError(t, result.Error, "Task should complete without error: %v", result)
 		assert.NotEmpty(t, result.Output)
-		assert.Contains(t, result.Output, "scheduled command")
+		assert.Contains(t, result.Output, "message sent to cron:")
 	}
 
 	// Verify metrics
@@ -149,7 +157,15 @@ func TestWorkerPool_Integration_MixedTasks(t *testing.T) {
 		var payload interface{}
 
 		if i%2 == 0 {
+			// Cron task
+			taskType = "cron"
+			payload = cron.CronTaskPayload{
+				Tool:      "send_message",
+				Payload:   map[string]any{"message": fmt.Sprintf("cron message %d", i)},
+				SessionID: fmt.Sprintf("cron:mixed-task-%d", i),
+			}
 		} else {
+			// Subagent task
 			taskType = "subagent"
 			payload = map[string]string{"task": fmt.Sprintf("subtask %d", i)}
 		}
@@ -203,7 +219,13 @@ func TestWorkerPool_Integration_CronWithCancellation(t *testing.T) {
 	// Submit task with context that will be cancelled
 	taskCtx, cancel := context.WithCancel(context.Background())
 	task := Task{
-		ID:      "cancellable-cron-task",
+		ID:   "cancellable-cron-task",
+		Type: "cron",
+		Payload: cron.CronTaskPayload{
+			Tool:      "send_message",
+			Payload:   map[string]any{"message": "cancellable message"},
+			SessionID: "telegram:cancellable",
+		},
 		Context: taskCtx,
 	}
 
@@ -256,7 +278,13 @@ func TestWorkerPool_Integration_HighLoad(t *testing.T) {
 	// Submit many tasks rapidly
 	for i := 0; i < numTasks; i++ {
 		task := Task{
-			ID: fmt.Sprintf("load-task-%d", i),
+			ID:   fmt.Sprintf("load-task-%d", i),
+			Type: "cron",
+			Payload: cron.CronTaskPayload{
+				Tool:      "send_message",
+				Payload:   map[string]any{"message": fmt.Sprintf("load message %d", i)},
+				SessionID: fmt.Sprintf("telegram:load-task-%d", i),
+			},
 		}
 		pool.Submit(task)
 	}
@@ -312,7 +340,13 @@ func TestWorkerPool_Integration_GracefulShutdownWithTasks(t *testing.T) {
 	numTasks := 10
 	for i := 0; i < numTasks; i++ {
 		task := Task{
-			ID: fmt.Sprintf("shutdown-task-%d", i),
+			ID:   fmt.Sprintf("shutdown-task-%d", i),
+			Type: "cron",
+			Payload: cron.CronTaskPayload{
+				Tool:      "send_message",
+				Payload:   map[string]any{"message": fmt.Sprintf("shutdown message %d", i)},
+				SessionID: fmt.Sprintf("telegram:shutdown-task-%d", i),
+			},
 		}
 		pool.Submit(task)
 	}
@@ -407,7 +441,13 @@ func TestWorkerPool_Integration_SequentialSubmissions(t *testing.T) {
 		// Submit batch of tasks
 		for i := 0; i < tasksPerBatch; i++ {
 			task := Task{
-				ID: fmt.Sprintf("batch-%d-task-%d", batch, i),
+				ID:   fmt.Sprintf("batch-%d-task-%d", batch, i),
+				Type: "cron",
+				Payload: cron.CronTaskPayload{
+					Tool:      "send_message",
+					Payload:   map[string]any{"message": fmt.Sprintf("batch %d task %d", batch, i)},
+					SessionID: fmt.Sprintf("telegram:batch-%d-task-%d", batch, i),
+				},
 			}
 			pool.Submit(task)
 		}
@@ -456,7 +496,13 @@ func TestWorkerPool_Integration_MetricsTracking(t *testing.T) {
 	// Submit successful tasks
 	for i := 0; i < 5; i++ {
 		task := Task{
-			ID: fmt.Sprintf("success-%d", i),
+			ID:   fmt.Sprintf("success-%d", i),
+			Type: "cron",
+			Payload: cron.CronTaskPayload{
+				Tool:      "send_message",
+				Payload:   map[string]any{"message": fmt.Sprintf("success message %d", i)},
+				SessionID: fmt.Sprintf("telegram:success-%d", i),
+			},
 		}
 		pool.Submit(task)
 		successfulTasks++
@@ -514,7 +560,13 @@ func TestWorkerPool_Integration_Restart(t *testing.T) {
 	// Submit and complete some tasks
 	for i := 0; i < 3; i++ {
 		task := Task{
-			ID: fmt.Sprintf("run1-task-%d", i),
+			ID:   fmt.Sprintf("run1-task-%d", i),
+			Type: "cron",
+			Payload: cron.CronTaskPayload{
+				Tool:      "send_message",
+				Payload:   map[string]any{"message": "restart message 1"},
+				SessionID: fmt.Sprintf("telegram:run1-task-%d", i),
+			},
 		}
 		pool.Submit(task)
 	}
@@ -542,7 +594,13 @@ func TestWorkerPool_Integration_Restart(t *testing.T) {
 	// Submit tasks to new pool
 	for i := 0; i < 3; i++ {
 		task := Task{
-			ID: fmt.Sprintf("run2-task-%d", i),
+			ID:   fmt.Sprintf("run2-task-%d", i),
+			Type: "cron",
+			Payload: cron.CronTaskPayload{
+				Tool:      "send_message",
+				Payload:   map[string]any{"message": "restart message 2"},
+				SessionID: fmt.Sprintf("telegram:run2-task-%d", i),
+			},
 		}
 		newPool.Submit(task)
 	}

@@ -74,10 +74,13 @@ func TestFullWorkflow(t *testing.T) {
 	// Step 4: Add recurring job
 	now := time.Now()
 	recurringJob := Job{
-		ID:       "recurring-test-job",
-		Type:     JobTypeRecurring,
-		Schedule: "*/2 * * * * *", // Every 2 seconds for testing
-		UserID:   "recurring-user",
+		ID:        "recurring-test-job",
+		Type:      JobTypeRecurring,
+		Schedule:  "*/2 * * * * *", // Every 2 seconds for testing
+		UserID:    "recurring-user",
+		Tool:      "send_message",
+		SessionID: "telegram:123456",
+		Payload:   map[string]any{"message": "recurring test message"},
 		Metadata: map[string]string{
 			"job_type": "recurring",
 		},
@@ -99,6 +102,9 @@ func TestFullWorkflow(t *testing.T) {
 		Type:      JobTypeOneshot,
 		UserID:    "oneshot-user",
 		ExecuteAt: &pastTime,
+		Tool:      "send_message",
+		SessionID: "telegram:123456",
+		Payload:   map[string]any{"message": "oneshot test message"},
 		Metadata: map[string]string{
 			"job_type": "oneshot",
 		},
@@ -138,9 +144,9 @@ func TestFullWorkflow(t *testing.T) {
 	require.NotNil(t, storageOneshot, "Oneshot job should be persisted in storage")
 
 	assert.Equal(t, string(JobTypeRecurring), storageRecurring.Type, "Storage recurring job type should match")
-	assert.Equal(t, "recurring test command", "", "Storage recurring job command should match")
+	assert.Equal(t, "send_message", storageRecurring.Tool, "Storage recurring job tool should match")
 	assert.Equal(t, string(JobTypeOneshot), storageOneshot.Type, "Storage oneshot job type should match")
-	assert.Equal(t, "oneshot test command", "", "Storage oneshot job command should match")
+	assert.Equal(t, "send_message", storageOneshot.Tool, "Storage oneshot job tool should match")
 
 	// Step 10 (partial): Verify file exists and contains data
 	_, err = os.Stat(jobsFilePath)
@@ -180,13 +186,12 @@ func TestFullWorkflow(t *testing.T) {
 		"Recurring job should have been submitted to worker pool at least once")
 
 	// Verify we have at least one task submitted for the recurring job
-	// Note: oneshot jobs may also be submitted, so we check for recurring command
+	// Note: oneshot jobs may also be submitted, so we check for send_message tool
 	foundRecurringTask := false
 	for _, task := range workerPool.submittedTasks {
 		if payload, ok := task.Payload.(CronTaskPayload); ok {
-			if payload.Tool == "recurring test command" {
+			if payload.Tool == "send_message" && payload.Metadata["job_type"] == "recurring" {
 				assert.Equal(t, "cron", task.Type, "Task type should be 'cron'")
-				assert.Equal(t, "recurring", payload.Metadata["job_type"], "Task metadata should match")
 				foundRecurringTask = true
 				break
 			}
@@ -314,16 +319,22 @@ func TestFullWorkflowWithMultipleJobs(t *testing.T) {
 	// Add multiple recurring jobs
 	recurringJobs := []Job{
 		{
-			ID:       "recurring-1",
-			Type:     JobTypeRecurring,
-			Schedule: "*/2 * * * * *",
-			UserID:   "user-1",
+			ID:        "recurring-1",
+			Type:      JobTypeRecurring,
+			Schedule:  "*/2 * * * * *",
+			UserID:    "user-1",
+			Tool:      "send_message",
+			SessionID: "telegram:123456",
+			Payload:   map[string]any{"message": "recurring message 1"},
 		},
 		{
-			ID:       "recurring-2",
-			Type:     JobTypeRecurring,
-			Schedule: "*/3 * * * * *",
-			UserID:   "user-2",
+			ID:        "recurring-2",
+			Type:      JobTypeRecurring,
+			Schedule:  "*/3 * * * * *",
+			UserID:    "user-2",
+			Tool:      "send_message",
+			SessionID: "telegram:123456",
+			Payload:   map[string]any{"message": "recurring message 2"},
 		},
 	}
 
@@ -340,12 +351,18 @@ func TestFullWorkflowWithMultipleJobs(t *testing.T) {
 			Type:      JobTypeOneshot,
 			UserID:    "user-1",
 			ExecuteAt: &pastTime,
+			Tool:      "send_message",
+			SessionID: "telegram:123456",
+			Payload:   map[string]any{"message": "oneshot message 1"},
 		},
 		{
 			ID:        "oneshot-2",
 			Type:      JobTypeOneshot,
 			UserID:    "user-2",
 			ExecuteAt: &pastTime,
+			Tool:      "send_message",
+			SessionID: "telegram:123456",
+			Payload:   map[string]any{"message": "oneshot message 2"},
 		},
 	}
 
@@ -434,10 +451,13 @@ func TestFullWorkflowPersistenceAcrossRestarts(t *testing.T) {
 
 	// Add recurring job
 	recurringJob := Job{
-		ID:       "persistent-recurring",
-		Type:     JobTypeRecurring,
-		Schedule: "*/2 * * * * *",
-		UserID:   "persistent-user",
+		ID:        "persistent-recurring",
+		Type:      JobTypeRecurring,
+		Schedule:  "*/2 * * * * *",
+		UserID:    "persistent-user",
+		Tool:      "send_message",
+		SessionID: "telegram:123456",
+		Payload:   map[string]any{"message": "persistent recurring message"},
 	}
 	_, err = scheduler1.AddJob(recurringJob)
 	require.NoError(t, err)
@@ -449,6 +469,9 @@ func TestFullWorkflowPersistenceAcrossRestarts(t *testing.T) {
 		Type:      JobTypeOneshot,
 		UserID:    "persistent-user",
 		ExecuteAt: &pastTime,
+		Tool:      "send_message",
+		SessionID: "telegram:123456",
+		Payload:   map[string]any{"message": "persistent oneshot message"},
 	}
 	_, err = scheduler1.AddJob(oneshotJob)
 	require.NoError(t, err)

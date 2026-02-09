@@ -28,11 +28,15 @@ func TestScheduler_JobExecution(t *testing.T) {
 	require.NoError(t, err)
 	defer stopScheduler(scheduler)
 
-	// Add a job that runs every 30 seconds
+	// Add a job that runs every 2 seconds
 	job := Job{
-		ID:       "test-job",
-		Schedule: "*/30 * * * * *", // Every 30 seconds
-		UserID:   "cron-user",
+		ID:        "test-job",
+		Type:      JobTypeRecurring,
+		Schedule:  "*/2 * * * * *", // Every 2 seconds
+		UserID:    "cron-user",
+		Tool:      "send_message",
+		SessionID: "telegram:123456",
+		Payload:   map[string]any{"message": "test message"},
 		Metadata: map[string]string{
 			"test_key": "test_value",
 		},
@@ -41,11 +45,11 @@ func TestScheduler_JobExecution(t *testing.T) {
 	_, err = scheduler.AddJob(job)
 	require.NoError(t, err)
 
-	// Wait for job to execute (schedule is every 30 seconds, wait 35s to ensure it executes once)
-	time.Sleep(35 * time.Second)
+	// Wait for job to execute (schedule is every 2 seconds, wait 3s to ensure it executes once)
+	time.Sleep(3 * time.Second)
 
-	// Verify job was submitted to worker pool
-	assert.Len(t, workerPool.submittedTasks, 1, "Job should be submitted to worker pool")
+	// Verify job was submitted to worker pool (recurring jobs execute multiple times)
+	assert.GreaterOrEqual(t, len(workerPool.submittedTasks), 1, "Job should be submitted to worker pool at least once")
 
 	// Verify job details
 	task := workerPool.submittedTasks[0]
@@ -79,9 +83,13 @@ func TestScheduler_JobExecutionWithMetadata(t *testing.T) {
 	defer stopScheduler(scheduler)
 
 	job := Job{
-		ID:       "metadata-job",
-		Schedule: "*/30 * * * * *", // Every 30 seconds
-		UserID:   "test-user",
+		ID:        "metadata-job",
+		Type:      JobTypeRecurring,
+		Schedule:  "*/2 * * * * *", // Every 2 seconds
+		UserID:    "test-user",
+		Tool:      "send_message",
+		SessionID: "telegram:123456",
+		Payload:   map[string]any{"message": "metadata test message"},
 		Metadata: map[string]string{
 			"env":  "production",
 			"team": "devops",
@@ -92,10 +100,10 @@ func TestScheduler_JobExecutionWithMetadata(t *testing.T) {
 	require.NoError(t, err)
 
 	// Wait for job to execute
-	time.Sleep(35 * time.Second)
+	time.Sleep(3 * time.Second)
 
-	// Verify job was submitted to worker pool
-	assert.Len(t, workerPool.submittedTasks, 1, "Job should be submitted to worker pool")
+	// Verify job was submitted to worker pool (recurring jobs execute multiple times)
+	assert.GreaterOrEqual(t, len(workerPool.submittedTasks), 1, "Job should be submitted to worker pool at least once")
 
 	// Verify metadata is preserved
 	task := workerPool.submittedTasks[0]
