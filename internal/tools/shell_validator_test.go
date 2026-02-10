@@ -434,3 +434,148 @@ func TestShellValidator_Validate_PathTraversal(t *testing.T) {
 		})
 	}
 }
+
+func TestShellValidator_Validate_ShellInjection(t *testing.T) {
+	tests := []struct {
+		name          string
+		command       string
+		expectedError bool
+		errorContains string
+	}{
+		// Command chaining with &&
+		{
+			name:          "command chaining - &&",
+			command:       "ls -la && rm -rf /",
+			expectedError: true,
+			errorContains: "shell injection",
+		},
+		{
+			name:          "command chaining - ||",
+			command:       "ls -la || rm -rf /",
+			expectedError: true,
+			errorContains: "shell injection",
+		},
+		{
+			name:          "command chaining - ;",
+			command:       "ls -la ; rm -rf /",
+			expectedError: true,
+			errorContains: "shell injection",
+		},
+
+		// Pipe
+		{
+			name:          "pipe operator",
+			command:       "ls | cat",
+			expectedError: true,
+			errorContains: "shell injection",
+		},
+
+		// Command substitution with $()
+		{
+			name:          "command substitution - $()",
+			command:       "echo $(whoami)",
+			expectedError: true,
+			errorContains: "shell injection",
+		},
+		{
+			name:          "command substitution - $(ls)",
+			command:       "cat $(ls)",
+			expectedError: true,
+			errorContains: "shell injection",
+		},
+
+		// Command substitution with backticks
+		{
+			name:          "command substitution - backticks",
+			command:       "echo `whoami`",
+			expectedError: true,
+			errorContains: "shell injection",
+		},
+
+		// Redirection
+		{
+			name:          "redirection - >",
+			command:       "ls > file.txt",
+			expectedError: true,
+			errorContains: "shell injection",
+		},
+		{
+			name:          "redirection - >>",
+			command:       "ls >> file.txt",
+			expectedError: true,
+			errorContains: "shell injection",
+		},
+		{
+			name:          "redirection - <",
+			command:       "cat < file.txt",
+			expectedError: true,
+			errorContains: "shell injection",
+		},
+
+		// Background execution
+		{
+			name:          "background execution - &",
+			command:       "ls &",
+			expectedError: true,
+			errorContains: "shell injection",
+		},
+
+		// Valid secret references ($SECRET_NAME)
+		{
+			name:          "valid secret reference",
+			command:       "echo $SECRET_NAME",
+			expectedError: false,
+		},
+		{
+			name:          "valid secret reference in cat",
+			command:       "cat $API_KEY",
+			expectedError: false,
+		},
+		{
+			name:          "valid secret reference with underscores",
+			command:       "echo $MY_SECRET_KEY_123",
+			expectedError: false,
+		},
+
+		// Valid commands
+		{
+			name:          "valid simple command",
+			command:       "ls -la",
+			expectedError: false,
+		},
+		{
+			name:          "valid command with quotes",
+			command:       "echo \"hello world\"",
+			expectedError: false,
+		},
+		{
+			name:          "valid command with single quotes",
+			command:       "echo 'hello world'",
+			expectedError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			validator := NewShellValidator([]string{}, []string{}, []string{"ls", "cat", "echo"})
+
+			err := validator.Validate(tt.command)
+
+			if tt.expectedError {
+				if err == nil {
+					t.Errorf("Validate(%q) expected error, got nil", tt.command)
+				} else if tt.errorContains != "" {
+					errStr := err.Error()
+					if !containsSubstring(errStr, tt.errorContains) {
+						t.Errorf("Validate(%q) error = %q, expected to contain %q",
+							tt.command, errStr, tt.errorContains)
+					}
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Validate(%q) expected no error, got: %v", tt.command, err)
+				}
+			}
+		})
+	}
+}

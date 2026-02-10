@@ -184,8 +184,14 @@ func getSessionID(ctx context.Context) string {
 
 // executeCommand executes a shell command and returns its combined stdout/stderr.
 func (t *ShellExecTool) executeCommand(ctx context.Context, command, workingDir string) (string, error) {
-	// Execute shell command (using sh -c for shell expansion)
-	cmd := exec.CommandContext(ctx, "sh", "-c", command)
+	// Parse command and arguments safely (without shell interpretation)
+	cmdName, args, err := parseCommandArgs(command)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse command: %w", err)
+	}
+
+	// Execute command directly without shell
+	cmd := exec.CommandContext(ctx, cmdName, args...)
 
 	// Set working directory to workspace
 	cmd.Dir = workingDir
@@ -196,7 +202,7 @@ func (t *ShellExecTool) executeCommand(ctx context.Context, command, workingDir 
 	cmd.Stderr = &stderr
 
 	// Run command
-	err := cmd.Run()
+	err = cmd.Run()
 
 	// Combine stdout and stderr
 	output := stdout.String()
@@ -311,4 +317,84 @@ func isAlphaNumeric(c byte) bool {
 	return (c >= 'a' && c <= 'z') ||
 		(c >= 'A' && c <= 'Z') ||
 		(c >= '0' && c <= '9')
+}
+
+// parseCommandArgs safely parses a command string into command name and arguments.
+// It handles quoted strings (single and double quotes) but does NOT perform shell expansion.
+// This prevents shell injection attacks.
+func parseCommandArgs(command string) (string, []string, error) {
+	command = strings.TrimSpace(command)
+	if command == "" {
+		return "", nil, fmt.Errorf("empty command")
+	}
+
+	var args []string
+	var current strings.Builder
+	inSingleQuote := false
+	inDoubleQuote := false
+	escapeNext := false
+
+	for i, r := range command {
+		if escapeNext {
+			current.WriteRune(r)
+			escapeNext = false
+			continue
+		}
+
+		switch r {
+		case '\\':
+			if !inSingleQuote {
+				escapeNext = true
+				continue
+			}
+			current.WriteRune(r)
+
+		case '\'':
+			if inSingleQuote {
+				inSingleQuote = false
+			} else if !inDoubleQuote {
+				inSingleQuote = true
+			} else {
+				current.WriteRune(r)
+			}
+
+		case '"':
+			if inDoubleQuote {
+				inDoubleQuote = false
+			} else if !inSingleQuote {
+				inDoubleQuote = true
+			} else {
+				current.WriteRune(r)
+			}
+
+		case ' ', '\t':
+			if !inSingleQuote && !inDoubleQuote {
+				if current.Len() > 0 {
+					args = append(args, current.String())
+					current.Reset()
+				}
+				continue
+			}
+			current.WriteRune(r)
+
+		default:
+			current.WriteRune(r)
+		}
+
+		// Check for invalid state at end of command
+		if i == len(command)-1 && (inSingleQuote || inDoubleQuote || escapeNext) {
+			return "", nil, fmt.Errorf("unclosed quote or invalid escape sequence")
+		}
+	}
+
+	// Add the last argument
+	if current.Len() > 0 {
+		args = append(args, current.String())
+	}
+
+	if len(args) == 0 {
+		return "", nil, fmt.Errorf("no command found")
+	}
+
+	return args[0], args[1:], nil
 }
