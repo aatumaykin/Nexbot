@@ -65,28 +65,31 @@ type MessageBus struct {
 	eventCh    chan Event
 	resultCh   chan MessageSendResult // для result tracking
 	tracker    *ResultTracker
+	metrics    Metrics
 
-	inboundSubscribers  map[int64]chan InboundMessage
-	outboundSubscribers map[int64]chan OutboundMessage
-	eventSubscribers    map[int64]chan Event
-	resultSubscribers   map[int64]chan MessageSendResult
-	subscriberID        int64
+	inboundSubscribers    map[int64]chan InboundMessage
+	outboundSubscribers   map[int64]chan OutboundMessage
+	eventSubscribers      map[int64]chan Event
+	resultSubscribers     map[int64]chan MessageSendResult
+	subscriberID          int64
+	subscriberChannelSize int
 }
 
 // New creates a new MessageBus with the specified capacity for both queues
-func New(capacity int, logger *logger.Logger) *MessageBus {
+func New(capacity, subscriberChannelSize int, logger *logger.Logger) *MessageBus {
 	return &MessageBus{
-		logger:              logger,
-		inboundCh:           make(chan InboundMessage, capacity),
-		outboundCh:          make(chan OutboundMessage, capacity),
-		eventCh:             make(chan Event, capacity),
-		resultCh:            make(chan MessageSendResult, 500),
-		tracker:             NewResultTracker(logger),
-		inboundSubscribers:  make(map[int64]chan InboundMessage),
-		outboundSubscribers: make(map[int64]chan OutboundMessage),
-		eventSubscribers:    make(map[int64]chan Event),
-		resultSubscribers:   make(map[int64]chan MessageSendResult),
-		subscriberID:        0,
+		logger:                logger,
+		inboundCh:             make(chan InboundMessage, capacity),
+		outboundCh:            make(chan OutboundMessage, capacity),
+		eventCh:               make(chan Event, capacity),
+		resultCh:              make(chan MessageSendResult, 500),
+		tracker:               NewResultTracker(logger),
+		inboundSubscribers:    make(map[int64]chan InboundMessage),
+		outboundSubscribers:   make(map[int64]chan OutboundMessage),
+		eventSubscribers:      make(map[int64]chan Event),
+		resultSubscribers:     make(map[int64]chan MessageSendResult),
+		subscriberID:          0,
+		subscriberChannelSize: subscriberChannelSize,
 	}
 }
 
@@ -230,6 +233,30 @@ func (mb *MessageBus) PublishOutbound(msg OutboundMessage) error {
 	)
 }
 
+// MessageInfo provides details about a message for logging
+type MessageInfo interface {
+	GetSessionID() string
+	GetUserID() string
+	GetType() string
+}
+
+// MessageInfo implementations
+func (m InboundMessage) GetSessionID() string { return m.SessionID }
+func (m InboundMessage) GetUserID() string    { return m.UserID }
+func (m InboundMessage) GetType() string      { return "inbound" }
+
+func (m OutboundMessage) GetSessionID() string { return m.SessionID }
+func (m OutboundMessage) GetUserID() string    { return m.UserID }
+func (m OutboundMessage) GetType() string      { return string(m.Type) }
+
+func (e Event) GetSessionID() string { return e.SessionID }
+func (e Event) GetUserID() string    { return e.UserID }
+func (e Event) GetType() string      { return string(e.Type) }
+
+func (m MessageSendResult) GetSessionID() string { return "" }
+func (m MessageSendResult) GetUserID() string    { return "" }
+func (m MessageSendResult) GetType() string      { return "send_result" }
+
 // SubscribeInbound subscribes to inbound messages
 func (mb *MessageBus) SubscribeInbound(ctx context.Context) <-chan InboundMessage {
 	mb.mu.Lock()
@@ -239,13 +266,15 @@ func (mb *MessageBus) SubscribeInbound(ctx context.Context) <-chan InboundMessag
 		return nil
 	}
 
-	ch := make(chan InboundMessage, 10)
+	ch := make(chan InboundMessage, mb.subscriberChannelSize)
 	mb.subscriberID++
 	id := mb.subscriberID
 	mb.inboundSubscribers[id] = ch
+	mb.metrics.InboundSubscribersCount++
 
 	mb.logger.DebugCtx(ctx, "inbound subscriber added",
-		logger.Field{Key: "subscriber_id", Value: id})
+		logger.Field{Key: "subscriber_id", Value: id},
+		logger.Field{Key: "channel_capacity", Value: cap(ch)})
 
 	return ch
 }
@@ -259,13 +288,15 @@ func (mb *MessageBus) SubscribeOutbound(ctx context.Context) <-chan OutboundMess
 		return nil
 	}
 
-	ch := make(chan OutboundMessage, 10)
+	ch := make(chan OutboundMessage, mb.subscriberChannelSize)
 	mb.subscriberID++
 	id := mb.subscriberID
 	mb.outboundSubscribers[id] = ch
+	mb.metrics.OutboundSubscribersCount++
 
 	mb.logger.DebugCtx(ctx, "outbound subscriber added",
-		logger.Field{Key: "subscriber_id", Value: id})
+		logger.Field{Key: "subscriber_id", Value: id},
+		logger.Field{Key: "channel_capacity", Value: cap(ch)})
 
 	return ch
 }
@@ -273,13 +304,16 @@ func (mb *MessageBus) SubscribeOutbound(ctx context.Context) <-chan OutboundMess
 // distributeMessages distributes messages of any type to all subscribers
 // This is a generic function to eliminate code duplication between
 // distributeInbound, distributeOutbound, and distributeEvents
-func distributeMessages[T any](
+func distributeMessages[T any, M MessageInfo](
 	ctx context.Context,
-	logger *logger.Logger,
+	log *logger.Logger,
 	mu *sync.RWMutex,
+	metrics *Metrics,
 	ch <-chan T,
 	getSubscribers func() map[int64]chan T,
+	getMessageInfo func(T) M,
 	logMsg string,
+	onDropped func(),
 ) {
 	for {
 		select {
@@ -290,12 +324,22 @@ func distributeMessages[T any](
 				return
 			}
 			mu.RLock()
-			for _, subCh := range getSubscribers() {
+			msgInfo := getMessageInfo(msg)
+			for subID, subCh := range getSubscribers() {
 				select {
 				case subCh <- msg:
 				default:
-					// Subscriber channel is full, skip
-					logger.WarnCtx(ctx, logMsg)
+					// Subscriber channel is full, log with details and increment metrics
+					log.WarnCtx(ctx, logMsg,
+						logger.Field{Key: "subscriber_id", Value: subID},
+						logger.Field{Key: "message_type", Value: msgInfo.GetType()},
+						logger.Field{Key: "session_id", Value: msgInfo.GetSessionID()},
+						logger.Field{Key: "user_id", Value: msgInfo.GetUserID()},
+						logger.Field{Key: "channel_capacity", Value: cap(subCh)},
+						logger.Field{Key: "channel_len", Value: len(subCh)})
+					if onDropped != nil {
+						onDropped()
+					}
 				}
 			}
 			mu.RUnlock()
@@ -305,16 +349,20 @@ func distributeMessages[T any](
 
 // distributeInbound distributes inbound messages to all subscribers
 func (mb *MessageBus) distributeInbound() {
-	distributeMessages(mb.ctx, mb.logger, &mb.mu, mb.inboundCh, func() map[int64]chan InboundMessage {
+	distributeMessages(mb.ctx, mb.logger, &mb.mu, &mb.metrics, mb.inboundCh, func() map[int64]chan InboundMessage {
 		return mb.inboundSubscribers
-	}, "inbound subscriber channel full, skipping message")
+	}, func(m InboundMessage) InboundMessage { return m }, "inbound subscriber channel full, skipping message", func() {
+		mb.metrics.InboundMessagesDropped++
+	})
 }
 
 // distributeOutbound distributes outbound messages to all subscribers
 func (mb *MessageBus) distributeOutbound() {
-	distributeMessages(mb.ctx, mb.logger, &mb.mu, mb.outboundCh, func() map[int64]chan OutboundMessage {
+	distributeMessages(mb.ctx, mb.logger, &mb.mu, &mb.metrics, mb.outboundCh, func() map[int64]chan OutboundMessage {
 		return mb.outboundSubscribers
-	}, "outbound subscriber channel full, skipping message")
+	}, func(m OutboundMessage) OutboundMessage { return m }, "outbound subscriber channel full, skipping message", func() {
+		mb.metrics.OutboundMessagesDropped++
+	})
 }
 
 // IsStarted returns true if the message bus is started
@@ -406,22 +454,26 @@ func (mb *MessageBus) SubscribeEvent(ctx context.Context) <-chan Event {
 		return nil
 	}
 
-	ch := make(chan Event, 10)
+	ch := make(chan Event, mb.subscriberChannelSize)
 	mb.subscriberID++
 	id := mb.subscriberID
 	mb.eventSubscribers[id] = ch
+	mb.metrics.EventSubscribersCount++
 
 	mb.logger.DebugCtx(ctx, "event subscriber added",
-		logger.Field{Key: "subscriber_id", Value: id})
+		logger.Field{Key: "subscriber_id", Value: id},
+		logger.Field{Key: "channel_capacity", Value: cap(ch)})
 
 	return ch
 }
 
 // distributeEvents distributes events to all subscribers
 func (mb *MessageBus) distributeEvents() {
-	distributeMessages(mb.ctx, mb.logger, &mb.mu, mb.eventCh, func() map[int64]chan Event {
+	distributeMessages(mb.ctx, mb.logger, &mb.mu, &mb.metrics, mb.eventCh, func() map[int64]chan Event {
 		return mb.eventSubscribers
-	}, "event subscriber channel full, skipping event")
+	}, func(e Event) Event { return e }, "event subscriber channel full, skipping event", func() {
+		mb.metrics.EventsDropped++
+	})
 }
 
 // SubscribeSendResults подписывается на результаты отправки
@@ -433,13 +485,15 @@ func (mb *MessageBus) SubscribeSendResults(ctx context.Context) <-chan MessageSe
 		return nil
 	}
 
-	ch := make(chan MessageSendResult, 10)
+	ch := make(chan MessageSendResult, mb.subscriberChannelSize)
 	mb.subscriberID++
 	id := mb.subscriberID
 	mb.resultSubscribers[id] = ch
+	mb.metrics.ResultSubscribersCount++
 
 	mb.logger.DebugCtx(ctx, "result subscriber added",
-		logger.Field{Key: "subscriber_id", Value: id})
+		logger.Field{Key: "subscriber_id", Value: id},
+		logger.Field{Key: "channel_capacity", Value: cap(ch)})
 
 	return ch
 }
@@ -449,9 +503,18 @@ func (mb *MessageBus) GetResultTracker() *ResultTracker {
 	return mb.tracker
 }
 
+// GetMetrics возвращает метрики message bus
+func (mb *MessageBus) GetMetrics() Metrics {
+	mb.mu.RLock()
+	defer mb.mu.RUnlock()
+	return mb.metrics
+}
+
 // distributeResults distributes send results to all subscribers
 func (mb *MessageBus) distributeResults() {
-	distributeMessages(mb.ctx, mb.logger, &mb.mu, mb.resultCh, func() map[int64]chan MessageSendResult {
+	distributeMessages(mb.ctx, mb.logger, &mb.mu, &mb.metrics, mb.resultCh, func() map[int64]chan MessageSendResult {
 		return mb.resultSubscribers
-	}, "result subscriber channel full, skipping result")
+	}, func(r MessageSendResult) MessageSendResult { return r }, "result subscriber channel full, skipping result", func() {
+		mb.metrics.ResultsDropped++
+	})
 }

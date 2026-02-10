@@ -57,7 +57,7 @@ func (a *App) Initialize(ctx context.Context) error {
 	a.ctx, a.cancel = context.WithCancel(ctx)
 
 	// 2. Initialize message bus
-	a.messageBus = bus.New(a.config.MessageBus.Capacity, a.logger)
+	a.messageBus = bus.New(a.config.MessageBus.Capacity, a.config.MessageBus.SubscriberChannelSize, a.logger)
 	if err := a.messageBus.Start(a.ctx); err != nil {
 		return fmt.Errorf("failed to start message bus: %w", err)
 	}

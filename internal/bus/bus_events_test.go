@@ -8,7 +8,7 @@ import (
 
 func TestMessageBus_PublishEvent(t *testing.T) {
 	log := createTestLogger(t)
-	bus := New(10, log)
+	bus := New(10, 10, log)
 	ctx := context.Background()
 
 	err := bus.Start(ctx)
@@ -22,7 +22,7 @@ func TestMessageBus_PublishEvent(t *testing.T) {
 		t.Fatalf("PublishEvent() failed: %v", err)
 	}
 
-	bus2 := New(10, log)
+	bus2 := New(10, 10, log)
 	err = bus2.PublishEvent(*event)
 	if err != ErrNotStarted {
 		t.Errorf("Expected ErrNotStarted, got %v", err)
@@ -31,7 +31,7 @@ func TestMessageBus_PublishEvent(t *testing.T) {
 
 func TestMessageBus_SubscribeEvent(t *testing.T) {
 	log := createTestLogger(t)
-	bus := New(10, log)
+	bus := New(10, 10, log)
 	ctx := context.Background()
 
 	ch := bus.SubscribeEvent(ctx)
@@ -76,7 +76,7 @@ func TestMessageBus_SubscribeEvent(t *testing.T) {
 
 func TestMessageBus_EventQueueFull(t *testing.T) {
 	log := createTestLogger(t)
-	bus := New(2, log)
+	bus := New(2, 10, log)
 	ctx := context.Background()
 
 	err := bus.Start(ctx)
@@ -90,7 +90,7 @@ func TestMessageBus_EventQueueFull(t *testing.T) {
 		t.Fatalf("PublishEvent() failed: %v", err)
 	}
 
-	bus = New(1, log)
+	bus = New(1, 10, log)
 	if err := bus.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestMessageBus_EventQueueFull(t *testing.T) {
 
 func TestMessageBus_EventTypes(t *testing.T) {
 	log := createTestLogger(t)
-	bus := New(10, log)
+	bus := New(10, 10, log)
 	ctx := context.Background()
 
 	err := bus.Start(ctx)
@@ -154,7 +154,7 @@ func TestMessageBus_EventTypes(t *testing.T) {
 
 func TestMessageBus_EventInGracefulShutdown(t *testing.T) {
 	log := createTestLogger(t)
-	bus := New(10, log)
+	bus := New(10, 10, log)
 	ctx := context.Background()
 
 	err := bus.Start(ctx)

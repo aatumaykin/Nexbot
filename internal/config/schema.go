@@ -166,6 +166,7 @@ type MessageBusConfig struct {
 	Capacity                  int  `toml:"capacity"`
 	ResultChannelCapacity     int  `toml:"result_channel_capacity"`
 	EnableHighPriorityResults bool `toml:"enable_high_priority_results"`
+	SubscriberChannelSize     int  `toml:"subscriber_channel_size"`
 }
 
 // HeartbeatConfig представляет конфигурацию HEARTBEAT loader (v0.2)

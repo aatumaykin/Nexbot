@@ -8,7 +8,7 @@ import (
 
 func TestMessageBus_PublishInbound(t *testing.T) {
 	log := createTestLogger(t)
-	bus := New(2, log)
+	bus := New(2, 10, log)
 	ctx := context.Background()
 
 	err := bus.Start(ctx)
@@ -22,7 +22,7 @@ func TestMessageBus_PublishInbound(t *testing.T) {
 		t.Fatalf("PublishInbound() failed: %v", err)
 	}
 
-	bus2 := New(10, log)
+	bus2 := New(10, 10, log)
 	err = bus2.PublishInbound(*msg)
 	if err != ErrNotStarted {
 		t.Errorf("Expected ErrNotStarted, got %v", err)
@@ -31,7 +31,7 @@ func TestMessageBus_PublishInbound(t *testing.T) {
 
 func TestMessageBus_PublishOutbound(t *testing.T) {
 	log := createTestLogger(t)
-	bus := New(2, log)
+	bus := New(2, 10, log)
 	ctx := context.Background()
 
 	err := bus.Start(ctx)
@@ -45,7 +45,7 @@ func TestMessageBus_PublishOutbound(t *testing.T) {
 		t.Fatalf("PublishOutbound() failed: %v", err)
 	}
 
-	bus = New(1, log)
+	bus = New(1, 10, log)
 	if err := bus.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestMessageBus_PublishOutbound(t *testing.T) {
 		t.Errorf("Expected ErrQueueFull, got %v", err)
 	}
 
-	bus2 := New(10, log)
+	bus2 := New(10, 10, log)
 	err = bus2.PublishOutbound(*msg)
 	if err != ErrNotStarted {
 		t.Errorf("Expected ErrNotStarted, got %v", err)
@@ -72,7 +72,7 @@ func TestMessageBus_PublishOutbound(t *testing.T) {
 
 func TestMessageBus_SubscribeInbound(t *testing.T) {
 	log := createTestLogger(t)
-	bus := New(10, log)
+	bus := New(10, 10, log)
 	ctx := context.Background()
 
 	ch := bus.SubscribeInbound(ctx)
@@ -114,7 +114,7 @@ func TestMessageBus_SubscribeInbound(t *testing.T) {
 
 func TestMessageBus_SubscribeOutbound(t *testing.T) {
 	log := createTestLogger(t)
-	bus := New(10, log)
+	bus := New(10, 10, log)
 	ctx := context.Background()
 
 	ch := bus.SubscribeOutbound(ctx)

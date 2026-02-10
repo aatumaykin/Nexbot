@@ -280,6 +280,12 @@ func applyDefaults(c *Config) {
 	if c.MessageBus.Capacity == 0 {
 		c.MessageBus.Capacity = 1000
 	}
+	if c.MessageBus.SubscriberChannelSize == 0 {
+		c.MessageBus.SubscriberChannelSize = 10
+	}
+	if c.MessageBus.ResultChannelCapacity == 0 {
+		c.MessageBus.ResultChannelCapacity = 500
+	}
 
 	// Cron defaults
 	if c.Cron.Timezone == "" {

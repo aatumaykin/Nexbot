@@ -313,3 +313,33 @@ func NewProcessingEndEvent(channelType ChannelType, userID, sessionID string, me
 		Metadata:    metadata,
 	}
 }
+
+// Metrics holds message bus metrics
+type Metrics struct {
+	InboundMessagesDropped   int64
+	OutboundMessagesDropped  int64
+	EventsDropped            int64
+	ResultsDropped           int64
+	InboundSubscribersCount  int
+	OutboundSubscribersCount int
+	EventSubscribersCount    int
+	ResultSubscribersCount   int
+}
+
+// GetDroppedMetrics returns a map of dropped message counts
+func (m *Metrics) GetDroppedMetrics() map[string]int64 {
+	return map[string]int64{
+		"inbound_messages_dropped":  m.InboundMessagesDropped,
+		"outbound_messages_dropped": m.OutboundMessagesDropped,
+		"events_dropped":            m.EventsDropped,
+		"results_dropped":           m.ResultsDropped,
+	}
+}
+
+// Reset resets all metrics counters
+func (m *Metrics) Reset() {
+	m.InboundMessagesDropped = 0
+	m.OutboundMessagesDropped = 0
+	m.EventsDropped = 0
+	m.ResultsDropped = 0
+}

@@ -24,7 +24,7 @@ func TestNew(t *testing.T) {
 	capacity := 100
 	log := createTestLogger(t)
 
-	bus := New(capacity, log)
+	bus := New(capacity, 10, log)
 
 	if bus == nil {
 		t.Fatal("New() returned nil")
@@ -37,7 +37,7 @@ func TestNew(t *testing.T) {
 
 func TestMessageBus_Start(t *testing.T) {
 	log := createTestLogger(t)
-	bus := New(10, log)
+	bus := New(10, 10, log)
 
 	ctx := context.Background()
 	err := bus.Start(ctx)
@@ -62,7 +62,7 @@ func TestMessageBus_Start(t *testing.T) {
 
 func TestMessageBus_Stop(t *testing.T) {
 	log := createTestLogger(t)
-	bus := New(10, log)
+	bus := New(10, 10, log)
 
 	ctx := context.Background()
 	err := bus.Stop()
@@ -87,7 +87,7 @@ func TestMessageBus_Stop(t *testing.T) {
 
 func TestMessageBus_GracefulShutdown(t *testing.T) {
 	log := createTestLogger(t)
-	bus := New(10, log)
+	bus := New(10, 10, log)
 	ctx := context.Background()
 
 	err := bus.Start(ctx)
@@ -131,7 +131,7 @@ func TestMessageBus_GracefulShutdown(t *testing.T) {
 
 func TestMessageBus_ContextCancellation(t *testing.T) {
 	log := createTestLogger(t)
-	bus := New(10, log)
+	bus := New(10, 10, log)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	err := bus.Start(ctx)
