@@ -1,6 +1,7 @@
 package fetch
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,13 +15,27 @@ import (
 )
 
 type FetchTool struct {
-	cfg    *config.Config
-	logger *logger.Logger
+	cfg       *config.Config
+	logger    *logger.Logger
+	resolver  func(string, string) string
+	sessionID string
 }
 
 type FetchArgs struct {
-	URL    string `json:"url"`
-	Format string `json:"format"`
+	URL             string            `json:"url"`
+	Format          string            `json:"format"`
+	Headers         map[string]string `json:"headers"`
+	Method          string            `json:"method"`
+	Body            string            `json:"body"`
+	BasicAuth       *BasicAuth        `json:"basicAuth"`
+	Cookies         map[string]string `json:"cookies"`
+	FollowRedirects *bool             `json:"followRedirects"`
+	Timeout         *int              `json:"timeout"`
+}
+
+type BasicAuth struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 func NewFetchTool(cfg *config.Config, log *logger.Logger) *FetchTool {
@@ -48,13 +63,60 @@ func (t *FetchTool) Parameters() map[string]interface{} {
 			},
 			"format": map[string]interface{}{
 				"type":        "string",
-				"enum":        []string{"text", "html"},
+				"enum":        []string{"text", "html", "markdown", "json"},
 				"default":     "text",
-				"description": "Output format: 'text' (strips HTML tags) or 'html' (raw HTML)",
+				"description": "Output format: 'text' (strips HTML tags), 'html' (raw HTML), 'markdown' (converts HTML to Markdown), or 'json' (parse JSON response)",
+			},
+			"headers": map[string]interface{}{
+				"type":        "object",
+				"description": "Optional HTTP headers. Use $SECRET_NAME to reference secrets. Example: {\"Authorization\": \"Bearer $APIKEY\"}",
+				"additionalProperties": map[string]interface{}{
+					"type": "string",
+				},
+			},
+			"basicAuth": map[string]interface{}{
+				"type":        "object",
+				"description": "Optional Basic Authentication. Use $SECRET_NAME for password to reference secrets. Example: {\"username\": \"user\", \"password\": \"$MYPASS\"}",
+				"properties": map[string]interface{}{
+					"username": map[string]interface{}{
+						"type":        "string",
+						"description": "Username for Basic Auth",
+					},
+					"password": map[string]interface{}{
+						"type":        "string",
+						"description": "Password for Basic Auth. Supports $SECRET_NAME reference",
+					},
+				},
+			},
+			"cookies": map[string]interface{}{
+				"type":        "object",
+				"description": "Optional cookies to send. Example: {\"sessionid\": \"abc123\", \"user_pref\": \"dark\"}",
+				"additionalProperties": map[string]interface{}{
+					"type": "string",
+				},
+			},
+			"followRedirects": map[string]interface{}{
+				"type":        "boolean",
+				"default":     true,
+				"description": "Follow HTTP redirects. Set to false to stop at the first redirect and return the redirect URL",
+			},
+			"timeout": map[string]interface{}{
+				"type":        "integer",
+				"description": "Timeout in seconds (1-120). Overrides the default configuration. Omit to use default timeout",
+				"minimum":     1,
+				"maximum":     120,
 			},
 		},
 		"required": []interface{}{"url"},
 	}
+}
+
+func (t *FetchTool) SetSecretResolver(resolver func(string, string) string) {
+	t.resolver = resolver
+}
+
+func (t *FetchTool) SetSessionID(sessionID string) {
+	t.sessionID = sessionID
 }
 
 func (t *FetchTool) Execute(args string) (string, error) {
@@ -78,8 +140,24 @@ func (t *FetchTool) Execute(args string) (string, error) {
 	}
 
 	timeout := time.Duration(t.cfg.Tools.Fetch.TimeoutSeconds) * time.Second
+	if fetchArgs.Timeout != nil {
+		if *fetchArgs.Timeout < 1 {
+			return "", fmt.Errorf("timeout must be at least 1 second")
+		}
+		if *fetchArgs.Timeout > 120 {
+			return "", fmt.Errorf("timeout cannot exceed 120 seconds")
+		}
+		timeout = time.Duration(*fetchArgs.Timeout) * time.Second
+	}
+
 	client := &http.Client{
 		Timeout: timeout,
+	}
+
+	if fetchArgs.FollowRedirects != nil && !*fetchArgs.FollowRedirects {
+		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
 	}
 
 	req, err := http.NewRequest("GET", fetchArgs.URL, nil)
@@ -88,6 +166,31 @@ func (t *FetchTool) Execute(args string) (string, error) {
 	}
 	req.Header.Set("User-Agent", t.cfg.Tools.Fetch.UserAgent)
 	req.Header.Set("Accept", "*/*")
+
+	for name, value := range fetchArgs.Headers {
+		if t.resolver != nil && t.sessionID != "" {
+			value = t.resolver(t.sessionID, value)
+		}
+		req.Header.Set(name, value)
+	}
+
+	if fetchArgs.BasicAuth != nil && fetchArgs.BasicAuth.Username != "" {
+		password := fetchArgs.BasicAuth.Password
+		if t.resolver != nil && t.sessionID != "" && strings.HasPrefix(password, "$") {
+			password = t.resolver(t.sessionID, password)
+		}
+		authValue := fetchArgs.BasicAuth.Username + ":" + password
+		encodedAuth := base64.StdEncoding.EncodeToString([]byte(authValue))
+		req.Header.Set("Authorization", "Basic "+encodedAuth)
+	}
+
+	if len(fetchArgs.Cookies) > 0 {
+		cookiePairs := make([]string, 0, len(fetchArgs.Cookies))
+		for key, value := range fetchArgs.Cookies {
+			cookiePairs = append(cookiePairs, key+"="+value)
+		}
+		req.Header.Set("Cookie", strings.Join(cookiePairs, "; "))
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -117,13 +220,34 @@ func (t *FetchTool) Execute(args string) (string, error) {
 		content = t.stripHTML(content)
 	}
 
+	if fetchArgs.Format == "markdown" && strings.Contains(contentType, "text/html") {
+		content = t.htmlToMarkdown(content)
+	}
+
 	result := map[string]interface{}{
 		"url":         fetchArgs.URL,
 		"status":      resp.StatusCode,
+		"statusText":  resp.Status,
 		"contentType": contentType,
 		"length":      len(content),
 		"content":     content,
 	}
+
+	if fetchArgs.Format == "json" {
+		var jsonData interface{}
+		if err := json.Unmarshal(body, &jsonData); err != nil {
+			return "", fmt.Errorf("failed to parse JSON response: %w", err)
+		}
+		result["json"] = jsonData
+	}
+
+	headers := make(map[string]string)
+	for key, values := range resp.Header {
+		if len(values) > 0 {
+			headers[key] = values[0]
+		}
+	}
+	result["headers"] = headers
 
 	resultJSON, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
@@ -145,6 +269,88 @@ func (t *FetchTool) stripHTML(html string) string {
 
 	reSpace := regexp.MustCompile(`\s+`)
 	html = reSpace.ReplaceAllString(html, " ")
+
+	return strings.TrimSpace(html)
+}
+
+func (t *FetchTool) htmlToMarkdown(html string) string {
+	reScript := regexp.MustCompile(`(?i)<script[^>]*>.*?</script>`)
+	html = reScript.ReplaceAllString(html, "")
+
+	reStyle := regexp.MustCompile(`(?i)<style[^>]*>.*?</style>`)
+	html = reStyle.ReplaceAllString(html, "")
+
+	reH1 := regexp.MustCompile(`(?i)<h1[^>]*>(.*?)</h1>`)
+	html = reH1.ReplaceAllString(html, "\n# $1\n")
+
+	reH2 := regexp.MustCompile(`(?i)<h2[^>]*>(.*?)</h2>`)
+	html = reH2.ReplaceAllString(html, "\n## $1\n")
+
+	reH3 := regexp.MustCompile(`(?i)<h3[^>]*>(.*?)</h3>`)
+	html = reH3.ReplaceAllString(html, "\n### $1\n")
+
+	reH4 := regexp.MustCompile(`(?i)<h4[^>]*>(.*?)</h4>`)
+	html = reH4.ReplaceAllString(html, "\n#### $1\n")
+
+	reH5 := regexp.MustCompile(`(?i)<h5[^>]*>(.*?)</h5>`)
+	html = reH5.ReplaceAllString(html, "\n##### $1\n")
+
+	reH6 := regexp.MustCompile(`(?i)<h6[^>]*>(.*?)</h6>`)
+	html = reH6.ReplaceAllString(html, "\n###### $1\n")
+
+	reStrong := regexp.MustCompile(`(?i)<strong[^>]*>(.*?)</strong>`)
+	html = reStrong.ReplaceAllString(html, "**$1**")
+
+	reB := regexp.MustCompile(`(?i)<b[^>]*>(.*?)</b>`)
+	html = reB.ReplaceAllString(html, "**$1**")
+
+	reEm := regexp.MustCompile(`(?i)<em[^>]*>(.*?)</em>`)
+	html = reEm.ReplaceAllString(html, "*$1*")
+
+	reI := regexp.MustCompile(`(?i)<i[^>]*>(.*?)</i>`)
+	html = reI.ReplaceAllString(html, "*$1*")
+
+	reCode := regexp.MustCompile(`(?i)<code[^>]*>(.*?)</code>`)
+	html = reCode.ReplaceAllString(html, "`$1`")
+
+	rePre := regexp.MustCompile(`(?i)<pre[^>]*>(.*?)</pre>`)
+	html = rePre.ReplaceAllString(html, "\n```\n$1\n```\n")
+
+	reA := regexp.MustCompile(`(?i)<a[^>]*href=["'](.*?)["'][^>]*>(.*?)</a>`)
+	html = reA.ReplaceAllString(html, "[$2]($1)")
+
+	reImg := regexp.MustCompile(`(?i)<img[^>]*src=["'](.*?)["'][^>]*alt=["'](.*?)["'][^>]*>`)
+	html = reImg.ReplaceAllString(html, "![$2]($1)")
+
+	reImgNoAlt := regexp.MustCompile(`(?i)<img[^>]*src=["'](.*?)["'][^>]*>`)
+	html = reImgNoAlt.ReplaceAllString(html, "![]($1)")
+
+	reUl := regexp.MustCompile(`(?i)</ul>`)
+	html = reUl.ReplaceAllString(html, "")
+
+	reOl := regexp.MustCompile(`(?i)</ol>`)
+	html = reOl.ReplaceAllString(html, "")
+
+	reLi := regexp.MustCompile(`(?i)<li[^>]*>(.*?)</li>`)
+	html = reLi.ReplaceAllString(html, "- $1\n")
+
+	reP := regexp.MustCompile(`(?i)<p[^>]*>`)
+	html = reP.ReplaceAllString(html, "\n")
+
+	reBr := regexp.MustCompile(`(?i)<br\s*/?>`)
+	html = reBr.ReplaceAllString(html, "\n")
+
+	reTags := regexp.MustCompile(`<[^>]+>`)
+	html = reTags.ReplaceAllString(html, "")
+
+	reSpace := regexp.MustCompile(`\s+`)
+	html = reSpace.ReplaceAllString(html, " ")
+
+	reNewlines := regexp.MustCompile(`\n\s+`)
+	html = reNewlines.ReplaceAllString(html, "\n")
+
+	reCleanNewlines := regexp.MustCompile(`\n{3,}`)
+	html = reCleanNewlines.ReplaceAllString(html, "\n\n")
 
 	return strings.TrimSpace(html)
 }
