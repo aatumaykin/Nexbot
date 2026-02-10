@@ -8,6 +8,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/agent/session"
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
+	"github.com/aatumaykin/nexbot/internal/secrets"
 	"github.com/aatumaykin/nexbot/internal/tools"
 )
 
@@ -23,6 +24,7 @@ type Loop struct {
 	logger       *logger.Logger
 	tools        *tools.Registry
 	toolExecutor *ToolExecutor
+	secrets      *secrets.Store
 	config       Config
 }
 
@@ -37,6 +39,7 @@ type Config struct {
 	MaxTokens         int
 	Temperature       float64
 	MaxToolIterations int
+	SecretsDir        string
 }
 
 // NewLoop creates a new execution loop.
@@ -71,6 +74,9 @@ func NewLoop(cfg Config) (*Loop, error) {
 		return nil, fmt.Errorf("failed to create session manager: %w", err)
 	}
 
+	// Create secrets store
+	secretsStore := secrets.NewStore(cfg.SecretsDir)
+
 	// Create context builder
 	contextBldr, err := agentcontext.NewBuilder(agentcontext.Config{
 		Workspace: cfg.Workspace,
@@ -83,8 +89,8 @@ func NewLoop(cfg Config) (*Loop, error) {
 	// Create tool registry
 	toolRegistry := tools.NewRegistry()
 
-	// Create tool executor
-	toolExecutor := NewToolExecutor(cfg.Logger, toolRegistry)
+	// Create tool executor with secrets support
+	toolExecutor := NewToolExecutor(cfg.Logger, toolRegistry, secretsStore)
 
 	// Create session operations
 	sessionOps := NewSessionOperations(sessionMgr)
@@ -99,6 +105,7 @@ func NewLoop(cfg Config) (*Loop, error) {
 		logger:       cfg.Logger,
 		tools:        toolRegistry,
 		toolExecutor: toolExecutor,
+		secrets:      secretsStore,
 		config:       cfg,
 	}, nil
 }
@@ -230,9 +237,12 @@ func (l *Loop) handleToolCalls(ctx stdcontext.Context, sessionID string, iterati
 		return "", fmt.Errorf("failed to add assistant message: %w", err)
 	}
 
+	// Add sessionID to context for secret resolution
+	ctxWithSession := stdcontext.WithValue(ctx, "session_id", sessionID)
+
 	// Prepare and execute tool calls
 	toolCalls := l.toolExecutor.PrepareToolCalls(resp.ToolCalls)
-	results, err := l.toolExecutor.ProcessToolCalls(ctx, toolCalls)
+	results, err := l.toolExecutor.ProcessToolCalls(ctxWithSession, toolCalls)
 	if err != nil {
 		return "", fmt.Errorf("failed to execute tools: %w", err)
 	}
@@ -374,6 +384,11 @@ func (l *Loop) RegisterTool(tool tools.Tool) error {
 // GetTools returns the tool registry.
 func (l *Loop) GetTools() *tools.Registry {
 	return l.tools
+}
+
+// GetSecretsStore returns the secrets store.
+func (l *Loop) GetSecretsStore() *secrets.Store {
+	return l.secrets
 }
 
 // ProcessHeartbeatCheck processes a heartbeat check request by consulting HEARTBEAT.md.

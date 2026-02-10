@@ -11,6 +11,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/channels/telegram"
 	"github.com/aatumaykin/nexbot/internal/commands"
+	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/heartbeat"
 	"github.com/aatumaykin/nexbot/internal/ipc"
@@ -84,6 +85,14 @@ func (a *App) Initialize(ctx context.Context) error {
 		return fmt.Errorf("failed to create sessions subdirectory: %w", err)
 	}
 
+	// 4.1. Initialize secrets directory
+	secretsDir := a.config.SecretsDir()
+	if err := os.MkdirAll(secretsDir, 0700); err != nil {
+		return fmt.Errorf("failed to create secrets directory: %w", err)
+	}
+	a.logger.Info("Secrets directory initialized",
+		logger.Field{Key: "path", Value: secretsDir})
+
 	// 4.1. Create HEARTBEAT.md bootstrap if it doesn't exist
 	heartbeatPath := ws.Subpath("HEARTBEAT.md")
 	if _, err := os.Stat(heartbeatPath); os.IsNotExist(err) {
@@ -143,6 +152,7 @@ func (a *App) Initialize(ctx context.Context) error {
 		MaxTokens:         a.config.Agent.MaxTokens,
 		Temperature:       a.config.Agent.Temperature,
 		MaxToolIterations: a.config.Agent.MaxIterations,
+		SecretsDir:        a.config.SecretsDir(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create agent loop: %w", err)
@@ -267,6 +277,13 @@ func (a *App) Initialize(ctx context.Context) error {
 		)
 		if err := a.telegram.Start(a.ctx); err != nil {
 			return fmt.Errorf("failed to start telegram connector: %w", err)
+		}
+
+		// 8.1. Set secrets store on telegram command handler
+		telegramConnector := a.telegram
+		if cmdHandler := telegramConnector.GetCommandHandler(); cmdHandler != nil {
+			cmdHandler.SetSecretsStore(agentLoop.GetSecretsStore())
+			a.logger.Info("Secrets store configured for telegram commands")
 		}
 	}
 

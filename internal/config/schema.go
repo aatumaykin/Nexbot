@@ -171,3 +171,8 @@ type HeartbeatConfig struct {
 	Enabled              bool `toml:"enabled"`
 	CheckIntervalMinutes int  `toml:"check_interval_minutes"`
 }
+
+// SecretsDir возвращает путь к директории для хранения секретов
+func (c *Config) SecretsDir() string {
+	return filepath.Join(c.Workspace.Path, "secrets")
+}

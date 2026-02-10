@@ -38,6 +38,11 @@ type Connector struct {
 	updateHandler   *UpdateHandler
 }
 
+// GetCommandHandler returns the command handler instance.
+func (c *Connector) GetCommandHandler() *CommandHandler {
+	return c.commandHandler
+}
+
 // New creates a new Telegram connector
 func New(cfg config.TelegramConfig, log *logger.Logger, msgBus *bus.MessageBus) *Connector {
 	conn := &Connector{

@@ -6,20 +6,23 @@ import (
 
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
+	"github.com/aatumaykin/nexbot/internal/secrets"
 	"github.com/aatumaykin/nexbot/internal/tools"
 )
 
 // ToolExecutor handles the execution of tool calls requested by the LLM.
 type ToolExecutor struct {
-	logger *logger.Logger
-	tools  *tools.Registry
+	logger  *logger.Logger
+	tools   *tools.Registry
+	secrets *secrets.Store
 }
 
 // NewToolExecutor creates a new ToolExecutor.
-func NewToolExecutor(logger *logger.Logger, toolsRegistry *tools.Registry) *ToolExecutor {
+func NewToolExecutor(logger *logger.Logger, toolsRegistry *tools.Registry, secretsStore *secrets.Store) *ToolExecutor {
 	return &ToolExecutor{
-		logger: logger,
-		tools:  toolsRegistry,
+		logger:  logger,
+		tools:   toolsRegistry,
+		secrets: secretsStore,
 	}
 }
 
@@ -41,12 +44,39 @@ func (te *ToolExecutor) PrepareToolCalls(llmToolCalls []llm.ToolCall) []tools.To
 	return toolCalls
 }
 
+// SetSecretsStore sets the secrets store (for tools that need secret resolution).
+func (te *ToolExecutor) SetSecretsStore(secretsStore *secrets.Store) {
+	te.secrets = secretsStore
+}
+
+// GetSecretsStore returns the secrets store.
+func (te *ToolExecutor) GetSecretsStore() *secrets.Store {
+	return te.secrets
+}
+
 // ProcessToolCalls executes all tool calls and returns their results.
 func (te *ToolExecutor) ProcessToolCalls(ctx context.Context, toolCalls []tools.ToolCall) ([]tools.ToolResult, error) {
 	results := make([]tools.ToolResult, len(toolCalls))
 
+	// Extract sessionID from context
+	sessionID := getSessionIDFromContext(ctx)
+
+	// Create secret resolver if secrets store is available
+	var secretResolver func(string, string) string
+	if te.secrets != nil && sessionID != "" {
+		resolver := secrets.NewResolver(te.secrets)
+		secretResolver = resolver.Resolve
+	}
+
 	for i, toolCall := range toolCalls {
-		result := te.ExecuteToolCall(ctx, toolCall)
+		// Create execution config with secrets support
+		cfg := &tools.ExecutionConfig{
+			DefaultTimeout: 30 * time.Second,
+			SessionID:      sessionID,
+			SecretResolver: secretResolver,
+		}
+
+		result := te.ExecuteToolCall(ctx, toolCall, cfg)
 		results[i] = result
 	}
 
@@ -54,13 +84,14 @@ func (te *ToolExecutor) ProcessToolCalls(ctx context.Context, toolCalls []tools.
 }
 
 // ExecuteToolCall executes a single tool call with context and logging.
-func (te *ToolExecutor) ExecuteToolCall(ctx context.Context, toolCall tools.ToolCall) tools.ToolResult {
+func (te *ToolExecutor) ExecuteToolCall(ctx context.Context, toolCall tools.ToolCall, cfg *tools.ExecutionConfig) tools.ToolResult {
 	te.logger.DebugCtx(ctx, "executing tool",
 		logger.Field{Key: "tool_name", Value: toolCall.Name},
-		logger.Field{Key: "tool_call_id", Value: toolCall.ID})
+		logger.Field{Key: "tool_call_id", Value: toolCall.ID},
+		logger.Field{Key: "session_id", Value: cfg.SessionID})
 
 	start := time.Now()
-	result, _ := tools.ExecuteToolCallWithContext(te.tools, toolCall, ctx, nil)
+	result, _ := tools.ExecuteToolCallWithContext(te.tools, toolCall, ctx, cfg)
 
 	duration := time.Since(start)
 
@@ -79,4 +110,13 @@ func (te *ToolExecutor) ExecuteToolCall(ctx context.Context, toolCall tools.Tool
 	}
 
 	return result
+}
+
+// getSessionIDFromContext extracts sessionID from context.
+// Uses context value key "session_id".
+func getSessionIDFromContext(ctx context.Context) string {
+	if sessionID, ok := ctx.Value("session_id").(string); ok {
+		return sessionID
+	}
+	return ""
 }

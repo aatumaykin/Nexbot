@@ -18,6 +18,7 @@ type ShellExecTool struct {
 	cfg       *config.Config
 	logger    *logger.Logger
 	validator *ShellValidator
+	resolver  *secretResolverWrapper
 }
 
 // ShellExecArgs represents the arguments for the shell_exec tool.
@@ -32,6 +33,15 @@ func NewShellExecTool(cfg *config.Config, log *logger.Logger) *ShellExecTool {
 		cfg:       cfg,
 		logger:    log,
 		validator: NewShellValidatorFromConfig(cfg.Tools.Shell),
+		resolver:  nil,
+	}
+}
+
+// SetSecretResolver sets the secret resolver function.
+// This is called by the tool executor before execution.
+func (t *ShellExecTool) SetSecretResolver(resolver func(string, string) string) {
+	t.resolver = &secretResolverWrapper{
+		resolve: resolver,
 	}
 }
 
@@ -62,6 +72,13 @@ func (t *ShellExecTool) Parameters() map[string]interface{} {
 // Execute executes a shell command.
 // args is a JSON-encoded string containing the tool's input parameters.
 func (t *ShellExecTool) Execute(args string) (string, error) {
+	return t.ExecuteWithContext(context.Background(), args)
+}
+
+// ExecuteWithContext executes a shell command with context support.
+// The context is used for cancellation and timeouts.
+// It also resolves secret references in the command.
+func (t *ShellExecTool) ExecuteWithContext(ctx context.Context, args string) (string, error) {
 	// Parse arguments
 	var shellArgs ShellExecArgs
 	if err := parseJSON(args, &shellArgs); err != nil {
@@ -76,13 +93,16 @@ func (t *ShellExecTool) Execute(args string) (string, error) {
 	// Trim whitespace
 	shellArgs.Command = strings.TrimSpace(shellArgs.Command)
 
+	// Resolve secrets in command
+	resolvedCommand := t.resolveSecrets(ctx, shellArgs.Command)
+
 	// Check if shell tool is enabled
 	if !t.cfg.Tools.Shell.Enabled {
 		return "", fmt.Errorf("shell_exec tool is disabled in configuration")
 	}
 
 	// Validate command against deny/ask/allowed lists
-	if err := t.validator.Validate(shellArgs.Command); err != nil {
+	if err := t.validator.Validate(resolvedCommand); err != nil {
 		// Check if confirmation is required
 		if strings.Contains(err.Error(), "# CONFIRM_REQUIRED:") {
 			return err.Error(), nil
@@ -96,29 +116,35 @@ func (t *ShellExecTool) Execute(args string) (string, error) {
 		timeout = 30 * time.Second // Default timeout
 	}
 
-	// Log the command execution
+	// Get sessionID for logging (if available)
+	sessionID := getSessionID(ctx)
+
+	// Log the command execution (with masked secrets)
 	if t.logger != nil {
-		t.logger.Info("Executing shell command", logger.Field{Key: "command", Value: shellArgs.Command})
+		maskedCommand := t.maskSecrets(resolvedCommand)
+		t.logger.Info("Executing shell command",
+			logger.Field{Key: "command", Value: maskedCommand},
+			logger.Field{Key: "session_id", Value: sessionID})
 	}
 
 	// Execute command with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	execCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	// Execute command in workspace
-	output, err := t.executeCommand(ctx, shellArgs.Command, t.cfg.Workspace.Path)
+	output, err := t.executeCommand(execCtx, resolvedCommand, t.cfg.Workspace.Path)
 
 	// Log result
 	if t.logger != nil {
 		if err != nil {
-			t.logger.Error("Shell command failed", err, logger.Field{Key: "output", Value: output})
+			t.logger.Error("Shell command failed", err, logger.Field{Key: "session_id", Value: sessionID})
 		} else {
-			t.logger.Info("Shell command succeeded")
+			t.logger.Info("Shell command succeeded", logger.Field{Key: "session_id", Value: sessionID})
 		}
 	}
 
-	// Format output
-	result := fmt.Sprintf("# Command: %s\n", shellArgs.Command)
+	// Format output (mask secrets)
+	result := fmt.Sprintf("# Command: %s\n", t.maskSecrets(resolvedCommand))
 	result += fmt.Sprintf("# Exit code: %v\n", getExitCode(err))
 	result += "# Output:\n"
 	result += output
@@ -128,6 +154,32 @@ func (t *ShellExecTool) Execute(args string) (string, error) {
 	}
 
 	return result, nil
+}
+
+// resolveSecrets resolves secret references in the command.
+func (t *ShellExecTool) resolveSecrets(ctx context.Context, command string) string {
+	if t.resolver == nil {
+		return command
+	}
+
+	sessionID := getSessionID(ctx)
+	return t.resolver.Resolve(sessionID, command)
+}
+
+// maskSecrets masks secret values in the command for logging.
+func (t *ShellExecTool) maskSecrets(command string) string {
+	if t.resolver == nil {
+		return command
+	}
+	return t.resolver.MaskSecrets(command)
+}
+
+// getSessionID extracts sessionID from context.
+func getSessionID(ctx context.Context) string {
+	if sessionID, ok := ctx.Value("session_id").(string); ok {
+		return sessionID
+	}
+	return ""
 }
 
 // executeCommand executes a shell command and returns its combined stdout/stderr.
@@ -168,4 +220,95 @@ func getExitCode(err error) int {
 
 	// For context timeout or other errors, return -1
 	return -1
+}
+
+// secretResolverWrapper wraps a secret resolver function.
+type secretResolverWrapper struct {
+	resolve func(string, string) string
+	// Track resolved secrets for masking purposes
+	resolvedSecrets map[string]string
+}
+
+// Resolve resolves secret references in text.
+func (w *secretResolverWrapper) Resolve(sessionID, text string) string {
+	if w.resolve == nil {
+		return text
+	}
+
+	// Track which secrets were resolved for masking
+	w.resolvedSecrets = make(map[string]string)
+
+	// Simple regex-like pattern matching for $SECRET_NAME
+	result := text
+	pos := 0
+
+	for pos < len(result) {
+		dollarPos := strings.Index(result[pos:], "$")
+		if dollarPos == -1 {
+			break
+		}
+		dollarPos += pos
+
+		// Extract secret name
+		secretName, endPos := extractSecretName(result, dollarPos+1)
+		if secretName == "" {
+			pos = dollarPos + 1
+			continue
+		}
+
+		// Resolve the secret
+		secretValue := w.resolve(sessionID, secretName)
+
+		// Track for masking
+		w.resolvedSecrets[secretName] = secretValue
+
+		// Replace
+		result = result[:dollarPos] + secretValue + result[endPos:]
+		pos = dollarPos + len(secretValue)
+	}
+
+	return result
+}
+
+// MaskSecrets masks resolved secret values in text.
+func (w *secretResolverWrapper) MaskSecrets(text string) string {
+	if w.resolvedSecrets == nil || len(w.resolvedSecrets) == 0 {
+		return text
+	}
+
+	result := text
+	for secretName := range w.resolvedSecrets {
+		reference := "$" + secretName
+		result = strings.ReplaceAll(result, reference, "***")
+	}
+	return result
+}
+
+// extractSecretName extracts a secret name from text starting at given position.
+func extractSecretName(text string, startPos int) (string, int) {
+	if startPos >= len(text) {
+		return "", startPos
+	}
+
+	endPos := startPos
+	for endPos < len(text) {
+		c := text[endPos]
+		if !isAlphaNumeric(c) && c != '_' {
+			break
+		}
+		endPos++
+	}
+
+	if endPos == startPos {
+		return "", startPos
+	}
+
+	return text[startPos:endPos], endPos
+}
+
+// isAlphaNumeric checks if a byte is alphanumeric.
+func isAlphaNumeric(c byte) bool {
+	return (c >= 'a' && c <= 'z') ||
+		(c >= 'A' && c <= 'Z') ||
+		(c >= '0' && c <= '9')
 }

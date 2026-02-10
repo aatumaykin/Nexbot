@@ -71,6 +71,16 @@ type ContextualTool interface {
 	ExecuteWithContext(ctx context.Context, args string) (string, error)
 }
 
+// SecretAwareTool is an optional interface that tools can implement to receive secret resolver.
+// If a tool implements this interface, SetSecretResolver will be called before execution.
+type SecretAwareTool interface {
+	Tool
+
+	// SetSecretResolver sets the secret resolver function.
+	// The resolver function takes (sessionID, text) and returns text with secrets resolved.
+	SetSecretResolver(resolver func(string, string) string)
+}
+
 // Registry manages the collection of available tools.
 // It provides thread-safe operations for registering and retrieving tools.
 type Registry struct {
@@ -174,9 +184,11 @@ type ToolResult struct {
 
 // ExecutionConfig represents the configuration for tool execution.
 type ExecutionConfig struct {
-	Timeout        time.Duration // Timeout for tool execution
-	WorkingDir     string        // Working directory for execution
-	DefaultTimeout time.Duration // Default timeout if not specified
+	Timeout        time.Duration                       // Timeout for tool execution
+	WorkingDir     string                              // Working directory for execution
+	DefaultTimeout time.Duration                       // Default timeout if not specified
+	SessionID      string                              // Session ID for secret isolation
+	SecretResolver func(sessionID, text string) string // Secret resolver function
 }
 
 // DefaultExecutionConfig returns the default execution configuration.
@@ -193,7 +205,7 @@ func ExecuteToolCall(registry *Registry, tc ToolCall) (ToolResult, error) {
 }
 
 // ExecuteToolCallWithContext executes a tool call with execution context and configuration.
-// It supports timeout and working directory settings.
+// It supports timeout, working directory, and secret resolution.
 func ExecuteToolCallWithContext(registry *Registry, tc ToolCall, ctx context.Context, cfg *ExecutionConfig) (ToolResult, error) {
 	tool, ok := registry.Get(tc.Name)
 	if !ok {
@@ -204,6 +216,13 @@ func ExecuteToolCallWithContext(registry *Registry, tc ToolCall, ctx context.Con
 				fmt.Sprintf("tool not found: %s", tc.Name),
 				""),
 		}, nil
+	}
+
+	// Set secret resolver on tool if it supports it
+	if cfg != nil && cfg.SecretResolver != nil {
+		if secretAwareTool, ok := tool.(SecretAwareTool); ok {
+			secretAwareTool.SetSecretResolver(cfg.SecretResolver)
+		}
 	}
 
 	// Determine timeout
@@ -221,6 +240,14 @@ func ExecuteToolCallWithContext(registry *Registry, tc ToolCall, ctx context.Con
 		var cancel context.CancelFunc
 		execCtx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()
+	}
+
+	// Add sessionID and secret resolver to context
+	if cfg != nil && cfg.SessionID != "" {
+		execCtx = context.WithValue(execCtx, "session_id", cfg.SessionID)
+	}
+	if cfg != nil && cfg.SecretResolver != nil {
+		execCtx = context.WithValue(execCtx, "secret_resolver", cfg.SecretResolver)
 	}
 
 	// Create a channel for the result
