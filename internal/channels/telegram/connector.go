@@ -171,6 +171,7 @@ func (c *Connector) registerCommands() error {
 			{Command: "new", Description: "Start a new session (clear history)"},
 			{Command: "status", Description: "Show session and bot status"},
 			{Command: "restart", Description: "Restart bot"},
+			{Command: "secret", Description: "Manage secrets (passwords, tokens)"},
 		},
 	}
 
