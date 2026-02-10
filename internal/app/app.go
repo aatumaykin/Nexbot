@@ -7,18 +7,18 @@ import (
 	"context"
 
 	"github.com/aatumaykin/nexbot/internal/agent/loop"
+	"github.com/aatumaykin/nexbot/internal/agent/subagent"
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/channels/telegram"
+	"github.com/aatumaykin/nexbot/internal/cleanup"
 	"github.com/aatumaykin/nexbot/internal/commands"
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/heartbeat"
+	"github.com/aatumaykin/nexbot/internal/ipc"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/workers"
 	"sync"
-
-	"github.com/aatumaykin/nexbot/internal/agent/subagent"
-	"github.com/aatumaykin/nexbot/internal/ipc"
 )
 
 // App represents the main application structure.
@@ -49,6 +49,9 @@ type App struct {
 
 	// Heartbeat checker
 	heartbeatChecker *heartbeat.Checker
+
+	// Cleanup scheduler
+	cleanupScheduler *cleanup.Scheduler
 
 	// IPC handler
 	ipcHandler *ipc.Handler
