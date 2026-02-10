@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"time"
+
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/channels"
 )
@@ -16,6 +18,10 @@ type MessageResult struct {
 // This abstraction allows tools to send messages without depending
 // directly on the message bus implementation.
 type MessageSender interface {
-	SendMessage(userID, channelType, sessionID, message string) (*MessageResult, error)
-	SendMessageWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) (*MessageResult, error)
+	SendMessage(userID, channelType, sessionID, message string, timeout time.Duration) (*MessageResult, error)
+	SendMessageWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard, timeout time.Duration) (*MessageResult, error)
+	SendEditMessage(userID, channelType, sessionID, messageID, content string, keyboard *bus.InlineKeyboard, timeout time.Duration) (*MessageResult, error)
+	SendDeleteMessage(userID, channelType, sessionID, messageID string, timeout time.Duration) (*MessageResult, error)
+	SendPhotoMessage(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, timeout time.Duration) (*MessageResult, error)
+	SendDocumentMessage(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, timeout time.Duration) (*MessageResult, error)
 }

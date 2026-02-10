@@ -192,6 +192,22 @@ func NewEditMessage(channelType ChannelType, userID, sessionID, messageID, conte
 	}
 }
 
+// NewEditMessageWithKeyboard creates a new edit message with inline keyboard
+func NewEditMessageWithKeyboard(channelType ChannelType, userID, sessionID, messageID, content string, keyboard *InlineKeyboard, correlationID string, metadata map[string]any) *OutboundMessage {
+	return &OutboundMessage{
+		ChannelType:    channelType,
+		UserID:         userID,
+		SessionID:      sessionID,
+		Type:           MessageTypeEdit,
+		Content:        content,
+		CorrelationID:  correlationID,
+		MessageID:      messageID,
+		InlineKeyboard: keyboard,
+		Timestamp:      time.Now(),
+		Metadata:       metadata,
+	}
+}
+
 // NewDeleteMessage creates a new delete message with the current timestamp
 func NewDeleteMessage(channelType ChannelType, userID, sessionID, messageID string, correlationID string, metadata map[string]any) *OutboundMessage {
 	return &OutboundMessage{
@@ -220,6 +236,21 @@ func NewPhotoMessage(channelType ChannelType, userID, sessionID string, media *M
 	}
 }
 
+// NewPhotoMessageWithKeyboard creates a new photo message with inline keyboard
+func NewPhotoMessageWithKeyboard(channelType ChannelType, userID, sessionID string, media *MediaData, keyboard *InlineKeyboard, correlationID string, metadata map[string]any) *OutboundMessage {
+	return &OutboundMessage{
+		ChannelType:    channelType,
+		UserID:         userID,
+		SessionID:      sessionID,
+		Type:           MessageTypePhoto,
+		CorrelationID:  correlationID,
+		Media:          media,
+		InlineKeyboard: keyboard,
+		Timestamp:      time.Now(),
+		Metadata:       metadata,
+	}
+}
+
 // NewDocumentMessage creates a new document message with the current timestamp
 func NewDocumentMessage(channelType ChannelType, userID, sessionID string, media *MediaData, correlationID string, metadata map[string]any) *OutboundMessage {
 	return &OutboundMessage{
@@ -231,6 +262,21 @@ func NewDocumentMessage(channelType ChannelType, userID, sessionID string, media
 		Media:         media,
 		Timestamp:     time.Now(),
 		Metadata:      metadata,
+	}
+}
+
+// NewDocumentMessageWithKeyboard creates a new document message with inline keyboard
+func NewDocumentMessageWithKeyboard(channelType ChannelType, userID, sessionID string, media *MediaData, keyboard *InlineKeyboard, correlationID string, metadata map[string]any) *OutboundMessage {
+	return &OutboundMessage{
+		ChannelType:    channelType,
+		UserID:         userID,
+		SessionID:      sessionID,
+		Type:           MessageTypeDocument,
+		CorrelationID:  correlationID,
+		Media:          media,
+		InlineKeyboard: keyboard,
+		Timestamp:      time.Now(),
+		Metadata:       metadata,
 	}
 }
 
