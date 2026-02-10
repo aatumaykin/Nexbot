@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/aatumaykin/nexbot/internal/agent"
 	"github.com/aatumaykin/nexbot/internal/bus"
@@ -13,24 +14,40 @@ import (
 
 // mockMessageSender is a simple mock implementation of agent.MessageSender.
 type mockMessageSender struct {
-	sendFunc         func(userID, channelType, sessionID, message string) (*agent.MessageResult, error)
-	sendKeyboardFunc func(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) (*agent.MessageResult, error)
+	sendFunc         func(userID, channelType, sessionID, message string, timeout time.Duration) (*agent.MessageResult, error)
+	sendKeyboardFunc func(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error)
 }
 
-func (m *mockMessageSender) SendMessage(userID, channelType, sessionID, message string) (*agent.MessageResult, error) {
+func (m *mockMessageSender) SendMessage(userID, channelType, sessionID, message string, timeout time.Duration) (*agent.MessageResult, error) {
 	if m.sendFunc != nil {
-		return m.sendFunc(userID, channelType, sessionID, message)
+		return m.sendFunc(userID, channelType, sessionID, message, timeout)
 	}
 	return &agent.MessageResult{Success: true}, nil
 }
 
-func (m *mockMessageSender) SendMessageWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) (*agent.MessageResult, error) {
+func (m *mockMessageSender) SendMessageWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error) {
 	if m.sendKeyboardFunc != nil {
-		return m.sendKeyboardFunc(userID, channelType, sessionID, message, keyboard)
+		return m.sendKeyboardFunc(userID, channelType, sessionID, message, keyboard, timeout)
 	}
 	if m.sendFunc != nil {
-		return m.sendFunc(userID, channelType, sessionID, message)
+		return m.sendFunc(userID, channelType, sessionID, message, timeout)
 	}
+	return &agent.MessageResult{Success: true}, nil
+}
+
+func (m *mockMessageSender) SendEditMessage(userID, channelType, sessionID, messageID, content string, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error) {
+	return &agent.MessageResult{Success: true}, nil
+}
+
+func (m *mockMessageSender) SendDeleteMessage(userID, channelType, sessionID, messageID string, timeout time.Duration) (*agent.MessageResult, error) {
+	return &agent.MessageResult{Success: true}, nil
+}
+
+func (m *mockMessageSender) SendPhotoMessage(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error) {
+	return &agent.MessageResult{Success: true}, nil
+}
+
+func (m *mockMessageSender) SendDocumentMessage(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error) {
 	return &agent.MessageResult{Success: true}, nil
 }
 
@@ -68,7 +85,7 @@ func setupSendMessageTool(t *testing.T) *SendMessageTool {
 
 	// Create mock that delegates to real message bus
 	sender := &mockMessageSender{
-		sendFunc: func(userID, channelType, sessionID, message string) (*agent.MessageResult, error) {
+		sendFunc: func(userID, channelType, sessionID, message string, timeout time.Duration) (*agent.MessageResult, error) {
 			correlationID := sessionID // Use session ID as correlation ID
 			event := bus.NewOutboundMessage(
 				bus.ChannelType(channelType),
@@ -132,7 +149,7 @@ func TestSendMessageToolPublishError(t *testing.T) {
 
 	// Create mock that returns error
 	sender := &mockMessageSender{
-		sendFunc: func(userID, channelType, sessionID, message string) (*agent.MessageResult, error) {
+		sendFunc: func(userID, channelType, sessionID, message string, timeout time.Duration) (*agent.MessageResult, error) {
 			return nil, assert.AnError
 		},
 	}
@@ -278,7 +295,7 @@ func TestSendMessageToolWithInlineKeyboard(t *testing.T) {
 
 	var capturedKeyboard *bus.InlineKeyboard
 	sender := &mockMessageSender{
-		sendKeyboardFunc: func(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) (*agent.MessageResult, error) {
+		sendKeyboardFunc: func(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error) {
 			capturedKeyboard = keyboard
 			return &agent.MessageResult{Success: true}, nil
 		},
@@ -335,11 +352,11 @@ func TestSendMessageToolWithEmptyKeyboard(t *testing.T) {
 
 	var sentWithKeyboard bool
 	sender := &mockMessageSender{
-		sendFunc: func(userID, channelType, sessionID, message string) (*agent.MessageResult, error) {
+		sendFunc: func(userID, channelType, sessionID, message string, timeout time.Duration) (*agent.MessageResult, error) {
 			sentWithKeyboard = false
 			return &agent.MessageResult{Success: true}, nil
 		},
-		sendKeyboardFunc: func(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) (*agent.MessageResult, error) {
+		sendKeyboardFunc: func(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error) {
 			sentWithKeyboard = true
 			return &agent.MessageResult{Success: true}, nil
 		},

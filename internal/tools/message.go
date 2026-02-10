@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/aatumaykin/nexbot/internal/agent"
 	"github.com/aatumaykin/nexbot/internal/bus"
@@ -21,7 +22,12 @@ type SendMessageTool struct {
 // SendMessageArgs represents the arguments for the send message tool.
 type SendMessageArgs struct {
 	SessionID      string              `json:"session_id"`                // required
-	Message        string              `json:"message"`                   // required
+	Message        string              `json:"message,omitempty"`         // optional for edit/delete/media types
+	MessageType    string              `json:"message_type,omitempty"`    // text, edit, delete, photo, document
+	MessageID      string              `json:"message_id,omitempty"`      // required for edit/delete
+	MediaURL       string              `json:"media_url,omitempty"`       // required for photo/document
+	MediaCaption   string              `json:"media_caption,omitempty"`   // optional caption for media
+	ReplyTo        string              `json:"reply_to,omitempty"`        // message ID to reply to
 	InlineKeyboard *InlineKeyboardArgs `json:"inline_keyboard,omitempty"` // optional
 }
 
@@ -65,9 +71,30 @@ func (t *SendMessageTool) Parameters() map[string]interface{} {
 				"type":        "string",
 				"description": "Session ID for the message context (e.g., 'telegram:123456789').",
 			},
+			"message_type": map[string]interface{}{
+				"type":        "string",
+				"description": "Message type: 'text' (default), 'edit', 'delete', 'photo', 'document'.",
+				"enum":        []string{"text", "edit", "delete", "photo", "document"},
+			},
 			"message": map[string]interface{}{
 				"type":        "string",
-				"description": "Message content to send. This is a required field.",
+				"description": "Message content to send. Required for 'text' and 'edit' types.",
+			},
+			"message_id": map[string]interface{}{
+				"type":        "string",
+				"description": "ID of the message to edit or delete. Required for 'edit' and 'delete' types.",
+			},
+			"media_url": map[string]interface{}{
+				"type":        "string",
+				"description": "URL of the media file. Required for 'photo' and 'document' types.",
+			},
+			"media_caption": map[string]interface{}{
+				"type":        "string",
+				"description": "Caption for the media (photo/document).",
+			},
+			"reply_to": map[string]interface{}{
+				"type":        "string",
+				"description": "Message ID to reply to.",
 			},
 			"inline_keyboard": map[string]interface{}{
 				"type":        "object",
@@ -104,7 +131,7 @@ func (t *SendMessageTool) Parameters() map[string]interface{} {
 				"required": []string{"rows"},
 			},
 		},
-		"required": []string{"session_id", "message"},
+		"required": []string{"session_id"},
 	}
 }
 
@@ -125,9 +152,17 @@ func (t *SendMessageTool) Execute(args string) (string, error) {
 	if !strings.Contains(params.SessionID, ":") {
 		return "", errors.New("session_id must be in format 'channel:chat_id' (e.g., 'telegram:123456789')")
 	}
-	if params.Message == "" {
-		return "", fmt.Errorf("message parameter is required for send_message action")
+
+	// Default message_type is "text"
+	messageType := params.MessageType
+	if messageType == "" {
+		messageType = "text"
 	}
+
+	// Parse session_id to extract channel and user_id
+	parts := strings.SplitN(params.SessionID, ":", 2)
+	channelType := parts[0]
+	userID := parts[1]
 
 	// Convert InlineKeyboardArgs to bus.InlineKeyboard if provided
 	var keyboard *bus.InlineKeyboard
@@ -147,52 +182,115 @@ func (t *SendMessageTool) Execute(args string) (string, error) {
 		}
 	}
 
-	// Send message through the sender interface
+	// Execute based on message type
 	var result *agent.MessageResult
 	var err error
+	var actionDesc string
+	timeout := 30 * time.Second // Default timeout for message sending
 
-	if keyboard != nil {
-		result, err = t.sender.SendMessageWithKeyboard("", "", params.SessionID, params.Message, keyboard)
-	} else {
-		result, err = t.sender.SendMessage("", "", params.SessionID, params.Message)
+	switch messageType {
+	case "text":
+		if params.Message == "" {
+			return "", fmt.Errorf("message parameter is required for text messages")
+		}
+		if keyboard != nil {
+			result, err = t.sender.SendMessageWithKeyboard(userID, channelType, params.SessionID, params.Message, keyboard, timeout)
+			actionDesc = "text message with keyboard"
+		} else {
+			result, err = t.sender.SendMessage(userID, channelType, params.SessionID, params.Message, timeout)
+			actionDesc = "text message"
+		}
+
+	case "edit":
+		if params.MessageID == "" {
+			return "", fmt.Errorf("message_id parameter is required for edit messages")
+		}
+		if params.Message == "" {
+			return "", fmt.Errorf("message parameter is required for edit messages")
+		}
+		result, err = t.sender.SendEditMessage(userID, channelType, params.SessionID, params.MessageID, params.Message, keyboard, timeout)
+		actionDesc = "edit message"
+
+	case "delete":
+		if params.MessageID == "" {
+			return "", fmt.Errorf("message_id parameter is required for delete messages")
+		}
+		result, err = t.sender.SendDeleteMessage(userID, channelType, params.SessionID, params.MessageID, timeout)
+		actionDesc = "delete message"
+
+	case "photo":
+		if params.MediaURL == "" {
+			return "", fmt.Errorf("media_url parameter is required for photo messages")
+		}
+		media := &bus.MediaData{
+			Type:    "photo",
+			URL:     params.MediaURL,
+			Caption: params.MediaCaption,
+		}
+		result, err = t.sender.SendPhotoMessage(userID, channelType, params.SessionID, media, keyboard, timeout)
+		actionDesc = "photo message"
+
+	case "document":
+		if params.MediaURL == "" {
+			return "", fmt.Errorf("media_url parameter is required for document messages")
+		}
+		media := &bus.MediaData{
+			Type:    "document",
+			URL:     params.MediaURL,
+			Caption: params.MediaCaption,
+		}
+		result, err = t.sender.SendDocumentMessage(userID, channelType, params.SessionID, media, keyboard, timeout)
+		actionDesc = "document message"
+
+	default:
+		return "", fmt.Errorf("unknown message_type: %s (valid types: text, edit, delete, photo, document)", messageType)
 	}
 
 	if err != nil {
-		return "", fmt.Errorf("failed to send message: %w", err)
+		return "", fmt.Errorf("failed to send %s: %w", actionDesc, err)
 	}
 
 	t.logger.Info("send_message tool executed",
 		logger.Field{Key: "session_id", Value: params.SessionID},
-		logger.Field{Key: "message_length", Value: len(params.Message)},
+		logger.Field{Key: "message_type", Value: messageType},
+		logger.Field{Key: "action", Value: actionDesc},
 		logger.Field{Key: "has_keyboard", Value: keyboard != nil})
 
 	if !result.Success {
 		var errorMsg string
 		if result.Error != nil {
-			errorMsg = fmt.Sprintf(`❌ Failed to send message
+			errorMsg = fmt.Sprintf(`❌ Failed to send %s
 
 %s
 
 The message was not delivered. You may need to:
 - Fix the message formatting (if it's a parse error)
 - Retry after the specified delay (if rate limited)
-- Check permissions and bot rights
-
-Original message: %q`,
-				result.Error.ToLLMContext(),
-				params.Message)
+- Check permissions and bot rights`,
+				actionDesc,
+				result.Error.ToLLMContext())
 		} else {
-			errorMsg = "❌ Failed to send message (no error details available)"
+			errorMsg = fmt.Sprintf("❌ Failed to send %s (no error details available)", actionDesc)
 		}
 		return "", errors.New(errorMsg)
+	}
+
+	var details string
+	switch messageType {
+	case "text", "edit":
+		details = fmt.Sprintf("   Message: %s", params.Message)
+	case "photo", "document":
+		details = fmt.Sprintf("   Media URL: %s\n   Caption: %s", params.MediaURL, params.MediaCaption)
+	case "delete":
+		details = fmt.Sprintf("   Deleted message ID: %s", params.MessageID)
 	}
 
 	keyboardInfo := ""
 	if keyboard != nil {
 		keyboardInfo = fmt.Sprintf("\n   Keyboard: %d row(s)", len(keyboard.Rows))
 	}
-	return fmt.Sprintf("✅ Message sent successfully\n   Session: %s\n   Message: %s%s",
-		params.SessionID, params.Message, keyboardInfo), nil
+	return fmt.Sprintf("✅ %s sent successfully\n   Session: %s\n%s%s",
+		actionDesc, params.SessionID, details, keyboardInfo), nil
 }
 
 // ToSchema returns the OpenAI-compatible schema for this tool.
