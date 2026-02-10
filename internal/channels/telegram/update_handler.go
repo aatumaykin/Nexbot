@@ -51,19 +51,27 @@ func (uh *UpdateHandler) Handle(update telego.Update) error {
 		userID = fmt.Sprintf("%d", msg.From.ID)
 	}
 
-	// Check for /new command before whitelist check (allow clearing session for authorized users)
+	// Check for built-in commands (handle before whitelist check)
 	if msg.Text == "/new" {
 		return uh.connector.commandHandler.HandleCommand(uh.connector.ctx, uh.connector.isAllowedUser, msg, "new_session", userID)
 	}
 
-	// Check for /status command - shows session and bot status (doesn't go to session)
 	if msg.Text == "/status" {
 		return uh.connector.commandHandler.HandleCommand(uh.connector.ctx, uh.connector.isAllowedUser, msg, "status", userID)
 	}
 
-	// Check for /restart command - restarts the bot
 	if msg.Text == "/restart" {
 		return uh.connector.commandHandler.HandleCommand(uh.connector.ctx, uh.connector.isAllowedUser, msg, "restart", userID)
+	}
+
+	if msg.Text == "/help" || msg.Text == "/settings" {
+		command := msg.Text[1:] // remove leading '/'
+		return uh.connector.commandHandler.HandleCommand(uh.connector.ctx, uh.connector.isAllowedUser, msg, command, userID)
+	}
+
+	// Handle /secret commands with arguments
+	if len(msg.Text) > 7 && msg.Text[:7] == "/secret" {
+		return uh.connector.commandHandler.HandleCommand(uh.connector.ctx, uh.connector.isAllowedUser, msg, "secret", userID)
 	}
 
 	// Check whitelist - block unauthorized users
