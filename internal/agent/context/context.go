@@ -181,12 +181,6 @@ func (b *Builder) BuildForSession(sessionID string, messages []llm.Message) (str
 	// We'll split it into parts for readability
 	systemPromptWithSession := sessionInfo + systemPrompt
 
-	// Log system prompt preview (first 500 chars)
-	preview := systemPromptWithSession
-	if len(preview) > 500 {
-		preview = preview[:500] + "..."
-	}
-
 	return systemPromptWithSession, nil
 }
 

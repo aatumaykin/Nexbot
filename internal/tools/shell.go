@@ -176,7 +176,7 @@ func (t *ShellExecTool) maskSecrets(command string) string {
 
 // getSessionID extracts sessionID from context.
 func getSessionID(ctx context.Context) string {
-	if sessionID, ok := ctx.Value("session_id").(string); ok {
+	if sessionID, ok := ctx.Value(sessionIDKey).(string); ok {
 		return sessionID
 	}
 	return ""

@@ -91,7 +91,7 @@ func TestCallbackHandler_Handle_UnauthorizedUser(t *testing.T) {
 
 	// Wait a bit for async operations
 	time.Sleep(10 * time.Millisecond)
-	mockBus.Stop()
+	_ = mockBus.Stop()
 }
 
 func TestCallbackHandler_Handle_AuthorizedUser(t *testing.T) {
@@ -169,7 +169,7 @@ func TestCallbackHandler_Handle_AuthorizedUser(t *testing.T) {
 		t.Fatal("Timeout waiting for inbound message")
 	}
 
-	mockBus.Stop()
+	_ = mockBus.Stop()
 }
 
 func TestCallbackHandler_Handle_InlineMessage(t *testing.T) {
@@ -237,5 +237,5 @@ func TestCallbackHandler_Handle_InlineMessage(t *testing.T) {
 		t.Fatal("Timeout waiting for inbound message")
 	}
 
-	mockBus.Stop()
+	_ = mockBus.Stop()
 }

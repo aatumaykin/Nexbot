@@ -83,7 +83,7 @@ func TestFetchTool_Execute_Success(t *testing.T) {
 	// Create mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hello, World!"))
+		_, _ = w.Write([]byte("Hello, World!"))
 	}))
 	defer server.Close()
 
@@ -165,7 +165,7 @@ func TestFetchTool_Execute_HTMLStrip(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(htmlContent))
+		_, _ = w.Write([]byte(htmlContent))
 	}))
 	defer server.Close()
 
@@ -212,7 +212,7 @@ func TestFetchTool_Execute_RawHTML(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(htmlContent))
+		_, _ = w.Write([]byte(htmlContent))
 	}))
 	defer server.Close()
 
@@ -242,7 +242,7 @@ func TestFetchTool_Execute_Timeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(2 * time.Second)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Response"))
+		_, _ = w.Write([]byte("Response"))
 	}))
 	defer server.Close()
 
@@ -275,7 +275,7 @@ func TestFetchTool_Execute_SizeLimit(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(largeContent))
+		_, _ = w.Write([]byte(largeContent))
 	}))
 	defer server.Close()
 
@@ -308,7 +308,7 @@ func TestFetchTool_Execute_JSONResponse(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(jsonResponse))
+		_, _ = w.Write([]byte(jsonResponse))
 	}))
 	defer server.Close()
 
@@ -337,7 +337,7 @@ func TestFetchTool_Execute_JSONResponse(t *testing.T) {
 func TestFetchTool_Execute_HTTPError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("Not Found"))
+		_, _ = w.Write([]byte("Not Found"))
 	}))
 	defer server.Close()
 
@@ -419,7 +419,7 @@ func TestFetchTool_Execute_UserAgent(t *testing.T) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	}))
 	defer server.Close()
 

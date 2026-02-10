@@ -3,7 +3,6 @@ package cron
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/aatumaykin/nexbot/internal/bus"
@@ -58,9 +57,4 @@ type Job struct {
 	Metadata   map[string]string `json:"metadata,omitempty"`    // Additional job metadata
 	Executed   bool              `json:"executed,omitempty"`    // Whether the job has been executed
 	ExecutedAt *time.Time        `json:"executed_at,omitempty"` // When the job was executed
-}
-
-// generateSessionID generates a session ID for a cron job
-func generateSessionID(jobID string) string {
-	return fmt.Sprintf("cron_%s", jobID)
 }

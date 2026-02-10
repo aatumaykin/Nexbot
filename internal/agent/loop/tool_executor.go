@@ -113,9 +113,9 @@ func (te *ToolExecutor) ExecuteToolCall(ctx context.Context, toolCall tools.Tool
 }
 
 // getSessionIDFromContext extracts sessionID from context.
-// Uses context value key "session_id".
+// Uses context value key sessionIDKey.
 func getSessionIDFromContext(ctx context.Context) string {
-	if sessionID, ok := ctx.Value("session_id").(string); ok {
+	if sessionID, ok := ctx.Value(sessionIDKey).(string); ok {
 		return sessionID
 	}
 	return ""

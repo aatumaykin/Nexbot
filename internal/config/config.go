@@ -314,16 +314,16 @@ func applyDefaults(c *Config) {
 	if c.Channels.Telegram.SendTimeoutSeconds == 0 {
 		c.Channels.Telegram.SendTimeoutSeconds = 5
 	}
-	if c.Channels.Telegram.EnableInlineUpdates == false {
+	if !c.Channels.Telegram.EnableInlineUpdates {
 		c.Channels.Telegram.EnableInlineUpdates = true
 	}
 	if c.Channels.Telegram.DefaultParseMode == "" {
 		c.Channels.Telegram.DefaultParseMode = "markdown"
 	}
-	if c.Channels.Telegram.EnableInlineKeyboard == false {
+	if !c.Channels.Telegram.EnableInlineKeyboard {
 		c.Channels.Telegram.EnableInlineKeyboard = true
 	}
-	if c.Channels.Telegram.QuietMode == false {
+	if !c.Channels.Telegram.QuietMode {
 		c.Channels.Telegram.QuietMode = false
 	}
 	if c.Channels.Telegram.AnswerCallbackTimeout == 0 {

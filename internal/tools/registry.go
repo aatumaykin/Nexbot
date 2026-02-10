@@ -8,6 +8,14 @@ import (
 	"time"
 )
 
+// contextKey is the type for context keys to avoid collisions
+type contextKey struct{}
+
+var (
+	sessionIDKey      contextKey = struct{}{}
+	secretResolverKey contextKey = struct{}{}
+)
+
 // Error codes for tool execution
 const (
 	// Validation errors
@@ -244,10 +252,10 @@ func ExecuteToolCallWithContext(registry *Registry, tc ToolCall, ctx context.Con
 
 	// Add sessionID and secret resolver to context
 	if cfg != nil && cfg.SessionID != "" {
-		execCtx = context.WithValue(execCtx, "session_id", cfg.SessionID)
+		execCtx = context.WithValue(execCtx, sessionIDKey, cfg.SessionID)
 	}
 	if cfg != nil && cfg.SecretResolver != nil {
-		execCtx = context.WithValue(execCtx, "secret_resolver", cfg.SecretResolver)
+		execCtx = context.WithValue(execCtx, secretResolverKey, cfg.SecretResolver)
 	}
 
 	// Create a channel for the result

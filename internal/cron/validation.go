@@ -3,7 +3,6 @@ package cron
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/robfig/cron/v3"
 )
@@ -15,14 +14,6 @@ func validateCronExpression(expression string, parser cron.Parser) error {
 		return fmt.Errorf("invalid cron expression: %w", err)
 	}
 	return nil
-}
-
-// validateOneshotJobExecution validates if an oneshot job should be executed now
-func validateOneshotJobExecution(executeAt *time.Time, now time.Time) (shouldExecute bool) {
-	if executeAt == nil {
-		return false
-	}
-	return executeAt.Before(now) || executeAt.Equal(now)
 }
 
 // validateJobFields validates job fields based on job type and tool type

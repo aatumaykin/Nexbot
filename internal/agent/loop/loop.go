@@ -12,6 +12,13 @@ import (
 	"github.com/aatumaykin/nexbot/internal/tools"
 )
 
+// contextKey is the type for context keys to avoid collisions
+type contextKey struct{}
+
+var (
+	sessionIDKey contextKey = struct{}{}
+)
+
 // Loop manages the agent's execution loop, coordinating between
 // LLM provider, session management, and tools.
 type Loop struct {
@@ -238,7 +245,7 @@ func (l *Loop) handleToolCalls(ctx stdcontext.Context, sessionID string, iterati
 	}
 
 	// Add sessionID to context for secret resolution
-	ctxWithSession := stdcontext.WithValue(ctx, "session_id", sessionID)
+	ctxWithSession := stdcontext.WithValue(ctx, sessionIDKey, sessionID)
 
 	// Prepare and execute tool calls
 	toolCalls := l.toolExecutor.PrepareToolCalls(resp.ToolCalls)
