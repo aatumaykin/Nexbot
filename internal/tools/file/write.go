@@ -118,6 +118,25 @@ func (t *WriteFileTool) Execute(args string) (string, error) {
 	// Clean the path to prevent directory traversal
 	cleanPath := filepath.Clean(fullPath)
 
+	// Validate skill files
+	if isSkillPath(cleanPath) {
+		workspaceRoot := ""
+		if t.workspace != nil {
+			workspaceRoot = t.workspace.Path()
+		}
+
+		if err := validateSkillPath(cleanPath, workspaceRoot); err != nil {
+			return "", err
+		}
+
+		// Validate skill content if enabled in config
+		if t.cfg.Tools.File.ValidateSkillContent {
+			if err := validateSkillContent(fileArgs.Content); err != nil {
+				return "", fmt.Errorf("skill content validation failed: %w", err)
+			}
+		}
+	}
+
 	// Check for directory traversal attempts
 	if filepath.IsAbs(fileArgs.Path) {
 		// Check whitelist_dirs

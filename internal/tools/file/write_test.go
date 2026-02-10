@@ -1,6 +1,7 @@
 package file
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -323,4 +324,170 @@ func TestWriteFileTool_WhitelistAbsolutePaths(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected relative path to work, got error: %v", err)
 	}
+}
+
+func TestWriteFileTool_SkillPathValidation_InvalidLocation(t *testing.T) {
+	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+	tool := NewWriteFileTool(ws, testConfig())
+
+	args := `{"path": "tmp/SKILL.md", "content": "---\nname: test\n---\ncontent"}`
+	_, err := tool.Execute(args)
+
+	if err == nil {
+		t.Error("Expected error for skill file outside skills/ directory")
+	}
+
+	if err != nil && !contains(err.Error(), "skills/") {
+		t.Errorf("Expected error to mention 'skills/', got: %v", err)
+	}
+}
+
+func TestWriteFileTool_SkillPathValidation_InvalidFilename(t *testing.T) {
+	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+	tool := NewWriteFileTool(ws, testConfig())
+
+	args := `{"path": "skills/my_skill/my_file.txt", "content": "content"}`
+	_, err := tool.Execute(args)
+
+	if err != nil {
+		t.Errorf("Expected non-SKILL.md file to succeed, got error: %v", err)
+	}
+}
+
+func TestWriteFileTool_SkillPathValidation_ValidPath(t *testing.T) {
+	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+	tool := NewWriteFileTool(ws, testConfig())
+
+	args := `{"path": "skills/my_skill/SKILL.md", "content": "---\nname: test\n---\ncontent"}`
+	_, err := tool.Execute(args)
+
+	if err != nil {
+		t.Errorf("Expected valid skill path to succeed, got error: %v", err)
+	}
+
+	filePath := filepath.Join(tmpDir, "skills", "my_skill", "SKILL.md")
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		t.Error("Expected skill file to be created")
+	}
+}
+
+func TestWriteFileTool_SkillContentValidation_Enabled(t *testing.T) {
+	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+
+	cfg := &config.Config{
+		Tools: config.ToolsConfig{
+			File: config.FileToolConfig{
+				Enabled:              true,
+				ValidateSkillContent: true,
+			},
+		},
+	}
+
+	tool := NewWriteFileTool(ws, cfg)
+
+	args := `{"path": "skills/my_skill/SKILL.md", "content": "invalid content without frontmatter"}`
+	_, err := tool.Execute(args)
+
+	if err == nil {
+		t.Error("Expected error for skill content without YAML frontmatter")
+	}
+
+	if err != nil && !contains(err.Error(), "validation failed") {
+		t.Errorf("Expected error to mention validation failure, got: %v", err)
+	}
+}
+
+func TestWriteFileTool_SkillContentValidation_Disabled(t *testing.T) {
+	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+
+	cfg := &config.Config{
+		Tools: config.ToolsConfig{
+			File: config.FileToolConfig{
+				Enabled:              true,
+				ValidateSkillContent: false,
+			},
+		},
+	}
+
+	tool := NewWriteFileTool(ws, cfg)
+
+	args := `{"path": "skills/my_skill/SKILL.md", "content": "invalid content without frontmatter"}`
+	_, err := tool.Execute(args)
+
+	if err != nil {
+		t.Errorf("Expected validation disabled to succeed, got error: %v", err)
+	}
+}
+
+func TestWriteFileTool_SkillContentValidation_Valid(t *testing.T) {
+	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+
+	cfg := &config.Config{
+		Tools: config.ToolsConfig{
+			File: config.FileToolConfig{
+				Enabled:              true,
+				ValidateSkillContent: true,
+			},
+		},
+	}
+
+	tool := NewWriteFileTool(ws, cfg)
+
+	content := `---
+name: test-skill
+description: A test skill
+version: 1.0.0
+---
+
+Test content here`
+
+	args := fmt.Sprintf(`{"path": "skills/my_skill/SKILL.md", "content": %s}`, jsonEscape(content))
+	_, err := tool.Execute(args)
+
+	if err != nil {
+		t.Errorf("Expected valid skill content to succeed, got error: %v", err)
+	}
+}
+
+func TestWriteFileTool_SkillContentValidation_MissingClosingDelimiter(t *testing.T) {
+	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+
+	cfg := &config.Config{
+		Tools: config.ToolsConfig{
+			File: config.FileToolConfig{
+				Enabled:              true,
+				ValidateSkillContent: true,
+			},
+		},
+	}
+
+	tool := NewWriteFileTool(ws, cfg)
+
+	content := `---
+name: test-skill
+description: A test skill
+Test content without closing delimiter`
+
+	args := fmt.Sprintf(`{"path": "skills/my_skill/SKILL.md", "content": %s}`, jsonEscape(content))
+	_, err := tool.Execute(args)
+
+	if err == nil {
+		t.Error("Expected error for skill content without closing YAML delimiter")
+	}
+
+	if err != nil && !contains(err.Error(), "validation failed") {
+		t.Errorf("Expected error to mention validation failure, got: %v", err)
+	}
+}
+
+func jsonEscape(s string) string {
+	b, _ := json.Marshal(s)
+	return string(b)
 }

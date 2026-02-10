@@ -32,6 +32,7 @@ type Config struct {
 	Workers    WorkersConfig    `toml:"workers"`
 	Subagent   SubagentConfig   `toml:"subagent"`
 	MessageBus MessageBusConfig `toml:"message_bus"`
+	Cleanup    CleanupConfig    `toml:"cleanup"`
 }
 
 // WorkspaceConfig представляет конфигурацию workspace
@@ -107,9 +108,10 @@ type ToolsConfig struct {
 
 // FileToolConfig представляет конфигурацию file tool
 type FileToolConfig struct {
-	Enabled       bool     `toml:"enabled"`
-	WhitelistDirs []string `toml:"whitelist_dirs"`
-	ReadOnlyDirs  []string `toml:"read_only_dirs"`
+	Enabled              bool     `toml:"enabled"`
+	WhitelistDirs        []string `toml:"whitelist_dirs"`
+	ReadOnlyDirs         []string `toml:"read_only_dirs"`
+	ValidateSkillContent bool     `toml:"validate_skill_content"`
 }
 
 // ShellToolConfig представляет конфигурацию shell tool
@@ -170,6 +172,16 @@ type MessageBusConfig struct {
 type HeartbeatConfig struct {
 	Enabled              bool `toml:"enabled"`
 	CheckIntervalMinutes int  `toml:"check_interval_minutes"`
+}
+
+// CleanupConfig представляет конфигурацию cleanup механизма для памяти и сессий
+type CleanupConfig struct {
+	Enabled          bool  `toml:"enabled"`
+	IntervalMinutes  int   `toml:"interval_minutes"`
+	MessageTTLDays   int   `toml:"message_ttl_days"`
+	SessionTTLDays   int   `toml:"session_ttl_days"`
+	MaxSessionSizeMB int64 `toml:"max_session_size_mb"`
+	KeepActiveDays   int   `toml:"keep_active_days"`
 }
 
 // SecretsDir возвращает путь к директории для хранения секретов

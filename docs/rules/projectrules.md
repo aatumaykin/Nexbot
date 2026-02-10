@@ -39,6 +39,11 @@
 - Each skill is a directory with SKILL.md
 - Format: YAML frontmatter + markdown body
 - OpenClaw compatible
+- Skill files must be created via write_file tool with path validation:
+  - Must be in skills/ directory
+  - Must be named SKILL.md
+  - Optional YAML frontmatter validation (configurable via tools.file.validate_skill_content)
+  - Required frontmatter fields: name, description
 
 ## Tool Calling
 
