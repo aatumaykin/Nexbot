@@ -12,8 +12,9 @@ import (
 
 // CommandHandler handles Telegram bot commands
 type CommandHandler struct {
-	logger *logger.Logger
-	bus    *bus.MessageBus
+	logger    *logger.Logger
+	bus       *bus.MessageBus
+	connector *Connector
 }
 
 // NewCommandHandler creates a new command handler
@@ -22,6 +23,11 @@ func NewCommandHandler(logger *logger.Logger, msgBus *bus.MessageBus) *CommandHa
 		logger: logger,
 		bus:    msgBus,
 	}
+}
+
+// SetConnector sets the connector reference (called after connector initialization)
+func (h *CommandHandler) SetConnector(conn *Connector) {
+	h.connector = conn
 }
 
 // HandleCommand processes a bot command
@@ -37,6 +43,14 @@ func (h *CommandHandler) HandleCommand(
 			logger.Field{Key: "user_id", Value: userID},
 			logger.Field{Key: "command", Value: "/" + command})
 		return nil
+	}
+
+	// Handle built-in commands directly
+	switch command {
+	case "help":
+		return h.sendHelpResponse(ctx, msg.Chat.ID)
+	case "settings":
+		return h.sendSettingsResponse(ctx, msg.Chat.ID)
 	}
 
 	// Create inbound message (extracted once)
@@ -60,6 +74,69 @@ func (h *CommandHandler) HandleCommand(
 	h.logger.DebugCtx(ctx, command+" command published",
 		logger.Field{Key: "user_id", Value: userID},
 		logger.Field{Key: "session_id", Value: sessionID})
+
+	return nil
+}
+
+// sendHelpResponse sends help message to the specified chat
+func (h *CommandHandler) sendHelpResponse(ctx context.Context, chatID int64) error {
+	if h.connector == nil || h.connector.bot == nil {
+		return fmt.Errorf("connector or bot not initialized")
+	}
+
+	helpText := `🤖 *Nexbot - AI Assistant*
+
+Доступные команды:
+/new - Начать новую сессию (очистить историю)
+/status - Показать статус сессии и бота
+/settings - Настройки бота
+/restart - Перезапустить бота
+/help - Показать справку`
+
+	params := &telego.SendMessageParams{
+		ChatID:    telego.ChatID{ID: chatID},
+		Text:      helpText,
+		ParseMode: telego.ModeMarkdown,
+	}
+
+	_, err := h.connector.bot.SendMessage(ctx, params)
+	if err != nil {
+		return fmt.Errorf("failed to send help message: %w", err)
+	}
+
+	h.logger.DebugCtx(ctx, "help message sent", logger.Field{Key: "chat_id", Value: chatID})
+
+	return nil
+}
+
+// sendSettingsResponse sends settings message to the specified chat
+func (h *CommandHandler) sendSettingsResponse(ctx context.Context, chatID int64) error {
+	if h.connector == nil || h.connector.bot == nil {
+		return fmt.Errorf("connector or bot not initialized")
+	}
+
+	settingsText := `⚙️ *Настройки бота*
+
+Текущие настройки:
+
+*Статус:* Работает
+*Канал:* Telegram
+*Провайдер:* Z.ai (GLM-4.7)
+
+Примечание: Настройки управляются через конфигурационный файл TOML.`
+
+	params := &telego.SendMessageParams{
+		ChatID:    telego.ChatID{ID: chatID},
+		Text:      settingsText,
+		ParseMode: telego.ModeMarkdown,
+	}
+
+	_, err := h.connector.bot.SendMessage(ctx, params)
+	if err != nil {
+		return fmt.Errorf("failed to send settings message: %w", err)
+	}
+
+	h.logger.DebugCtx(ctx, "settings message sent", logger.Field{Key: "chat_id", Value: chatID})
 
 	return nil
 }
