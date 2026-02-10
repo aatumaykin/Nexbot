@@ -272,7 +272,7 @@ func (w *secretResolverWrapper) Resolve(sessionID, text string) string {
 
 // MaskSecrets masks resolved secret values in text.
 func (w *secretResolverWrapper) MaskSecrets(text string) string {
-	if w.resolvedSecrets == nil || len(w.resolvedSecrets) == 0 {
+	if len(w.resolvedSecrets) == 0 {
 		return text
 	}
 
