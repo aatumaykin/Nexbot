@@ -74,10 +74,16 @@ func (c *Connector) handleSendError(err error, msg bus.OutboundMessage, chatID i
 				logger.Field{Key: "chat_id", Value: chatID},
 				logger.Field{Key: "correlation_id", Value: msg.CorrelationID})
 			c.publishResult(msg, chatID, false, plainErr)
+			return
 		}
 
+		// Publish result for non-markdown Telegram API errors
 		c.publishResult(msg, chatID, false, err)
+		return
 	}
+
+	// Publish result for non-Telegram errors
+	c.publishResult(msg, chatID, false, err)
 }
 
 // publishResult публикует результат отправки сообщения

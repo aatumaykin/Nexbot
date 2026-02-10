@@ -24,4 +24,10 @@ type MessageSender interface {
 	SendDeleteMessage(userID, channelType, sessionID, messageID string, timeout time.Duration) (*MessageResult, error)
 	SendPhotoMessage(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, timeout time.Duration) (*MessageResult, error)
 	SendDocumentMessage(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, timeout time.Duration) (*MessageResult, error)
+	SendMessageAsync(userID, channelType, sessionID, message string) error
+	SendMessageAsyncWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) error
+	SendEditMessageAsync(userID, channelType, sessionID, messageID, content string, keyboard *bus.InlineKeyboard) error
+	SendDeleteMessageAsync(userID, channelType, sessionID, messageID string) error
+	SendPhotoMessageAsync(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard) error
+	SendDocumentMessageAsync(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard) error
 }

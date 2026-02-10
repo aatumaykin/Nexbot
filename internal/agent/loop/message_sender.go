@@ -350,4 +350,186 @@ func (a *AgentMessageSender) SendDocumentMessage(userID, channelType, sessionID 
 	}
 }
 
+// SendMessageAsync sends a message asynchronously (fire-and-forget) without waiting for result.
+// Implements agent.MessageSender interface.
+func (a *AgentMessageSender) SendMessageAsync(userID, channelType, sessionID, message string) error {
+	return a.SendMessageAsyncWithKeyboard(userID, channelType, sessionID, message, nil)
+}
+
+// SendMessageAsyncWithKeyboard sends a message with inline keyboard asynchronously.
+// Implements agent.MessageSender interface.
+func (a *AgentMessageSender) SendMessageAsyncWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) error {
+	correlationID := uuid.New().String()
+
+	var event *bus.OutboundMessage
+	if keyboard != nil {
+		event = bus.NewOutboundMessageWithKeyboard(
+			bus.ChannelType(channelType),
+			userID,
+			sessionID,
+			message,
+			correlationID,
+			keyboard,
+			nil, // metadata
+		)
+	} else {
+		event = bus.NewOutboundMessage(
+			bus.ChannelType(channelType),
+			userID,
+			sessionID,
+			message,
+			correlationID,
+			nil, // metadata
+		)
+	}
+
+	if err := a.messageBus.PublishOutbound(*event); err != nil {
+		a.logger.ErrorCtx(context.Background(), "failed to publish outbound message (async)", err,
+			logger.Field{Key: "user_id", Value: userID},
+			logger.Field{Key: "channel_type", Value: channelType})
+		return fmt.Errorf("failed to publish message: %w", err)
+	}
+
+	return nil
+}
+
+// SendEditMessageAsync edits an existing message asynchronously.
+// Implements agent.MessageSender interface.
+func (a *AgentMessageSender) SendEditMessageAsync(userID, channelType, sessionID, messageID, content string, keyboard *bus.InlineKeyboard) error {
+	correlationID := uuid.New().String()
+
+	var event *bus.OutboundMessage
+	if keyboard != nil {
+		event = bus.NewEditMessageWithKeyboard(
+			bus.ChannelType(channelType),
+			userID,
+			sessionID,
+			messageID,
+			content,
+			keyboard,
+			correlationID,
+			nil, // metadata
+		)
+	} else {
+		event = bus.NewEditMessage(
+			bus.ChannelType(channelType),
+			userID,
+			sessionID,
+			messageID,
+			content,
+			correlationID,
+			nil, // metadata
+		)
+	}
+
+	if err := a.messageBus.PublishOutbound(*event); err != nil {
+		a.logger.ErrorCtx(context.Background(), "failed to publish edit message (async)", err,
+			logger.Field{Key: "user_id", Value: userID},
+			logger.Field{Key: "channel_type", Value: channelType},
+			logger.Field{Key: "message_id", Value: messageID})
+		return fmt.Errorf("failed to publish edit message: %w", err)
+	}
+
+	return nil
+}
+
+// SendDeleteMessageAsync deletes an existing message asynchronously.
+// Implements agent.MessageSender interface.
+func (a *AgentMessageSender) SendDeleteMessageAsync(userID, channelType, sessionID, messageID string) error {
+	correlationID := uuid.New().String()
+
+	event := bus.NewDeleteMessage(
+		bus.ChannelType(channelType),
+		userID,
+		sessionID,
+		messageID,
+		correlationID,
+		nil, // metadata
+	)
+
+	if err := a.messageBus.PublishOutbound(*event); err != nil {
+		a.logger.ErrorCtx(context.Background(), "failed to publish delete message (async)", err,
+			logger.Field{Key: "user_id", Value: userID},
+			logger.Field{Key: "channel_type", Value: channelType},
+			logger.Field{Key: "message_id", Value: messageID})
+		return fmt.Errorf("failed to publish delete message: %w", err)
+	}
+
+	return nil
+}
+
+// SendPhotoMessageAsync sends a photo message asynchronously.
+// Implements agent.MessageSender interface.
+func (a *AgentMessageSender) SendPhotoMessageAsync(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard) error {
+	correlationID := uuid.New().String()
+
+	var event *bus.OutboundMessage
+	if keyboard != nil {
+		event = bus.NewPhotoMessageWithKeyboard(
+			bus.ChannelType(channelType),
+			userID,
+			sessionID,
+			media,
+			keyboard,
+			correlationID,
+			nil, // metadata
+		)
+	} else {
+		event = bus.NewPhotoMessage(
+			bus.ChannelType(channelType),
+			userID,
+			sessionID,
+			media,
+			correlationID,
+			nil, // metadata
+		)
+	}
+
+	if err := a.messageBus.PublishOutbound(*event); err != nil {
+		a.logger.ErrorCtx(context.Background(), "failed to publish photo message (async)", err,
+			logger.Field{Key: "user_id", Value: userID},
+			logger.Field{Key: "channel_type", Value: channelType})
+		return fmt.Errorf("failed to publish photo message: %w", err)
+	}
+
+	return nil
+}
+
+// SendDocumentMessageAsync sends a document message asynchronously.
+// Implements agent.MessageSender interface.
+func (a *AgentMessageSender) SendDocumentMessageAsync(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard) error {
+	correlationID := uuid.New().String()
+
+	var event *bus.OutboundMessage
+	if keyboard != nil {
+		event = bus.NewDocumentMessageWithKeyboard(
+			bus.ChannelType(channelType),
+			userID,
+			sessionID,
+			media,
+			keyboard,
+			correlationID,
+			nil, // metadata
+		)
+	} else {
+		event = bus.NewDocumentMessage(
+			bus.ChannelType(channelType),
+			userID,
+			sessionID,
+			media,
+			correlationID,
+			nil, // metadata
+		)
+	}
+
+	if err := a.messageBus.PublishOutbound(*event); err != nil {
+		a.logger.ErrorCtx(context.Background(), "failed to publish document message (async)", err,
+			logger.Field{Key: "user_id", Value: userID},
+			logger.Field{Key: "channel_type", Value: channelType})
+		return fmt.Errorf("failed to publish document message: %w", err)
+	}
+
+	return nil
+}
+
 var _ agent.MessageSender = (*AgentMessageSender)(nil) // Compile-time interface check

@@ -51,6 +51,30 @@ func (m *mockMessageSender) SendDocumentMessage(userID, channelType, sessionID s
 	return &agent.MessageResult{Success: true}, nil
 }
 
+func (m *mockMessageSender) SendMessageAsync(userID, channelType, sessionID, message string) error {
+	return nil
+}
+
+func (m *mockMessageSender) SendMessageAsyncWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) error {
+	return nil
+}
+
+func (m *mockMessageSender) SendEditMessageAsync(userID, channelType, sessionID, messageID, content string, keyboard *bus.InlineKeyboard) error {
+	return nil
+}
+
+func (m *mockMessageSender) SendDeleteMessageAsync(userID, channelType, sessionID, messageID string) error {
+	return nil
+}
+
+func (m *mockMessageSender) SendPhotoMessageAsync(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard) error {
+	return nil
+}
+
+func (m *mockMessageSender) SendDocumentMessageAsync(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard) error {
+	return nil
+}
+
 // setupTestEnvironmentForMessage creates a test environment with message bus and logger.
 func setupTestEnvironmentForMessage(t *testing.T) (*bus.MessageBus, *logger.Logger, func()) {
 	// Create logger
@@ -374,4 +398,263 @@ func TestSendMessageToolWithEmptyKeyboard(t *testing.T) {
 	assert.NoError(t, err, "Execute should not return error")
 	assert.False(t, sentWithKeyboard, "Should not use SendMessageWithKeyboard for empty keyboard")
 	assert.Contains(t, result, "sent successfully", "Result should contain success message")
+}
+
+// TestSendMessageToolAsyncMode tests async mode (wait_for_confirmation=false).
+func TestSendMessageToolAsyncMode(t *testing.T) {
+	log, err := logger.New(logger.Config{
+		Level:  "error",
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err, "Failed to create logger")
+
+	var usedAsync bool
+	sender := &mockMessageSender{
+		sendFunc: func(userID, channelType, sessionID, message string, timeout time.Duration) (*agent.MessageResult, error) {
+			usedAsync = false
+			return &agent.MessageResult{Success: true}, nil
+		},
+	}
+	tool := NewSendMessageTool(sender, log)
+
+	args := `{
+		"message": "Async message",
+		"session_id": "telegram:123456789",
+		"wait_for_confirmation": false
+	}`
+
+	result, err := tool.Execute(args)
+	assert.NoError(t, err, "Execute should not return error")
+	assert.Contains(t, result, "queued successfully", "Result should mention async mode")
+	assert.Contains(t, result, "async", "Result should indicate async mode")
+	assert.False(t, usedAsync, "Should use async method, not sync")
+}
+
+// TestSendMessageToolAsyncModeWithKeyboard tests async mode with keyboard.
+func TestSendMessageToolAsyncModeWithKeyboard(t *testing.T) {
+	log, err := logger.New(logger.Config{
+		Level:  "error",
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err, "Failed to create logger")
+
+	var usedAsync bool
+	sender := &mockMessageSender{
+		sendKeyboardFunc: func(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error) {
+			usedAsync = false
+			return &agent.MessageResult{Success: true}, nil
+		},
+	}
+	tool := NewSendMessageTool(sender, log)
+
+	args := `{
+		"message": "Async message with keyboard",
+		"session_id": "telegram:123456789",
+		"wait_for_confirmation": false,
+		"inline_keyboard": {
+			"rows": [
+				[{"text": "Button", "data": "btn"}]
+			]
+		}
+	}`
+
+	result, err := tool.Execute(args)
+	assert.NoError(t, err, "Execute should not return error")
+	assert.Contains(t, result, "queued successfully", "Result should mention async mode")
+	assert.False(t, usedAsync, "Should use async method, not sync")
+}
+
+// TestSendMessageToolAsyncModeEdit tests async mode for edit message.
+func TestSendMessageToolAsyncModeEdit(t *testing.T) {
+	log, err := logger.New(logger.Config{
+		Level:  "error",
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err, "Failed to create logger")
+
+	sender := &mockMessageSender{}
+	tool := NewSendMessageTool(sender, log)
+
+	args := `{
+		"message": "Edited async",
+		"session_id": "telegram:123456789",
+		"message_type": "edit",
+		"message_id": "123",
+		"wait_for_confirmation": false
+	}`
+
+	result, err := tool.Execute(args)
+	assert.NoError(t, err, "Execute should not return error")
+	assert.Contains(t, result, "queued successfully", "Result should mention async mode")
+	assert.Contains(t, result, "Message ID: 123", "Result should contain message ID")
+}
+
+// TestSendMessageToolAsyncModeDelete tests async mode for delete message.
+func TestSendMessageToolAsyncModeDelete(t *testing.T) {
+	log, err := logger.New(logger.Config{
+		Level:  "error",
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err, "Failed to create logger")
+
+	sender := &mockMessageSender{}
+	tool := NewSendMessageTool(sender, log)
+
+	args := `{
+		"session_id": "telegram:123456789",
+		"message_type": "delete",
+		"message_id": "456",
+		"wait_for_confirmation": false
+	}`
+
+	result, err := tool.Execute(args)
+	assert.NoError(t, err, "Execute should not return error")
+	assert.Contains(t, result, "queued successfully", "Result should mention async mode")
+	assert.Contains(t, result, "Message ID: 456", "Result should contain message ID")
+}
+
+// TestSendMessageToolAsyncModePhoto tests async mode for photo message.
+func TestSendMessageToolAsyncModePhoto(t *testing.T) {
+	log, err := logger.New(logger.Config{
+		Level:  "error",
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err, "Failed to create logger")
+
+	sender := &mockMessageSender{}
+	tool := NewSendMessageTool(sender, log)
+
+	args := `{
+		"session_id": "telegram:123456789",
+		"message_type": "photo",
+		"media_url": "https://example.com/photo.jpg",
+		"media_caption": "Async photo",
+		"wait_for_confirmation": false
+	}`
+
+	result, err := tool.Execute(args)
+	assert.NoError(t, err, "Execute should not return error")
+	assert.Contains(t, result, "queued successfully", "Result should mention async mode")
+	assert.Contains(t, result, "https://example.com/photo.jpg", "Result should contain media URL")
+}
+
+// TestSendMessageToolAsyncModeDocument tests async mode for document message.
+func TestSendMessageToolAsyncModeDocument(t *testing.T) {
+	log, err := logger.New(logger.Config{
+		Level:  "error",
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err, "Failed to create logger")
+
+	sender := &mockMessageSender{}
+	tool := NewSendMessageTool(sender, log)
+
+	args := `{
+		"session_id": "telegram:123456789",
+		"message_type": "document",
+		"media_url": "https://example.com/file.pdf",
+		"media_caption": "Async document",
+		"wait_for_confirmation": false
+	}`
+
+	result, err := tool.Execute(args)
+	assert.NoError(t, err, "Execute should not return error")
+	assert.Contains(t, result, "queued successfully", "Result should mention async mode")
+	assert.Contains(t, result, "https://example.com/file.pdf", "Result should contain media URL")
+}
+
+// TestSendMessageToolCustomTimeout tests custom timeout in sync mode.
+func TestSendMessageToolCustomTimeout(t *testing.T) {
+	log, err := logger.New(logger.Config{
+		Level:  "error",
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err, "Failed to create logger")
+
+	var capturedTimeout time.Duration
+	sender := &mockMessageSender{
+		sendFunc: func(userID, channelType, sessionID, message string, timeout time.Duration) (*agent.MessageResult, error) {
+			capturedTimeout = timeout
+			return &agent.MessageResult{Success: true}, nil
+		},
+	}
+	tool := NewSendMessageTool(sender, log)
+
+	args := `{
+		"message": "Message with timeout",
+		"session_id": "telegram:123456789",
+		"timeout": 10
+	}`
+
+	result, err := tool.Execute(args)
+	assert.NoError(t, err, "Execute should not return error")
+	assert.Contains(t, result, "sent successfully", "Result should contain success message")
+	assert.Equal(t, 10*time.Second, capturedTimeout, "Timeout should be 10 seconds")
+}
+
+// TestSendMessageToolDefaultTimeout tests default timeout in sync mode.
+func TestSendMessageToolDefaultTimeout(t *testing.T) {
+	log, err := logger.New(logger.Config{
+		Level:  "error",
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err, "Failed to create logger")
+
+	var capturedTimeout time.Duration
+	sender := &mockMessageSender{
+		sendFunc: func(userID, channelType, sessionID, message string, timeout time.Duration) (*agent.MessageResult, error) {
+			capturedTimeout = timeout
+			return &agent.MessageResult{Success: true}, nil
+		},
+	}
+	tool := NewSendMessageTool(sender, log)
+
+	args := `{
+		"message": "Message with default timeout",
+		"session_id": "telegram:123456789"
+	}`
+
+	result, err := tool.Execute(args)
+	assert.NoError(t, err, "Execute should not return error")
+	assert.Contains(t, result, "sent successfully", "Result should contain success message")
+	assert.Equal(t, 5*time.Second, capturedTimeout, "Default timeout should be 5 seconds")
+}
+
+// TestSendMessageToolWaitForConfirmationTrue tests sync mode with explicit wait_for_confirmation=true.
+func TestSendMessageToolWaitForConfirmationTrue(t *testing.T) {
+	log, err := logger.New(logger.Config{
+		Level:  "error",
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err, "Failed to create logger")
+
+	var usedAsync bool
+	sender := &mockMessageSender{
+		sendFunc: func(userID, channelType, sessionID, message string, timeout time.Duration) (*agent.MessageResult, error) {
+			usedAsync = false
+			return &agent.MessageResult{Success: true}, nil
+		},
+	}
+	tool := NewSendMessageTool(sender, log)
+
+	args := `{
+		"message": "Sync message",
+		"session_id": "telegram:123456789",
+		"wait_for_confirmation": true
+	}`
+
+	result, err := tool.Execute(args)
+	assert.NoError(t, err, "Execute should not return error")
+	assert.Contains(t, result, "sent successfully", "Result should contain success message")
+	assert.NotContains(t, result, "queued successfully", "Result should not mention async mode")
+	assert.False(t, usedAsync, "Should use sync method")
 }

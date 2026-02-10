@@ -21,14 +21,16 @@ type SendMessageTool struct {
 
 // SendMessageArgs represents the arguments for the send message tool.
 type SendMessageArgs struct {
-	SessionID      string              `json:"session_id"`                // required
-	Message        string              `json:"message,omitempty"`         // optional for edit/delete/media types
-	MessageType    string              `json:"message_type,omitempty"`    // text, edit, delete, photo, document
-	MessageID      string              `json:"message_id,omitempty"`      // required for edit/delete
-	MediaURL       string              `json:"media_url,omitempty"`       // required for photo/document
-	MediaCaption   string              `json:"media_caption,omitempty"`   // optional caption for media
-	ReplyTo        string              `json:"reply_to,omitempty"`        // message ID to reply to
-	InlineKeyboard *InlineKeyboardArgs `json:"inline_keyboard,omitempty"` // optional
+	SessionID           string              `json:"session_id"`                      // required
+	Message             string              `json:"message,omitempty"`               // optional for edit/delete/media types
+	MessageType         string              `json:"message_type,omitempty"`          // text, edit, delete, photo, document
+	MessageID           string              `json:"message_id,omitempty"`            // required for edit/delete
+	MediaURL            string              `json:"media_url,omitempty"`             // required for photo/document
+	MediaCaption        string              `json:"media_caption,omitempty"`         // optional caption for media
+	ReplyTo             string              `json:"reply_to,omitempty"`              // message ID to reply to
+	InlineKeyboard      *InlineKeyboardArgs `json:"inline_keyboard,omitempty"`       // optional
+	WaitForConfirmation *bool               `json:"wait_for_confirmation,omitempty"` // true for sync mode (default), false for async mode
+	Timeout             int                 `json:"timeout,omitempty"`               // timeout in seconds for sync mode (default: 5)
 }
 
 // InlineKeyboardArgs represents an inline keyboard for the send message tool.
@@ -130,6 +132,14 @@ func (t *SendMessageTool) Parameters() map[string]interface{} {
 				},
 				"required": []string{"rows"},
 			},
+			"wait_for_confirmation": map[string]interface{}{
+				"type":        "boolean",
+				"description": "Wait for confirmation from channel before returning (default: true). Set to false for async (fire-and-forget) mode.",
+			},
+			"timeout": map[string]interface{}{
+				"type":        "integer",
+				"description": "Timeout in seconds for sync mode (default: 5). Ignored in async mode.",
+			},
 		},
 		"required": []string{"session_id"},
 	}
@@ -186,19 +196,49 @@ func (t *SendMessageTool) Execute(args string) (string, error) {
 	var result *agent.MessageResult
 	var err error
 	var actionDesc string
-	timeout := 30 * time.Second // Default timeout for message sending
+
+	timeout := 30 * time.Second
+	if params.Timeout > 0 {
+		timeout = time.Duration(params.Timeout) * time.Second
+	}
+	waitForConfirmation := true
+	if params.WaitForConfirmation != nil {
+		waitForConfirmation = *params.WaitForConfirmation
+	}
+	if waitForConfirmation && timeout == 30*time.Second {
+		timeout = 5 * time.Second
+	}
 
 	switch messageType {
 	case "text":
 		if params.Message == "" {
 			return "", fmt.Errorf("message parameter is required for text messages")
 		}
-		if keyboard != nil {
-			result, err = t.sender.SendMessageWithKeyboard(userID, channelType, params.SessionID, params.Message, keyboard, timeout)
-			actionDesc = "text message with keyboard"
+		if waitForConfirmation {
+			if keyboard != nil {
+				result, err = t.sender.SendMessageWithKeyboard(userID, channelType, params.SessionID, params.Message, keyboard, timeout)
+				actionDesc = "text message with keyboard"
+			} else {
+				result, err = t.sender.SendMessage(userID, channelType, params.SessionID, params.Message, timeout)
+				actionDesc = "text message"
+			}
 		} else {
-			result, err = t.sender.SendMessage(userID, channelType, params.SessionID, params.Message, timeout)
-			actionDesc = "text message"
+			if keyboard != nil {
+				err = t.sender.SendMessageAsyncWithKeyboard(userID, channelType, params.SessionID, params.Message, keyboard)
+			} else {
+				err = t.sender.SendMessageAsync(userID, channelType, params.SessionID, params.Message)
+			}
+			actionDesc = "text message (async)"
+			if err != nil {
+				return "", fmt.Errorf("failed to send %s: %w", actionDesc, err)
+			}
+			t.logger.Info("send_message tool executed (async mode)",
+				logger.Field{Key: "session_id", Value: params.SessionID},
+				logger.Field{Key: "message_type", Value: messageType},
+				logger.Field{Key: "action", Value: actionDesc},
+				logger.Field{Key: "has_keyboard", Value: keyboard != nil})
+			return fmt.Sprintf("✅ %s queued successfully\n   Session: %s\n   Message: %s",
+				actionDesc, params.SessionID, params.Message), nil
 		}
 
 	case "edit":
@@ -208,15 +248,45 @@ func (t *SendMessageTool) Execute(args string) (string, error) {
 		if params.Message == "" {
 			return "", fmt.Errorf("message parameter is required for edit messages")
 		}
-		result, err = t.sender.SendEditMessage(userID, channelType, params.SessionID, params.MessageID, params.Message, keyboard, timeout)
-		actionDesc = "edit message"
+		if waitForConfirmation {
+			result, err = t.sender.SendEditMessage(userID, channelType, params.SessionID, params.MessageID, params.Message, keyboard, timeout)
+			actionDesc = "edit message"
+		} else {
+			err = t.sender.SendEditMessageAsync(userID, channelType, params.SessionID, params.MessageID, params.Message, keyboard)
+			actionDesc = "edit message (async)"
+			if err != nil {
+				return "", fmt.Errorf("failed to send %s: %w", actionDesc, err)
+			}
+			t.logger.Info("send_message tool executed (async mode)",
+				logger.Field{Key: "session_id", Value: params.SessionID},
+				logger.Field{Key: "message_type", Value: messageType},
+				logger.Field{Key: "action", Value: actionDesc},
+				logger.Field{Key: "message_id", Value: params.MessageID})
+			return fmt.Sprintf("✅ %s queued successfully\n   Session: %s\n   Message ID: %s",
+				actionDesc, params.SessionID, params.MessageID), nil
+		}
 
 	case "delete":
 		if params.MessageID == "" {
 			return "", fmt.Errorf("message_id parameter is required for delete messages")
 		}
-		result, err = t.sender.SendDeleteMessage(userID, channelType, params.SessionID, params.MessageID, timeout)
-		actionDesc = "delete message"
+		if waitForConfirmation {
+			result, err = t.sender.SendDeleteMessage(userID, channelType, params.SessionID, params.MessageID, timeout)
+			actionDesc = "delete message"
+		} else {
+			err = t.sender.SendDeleteMessageAsync(userID, channelType, params.SessionID, params.MessageID)
+			actionDesc = "delete message (async)"
+			if err != nil {
+				return "", fmt.Errorf("failed to send %s: %w", actionDesc, err)
+			}
+			t.logger.Info("send_message tool executed (async mode)",
+				logger.Field{Key: "session_id", Value: params.SessionID},
+				logger.Field{Key: "message_type", Value: messageType},
+				logger.Field{Key: "action", Value: actionDesc},
+				logger.Field{Key: "message_id", Value: params.MessageID})
+			return fmt.Sprintf("✅ %s queued successfully\n   Session: %s\n   Message ID: %s",
+				actionDesc, params.SessionID, params.MessageID), nil
+		}
 
 	case "photo":
 		if params.MediaURL == "" {
@@ -227,8 +297,23 @@ func (t *SendMessageTool) Execute(args string) (string, error) {
 			URL:     params.MediaURL,
 			Caption: params.MediaCaption,
 		}
-		result, err = t.sender.SendPhotoMessage(userID, channelType, params.SessionID, media, keyboard, timeout)
-		actionDesc = "photo message"
+		if waitForConfirmation {
+			result, err = t.sender.SendPhotoMessage(userID, channelType, params.SessionID, media, keyboard, timeout)
+			actionDesc = "photo message"
+		} else {
+			err = t.sender.SendPhotoMessageAsync(userID, channelType, params.SessionID, media, keyboard)
+			actionDesc = "photo message (async)"
+			if err != nil {
+				return "", fmt.Errorf("failed to send %s: %w", actionDesc, err)
+			}
+			t.logger.Info("send_message tool executed (async mode)",
+				logger.Field{Key: "session_id", Value: params.SessionID},
+				logger.Field{Key: "message_type", Value: messageType},
+				logger.Field{Key: "action", Value: actionDesc},
+				logger.Field{Key: "media_url", Value: params.MediaURL})
+			return fmt.Sprintf("✅ %s queued successfully\n   Session: %s\n   Media URL: %s",
+				actionDesc, params.SessionID, params.MediaURL), nil
+		}
 
 	case "document":
 		if params.MediaURL == "" {
@@ -239,8 +324,23 @@ func (t *SendMessageTool) Execute(args string) (string, error) {
 			URL:     params.MediaURL,
 			Caption: params.MediaCaption,
 		}
-		result, err = t.sender.SendDocumentMessage(userID, channelType, params.SessionID, media, keyboard, timeout)
-		actionDesc = "document message"
+		if waitForConfirmation {
+			result, err = t.sender.SendDocumentMessage(userID, channelType, params.SessionID, media, keyboard, timeout)
+			actionDesc = "document message"
+		} else {
+			err = t.sender.SendDocumentMessageAsync(userID, channelType, params.SessionID, media, keyboard)
+			actionDesc = "document message (async)"
+			if err != nil {
+				return "", fmt.Errorf("failed to send %s: %w", actionDesc, err)
+			}
+			t.logger.Info("send_message tool executed (async mode)",
+				logger.Field{Key: "session_id", Value: params.SessionID},
+				logger.Field{Key: "message_type", Value: messageType},
+				logger.Field{Key: "action", Value: actionDesc},
+				logger.Field{Key: "media_url", Value: params.MediaURL})
+			return fmt.Sprintf("✅ %s queued successfully\n   Session: %s\n   Media URL: %s",
+				actionDesc, params.SessionID, params.MediaURL), nil
+		}
 
 	default:
 		return "", fmt.Errorf("unknown message_type: %s (valid types: text, edit, delete, photo, document)", messageType)
