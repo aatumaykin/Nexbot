@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JohannesKaufmann/html-to-markdown"
+	"github.com/PuerkitoBio/goquery"
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/logger"
 )
@@ -106,6 +108,16 @@ func (t *FetchTool) Parameters() map[string]interface{} {
 				"minimum":     1,
 				"maximum":     120,
 			},
+			"method": map[string]interface{}{
+				"type":        "string",
+				"enum":        []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
+				"default":     "GET",
+				"description": "HTTP method to use",
+			},
+			"body": map[string]interface{}{
+				"type":        "string",
+				"description": "Request body (for POST, PUT, PATCH methods)",
+			},
 		},
 		"required": []interface{}{"url"},
 	}
@@ -134,6 +146,12 @@ func (t *FetchTool) Execute(args string) (string, error) {
 	if fetchArgs.Format == "" {
 		fetchArgs.Format = "text"
 	}
+	if fetchArgs.Method == "" {
+		fetchArgs.Method = "GET"
+	}
+	if fetchArgs.Body != "" && (fetchArgs.Method == "GET" || fetchArgs.Method == "HEAD" || fetchArgs.Method == "DELETE") {
+		fetchArgs.Body = ""
+	}
 
 	if !t.cfg.Tools.Fetch.Enabled {
 		return "", fmt.Errorf("web_fetch tool is disabled in configuration")
@@ -160,12 +178,28 @@ func (t *FetchTool) Execute(args string) (string, error) {
 		}
 	}
 
-	req, err := http.NewRequest("GET", fetchArgs.URL, nil)
+	var bodyReader io.Reader
+	if fetchArgs.Body != "" {
+		bodyReader = strings.NewReader(fetchArgs.Body)
+	}
+	req, err := http.NewRequest(fetchArgs.Method, fetchArgs.URL, bodyReader)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("User-Agent", t.cfg.Tools.Fetch.UserAgent)
 	req.Header.Set("Accept", "*/*")
+	if fetchArgs.Body != "" {
+		contentTypeSet := false
+		for name := range fetchArgs.Headers {
+			if strings.ToLower(name) == "content-type" {
+				contentTypeSet = true
+				break
+			}
+		}
+		if !contentTypeSet {
+			req.Header.Set("Content-Type", "application/json")
+		}
+	}
 
 	for name, value := range fetchArgs.Headers {
 		if t.resolver != nil && t.sessionID != "" {
@@ -274,83 +308,35 @@ func (t *FetchTool) stripHTML(html string) string {
 }
 
 func (t *FetchTool) htmlToMarkdown(html string) string {
-	reScript := regexp.MustCompile(`(?i)<script[^>]*>.*?</script>`)
-	html = reScript.ReplaceAllString(html, "")
+	opts := &md.Options{
+		HeadingStyle:    "atx",
+		CodeBlockStyle:  "fenced",
+		EmDelimiter:     "*",
+		StrongDelimiter: "**",
+	}
 
-	reStyle := regexp.MustCompile(`(?i)<style[^>]*>.*?</style>`)
-	html = reStyle.ReplaceAllString(html, "")
+	converter := md.NewConverter("", true, opts)
 
-	reH1 := regexp.MustCompile(`(?i)<h1[^>]*>(.*?)</h1>`)
-	html = reH1.ReplaceAllString(html, "\n# $1\n")
+	converter.Keep("a", "img")
 
-	reH2 := regexp.MustCompile(`(?i)<h2[^>]*>(.*?)</h2>`)
-	html = reH2.ReplaceAllString(html, "\n## $1\n")
+	converter.AddRules(md.Rule{
+		Filter: []string{"nav", "footer", "aside", "script", "style"},
+		Replacement: func(content string, selec *goquery.Selection, opt *md.Options) *string {
+			return md.String("")
+		},
+	})
 
-	reH3 := regexp.MustCompile(`(?i)<h3[^>]*>(.*?)</h3>`)
-	html = reH3.ReplaceAllString(html, "\n### $1\n")
-
-	reH4 := regexp.MustCompile(`(?i)<h4[^>]*>(.*?)</h4>`)
-	html = reH4.ReplaceAllString(html, "\n#### $1\n")
-
-	reH5 := regexp.MustCompile(`(?i)<h5[^>]*>(.*?)</h5>`)
-	html = reH5.ReplaceAllString(html, "\n##### $1\n")
-
-	reH6 := regexp.MustCompile(`(?i)<h6[^>]*>(.*?)</h6>`)
-	html = reH6.ReplaceAllString(html, "\n###### $1\n")
-
-	reStrong := regexp.MustCompile(`(?i)<strong[^>]*>(.*?)</strong>`)
-	html = reStrong.ReplaceAllString(html, "**$1**")
-
-	reB := regexp.MustCompile(`(?i)<b[^>]*>(.*?)</b>`)
-	html = reB.ReplaceAllString(html, "**$1**")
-
-	reEm := regexp.MustCompile(`(?i)<em[^>]*>(.*?)</em>`)
-	html = reEm.ReplaceAllString(html, "*$1*")
-
-	reI := regexp.MustCompile(`(?i)<i[^>]*>(.*?)</i>`)
-	html = reI.ReplaceAllString(html, "*$1*")
-
-	reCode := regexp.MustCompile(`(?i)<code[^>]*>(.*?)</code>`)
-	html = reCode.ReplaceAllString(html, "`$1`")
-
-	rePre := regexp.MustCompile(`(?i)<pre[^>]*>(.*?)</pre>`)
-	html = rePre.ReplaceAllString(html, "\n```\n$1\n```\n")
-
-	reA := regexp.MustCompile(`(?i)<a[^>]*href=["'](.*?)["'][^>]*>(.*?)</a>`)
-	html = reA.ReplaceAllString(html, "[$2]($1)")
-
-	reImg := regexp.MustCompile(`(?i)<img[^>]*src=["'](.*?)["'][^>]*alt=["'](.*?)["'][^>]*>`)
-	html = reImg.ReplaceAllString(html, "![$2]($1)")
-
-	reImgNoAlt := regexp.MustCompile(`(?i)<img[^>]*src=["'](.*?)["'][^>]*>`)
-	html = reImgNoAlt.ReplaceAllString(html, "![]($1)")
-
-	reUl := regexp.MustCompile(`(?i)</ul>`)
-	html = reUl.ReplaceAllString(html, "")
-
-	reOl := regexp.MustCompile(`(?i)</ol>`)
-	html = reOl.ReplaceAllString(html, "")
-
-	reLi := regexp.MustCompile(`(?i)<li[^>]*>(.*?)</li>`)
-	html = reLi.ReplaceAllString(html, "- $1\n")
-
-	reP := regexp.MustCompile(`(?i)<p[^>]*>`)
-	html = reP.ReplaceAllString(html, "\n")
-
-	reBr := regexp.MustCompile(`(?i)<br\s*/?>`)
-	html = reBr.ReplaceAllString(html, "\n")
-
-	reTags := regexp.MustCompile(`<[^>]+>`)
-	html = reTags.ReplaceAllString(html, "")
+	markdown, err := converter.ConvertString(html)
+	if err != nil {
+		t.logger.Error("Failed to convert HTML to Markdown", err)
+		return ""
+	}
 
 	reSpace := regexp.MustCompile(`\s+`)
-	html = reSpace.ReplaceAllString(html, " ")
-
-	reNewlines := regexp.MustCompile(`\n\s+`)
-	html = reNewlines.ReplaceAllString(html, "\n")
+	markdown = reSpace.ReplaceAllString(markdown, " ")
 
 	reCleanNewlines := regexp.MustCompile(`\n{3,}`)
-	html = reCleanNewlines.ReplaceAllString(html, "\n\n")
+	markdown = reCleanNewlines.ReplaceAllString(markdown, "\n\n")
 
-	return strings.TrimSpace(html)
+	return strings.TrimSpace(markdown)
 }

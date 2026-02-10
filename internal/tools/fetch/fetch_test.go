@@ -3,6 +3,7 @@ package fetch
 import (
 	"encoding/base64"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -1193,13 +1194,11 @@ func TestFetchTool_Execute_MarkdownFormat(t *testing.T) {
 </ul>
 <ol>
 <li>First</li>
-<li>Second</li>
+ <li>Second</li>
 </ol>
 <p><a href="https://example.com">Link text</a></p>
 <p><img src="image.jpg" alt="Image"></p>
-<pre><code>
-code block
-</code></pre>
+<pre>code block</pre>
 </body>
 </html>`
 
@@ -1234,7 +1233,7 @@ code block
 	assert.Contains(t, content, "*italic*")
 	assert.Contains(t, content, "`console.log(\"hello\")`")
 	assert.Contains(t, content, "- Item 1")
-	assert.Contains(t, content, "- First")
+	assert.Contains(t, content, "1. First")
 	assert.Contains(t, content, "[Link text](https://example.com)")
 	assert.Contains(t, content, "![Image](image.jpg)")
 	assert.Contains(t, content, "```")
@@ -1298,7 +1297,7 @@ func TestHtmlToMarkdown(t *testing.T) {
 		{
 			name:        "ordered lists",
 			html:        "<ol><li>First</li><li>Second</li></ol>",
-			contains:    []string{"- First", "- Second"},
+			contains:    []string{"1. First", "2. Second"},
 			notContains: []string{"<ol>", "<li>"},
 		},
 		{
@@ -1370,4 +1369,309 @@ func TestFetchTool_Parameters_Markdown(t *testing.T) {
 	require.True(t, ok)
 	assert.Contains(t, formatProp["enum"], "markdown")
 	assert.Contains(t, formatProp["description"], "Markdown")
+}
+
+func TestFetchTool_Parameters_Method(t *testing.T) {
+	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	tool := NewFetchTool(testConfig(), log)
+
+	params := tool.Parameters()
+	properties, ok := params["properties"].(map[string]interface{})
+	require.True(t, ok)
+
+	methodProp, ok := properties["method"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "string", methodProp["type"])
+	assert.Contains(t, methodProp["enum"], "GET")
+	assert.Contains(t, methodProp["enum"], "POST")
+	assert.Contains(t, methodProp["enum"], "PUT")
+	assert.Contains(t, methodProp["enum"], "PATCH")
+	assert.Contains(t, methodProp["enum"], "DELETE")
+	assert.Equal(t, "GET", methodProp["default"])
+}
+
+func TestFetchTool_Parameters_Body(t *testing.T) {
+	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	tool := NewFetchTool(testConfig(), log)
+
+	params := tool.Parameters()
+	properties, ok := params["properties"].(map[string]interface{})
+	require.True(t, ok)
+
+	bodyProp, ok := properties["body"].(map[string]interface{})
+	require.True(t, ok)
+	assert.Equal(t, "string", bodyProp["type"])
+	assert.Contains(t, bodyProp["description"], "POST, PUT, PATCH")
+}
+
+func TestFetchTool_Execute_POST(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, _ := io.ReadAll(r.Body)
+		defer r.Body.Close()
+		assert.Equal(t, `{"test":"data"}`, string(body))
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+	defer server.Close()
+
+	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	tool := NewFetchTool(testConfig(), log)
+
+	args, _ := json.Marshal(map[string]string{
+		"url":    server.URL,
+		"method": "POST",
+		"body":   `{"test":"data"}`,
+	})
+
+	result, err := tool.Execute(string(args))
+	require.NoError(t, err)
+
+	var resultJSON map[string]interface{}
+	err = json.Unmarshal([]byte(result), &resultJSON)
+	require.NoError(t, err)
+	assert.Equal(t, float64(200), resultJSON["status"])
+}
+
+func TestFetchTool_Execute_PUT(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "PUT", r.Method)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, _ := io.ReadAll(r.Body)
+		defer r.Body.Close()
+		assert.Equal(t, `{"updated":true}`, string(body))
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"result":"updated"}`))
+	}))
+	defer server.Close()
+
+	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	tool := NewFetchTool(testConfig(), log)
+
+	args, _ := json.Marshal(map[string]string{
+		"url":    server.URL,
+		"method": "PUT",
+		"body":   `{"updated":true}`,
+	})
+
+	result, err := tool.Execute(string(args))
+	require.NoError(t, err)
+
+	var resultJSON map[string]interface{}
+	err = json.Unmarshal([]byte(result), &resultJSON)
+	require.NoError(t, err)
+	assert.Equal(t, float64(200), resultJSON["status"])
+}
+
+func TestFetchTool_Execute_PATCH(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "PATCH", r.Method)
+
+		body, _ := io.ReadAll(r.Body)
+		defer r.Body.Close()
+		assert.Equal(t, `{"field":"value"}`, string(body))
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"patched":true}`))
+	}))
+	defer server.Close()
+
+	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	tool := NewFetchTool(testConfig(), log)
+
+	args, _ := json.Marshal(map[string]string{
+		"url":    server.URL,
+		"method": "PATCH",
+		"body":   `{"field":"value"}`,
+	})
+
+	result, err := tool.Execute(string(args))
+	require.NoError(t, err)
+
+	var resultJSON map[string]interface{}
+	err = json.Unmarshal([]byte(result), &resultJSON)
+	require.NoError(t, err)
+	assert.Equal(t, float64(200), resultJSON["status"])
+}
+
+func TestFetchTool_Execute_DELETE(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "DELETE", r.Method)
+
+		w.WriteHeader(http.StatusNoContent)
+		_, _ = w.Write([]byte(``))
+	}))
+	defer server.Close()
+
+	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	tool := NewFetchTool(testConfig(), log)
+
+	args, _ := json.Marshal(map[string]string{
+		"url":    server.URL,
+		"method": "DELETE",
+	})
+
+	result, err := tool.Execute(string(args))
+	require.NoError(t, err)
+
+	var resultJSON map[string]interface{}
+	err = json.Unmarshal([]byte(result), &resultJSON)
+	require.NoError(t, err)
+	assert.Equal(t, float64(204), resultJSON["status"])
+}
+
+func TestFetchTool_Execute_GET_Default(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "GET", r.Method)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("Response"))
+	}))
+	defer server.Close()
+
+	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	tool := NewFetchTool(testConfig(), log)
+
+	args, _ := json.Marshal(map[string]string{
+		"url": server.URL,
+	})
+
+	result, err := tool.Execute(string(args))
+	require.NoError(t, err)
+
+	var resultJSON map[string]interface{}
+	err = json.Unmarshal([]byte(result), &resultJSON)
+	require.NoError(t, err)
+	assert.Equal(t, float64(200), resultJSON["status"])
+	assert.Equal(t, "Response", resultJSON["content"])
+}
+
+func TestFetchTool_Execute_GET_WithBody_Ignored(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "GET", r.Method)
+
+		body, _ := io.ReadAll(r.Body)
+		defer r.Body.Close()
+		assert.Empty(t, string(body), "GET request should not have body")
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK"))
+	}))
+	defer server.Close()
+
+	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	tool := NewFetchTool(testConfig(), log)
+
+	args, _ := json.Marshal(map[string]string{
+		"url":    server.URL,
+		"method": "GET",
+		"body":   `{"ignored":"data"}`,
+	})
+
+	result, err := tool.Execute(string(args))
+	require.NoError(t, err)
+
+	var resultJSON map[string]interface{}
+	err = json.Unmarshal([]byte(result), &resultJSON)
+	require.NoError(t, err)
+	assert.Equal(t, float64(200), resultJSON["status"])
+}
+
+func TestFetchTool_Execute_DELETE_WithBody_Ignored(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "DELETE", r.Method)
+
+		body, _ := io.ReadAll(r.Body)
+		defer r.Body.Close()
+		assert.Empty(t, string(body), "DELETE request should not have body")
+
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	tool := NewFetchTool(testConfig(), log)
+
+	args, _ := json.Marshal(map[string]string{
+		"url":    server.URL,
+		"method": "DELETE",
+		"body":   `{"ignored":"data"}`,
+	})
+
+	result, err := tool.Execute(string(args))
+	require.NoError(t, err)
+
+	var resultJSON map[string]interface{}
+	err = json.Unmarshal([]byte(result), &resultJSON)
+	require.NoError(t, err)
+	assert.Equal(t, float64(204), resultJSON["status"])
+}
+
+func TestFetchTool_Execute_POST_WithCustomContentType(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, "text/plain", r.Header.Get("Content-Type"))
+
+		body, _ := io.ReadAll(r.Body)
+		defer r.Body.Close()
+		assert.Equal(t, "plain text data", string(body))
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"received":true}`))
+	}))
+	defer server.Close()
+
+	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	tool := NewFetchTool(testConfig(), log)
+
+	args, _ := json.Marshal(map[string]interface{}{
+		"url":    server.URL,
+		"method": "POST",
+		"body":   "plain text data",
+		"headers": map[string]string{
+			"Content-Type": "text/plain",
+		},
+	})
+
+	result, err := tool.Execute(string(args))
+	require.NoError(t, err)
+
+	var resultJSON map[string]interface{}
+	err = json.Unmarshal([]byte(result), &resultJSON)
+	require.NoError(t, err)
+	assert.Equal(t, float64(200), resultJSON["status"])
+}
+
+func TestFetchTool_Execute_POST_WithoutBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+
+		body, _ := io.ReadAll(r.Body)
+		defer r.Body.Close()
+		assert.Empty(t, string(body))
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"created":true}`))
+	}))
+	defer server.Close()
+
+	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
+	tool := NewFetchTool(testConfig(), log)
+
+	args, _ := json.Marshal(map[string]string{
+		"url":    server.URL,
+		"method": "POST",
+	})
+
+	result, err := tool.Execute(string(args))
+	require.NoError(t, err)
+
+	var resultJSON map[string]interface{}
+	err = json.Unmarshal([]byte(result), &resultJSON)
+	require.NoError(t, err)
+	assert.Equal(t, float64(200), resultJSON["status"])
 }
