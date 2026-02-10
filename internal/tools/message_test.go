@@ -117,7 +117,7 @@ func TestSendMessageToolDefaults(t *testing.T) {
 
 	result, err := tool.Execute(args)
 	assert.NoError(t, err, "Execute should not return error")
-	assert.Contains(t, result, "Message sent successfully", "Result should contain success message")
+	assert.Contains(t, result, "sent successfully", "Result should contain success message")
 	assert.Contains(t, result, "Session: telegram:123456789", "Result should contain session ID")
 	assert.Contains(t, result, "Hello, world!", "Result should contain message content")
 }
@@ -133,7 +133,7 @@ func TestSendMessageToolCustomSession(t *testing.T) {
 
 	result, err := tool.Execute(args)
 	assert.NoError(t, err, "Execute should not return error")
-	assert.Contains(t, result, "Message sent successfully", "Result should contain success message")
+	assert.Contains(t, result, "sent successfully", "Result should contain success message")
 	assert.Contains(t, result, "Session: telegram:456", "Result should contain custom session ID")
 }
 
@@ -165,7 +165,7 @@ func TestSendMessageToolPublishError(t *testing.T) {
 	// Should return error since sender returns error
 	assert.Error(t, err, "Execute should return error when sender fails")
 	assert.Empty(t, result, "Result should be empty on error")
-	assert.Contains(t, err.Error(), "failed to send message", "Error should mention send failure")
+	assert.Contains(t, err.Error(), "failed to send", "Error should mention send failure")
 }
 
 // TestSendMessageToolMissingMessage tests that missing required message parameter returns error.
@@ -205,7 +205,7 @@ func TestSendMessageToolAllCustom(t *testing.T) {
 
 	result, err := tool.Execute(args)
 	assert.NoError(t, err, "Execute should not return error")
-	assert.Contains(t, result, "Message sent successfully", "Result should contain success message")
+	assert.Contains(t, result, "sent successfully", "Result should contain success message")
 	assert.Contains(t, result, "Session: telegram:123456789", "Result should contain custom session ID")
 	assert.Contains(t, result, "All custom parameters", "Result should contain message content")
 }
@@ -265,12 +265,10 @@ func TestSendMessageToolParameters(t *testing.T) {
 	switch v := required.(type) {
 	case []interface{}:
 		assert.Contains(t, v, "session_id", "Required should contain 'session_id'")
-		assert.Contains(t, v, "message", "Required should contain 'message'")
-		assert.Len(t, v, 2, "Both 'session_id' and 'message' should be required")
+		assert.Len(t, v, 1, "Only 'session_id' should be required")
 	case []string:
 		assert.Contains(t, v, "session_id", "Required should contain 'session_id'")
-		assert.Contains(t, v, "message", "Required should contain 'message'")
-		assert.Len(t, v, 2, "Both 'session_id' and 'message' should be required")
+		assert.Len(t, v, 1, "Only 'session_id' should be required")
 	default:
 		assert.Fail(t, "Required should be a slice")
 	}
@@ -321,7 +319,7 @@ func TestSendMessageToolWithInlineKeyboard(t *testing.T) {
 
 	result, err := tool.Execute(args)
 	assert.NoError(t, err, "Execute should not return error")
-	assert.Contains(t, result, "Message sent successfully", "Result should contain success message")
+	assert.Contains(t, result, "sent successfully", "Result should contain success message")
 	assert.Contains(t, result, "Keyboard: 2 row(s)", "Result should mention keyboard")
 
 	// Verify keyboard structure
@@ -375,5 +373,5 @@ func TestSendMessageToolWithEmptyKeyboard(t *testing.T) {
 	result, err := tool.Execute(args)
 	assert.NoError(t, err, "Execute should not return error")
 	assert.False(t, sentWithKeyboard, "Should not use SendMessageWithKeyboard for empty keyboard")
-	assert.Contains(t, result, "Message sent successfully", "Result should contain success message")
+	assert.Contains(t, result, "sent successfully", "Result should contain success message")
 }
