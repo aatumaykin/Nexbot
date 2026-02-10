@@ -64,13 +64,8 @@ func (uh *UpdateHandler) Handle(update telego.Update) error {
 		return uh.connector.commandHandler.HandleCommand(uh.connector.ctx, uh.connector.isAllowedUser, msg, "restart", userID)
 	}
 
-	if msg.Text == "/help" || msg.Text == "/settings" {
-		command := msg.Text[1:] // remove leading '/'
-		return uh.connector.commandHandler.HandleCommand(uh.connector.ctx, uh.connector.isAllowedUser, msg, command, userID)
-	}
-
-	// Handle /secret commands with arguments
-	if len(msg.Text) > 7 && msg.Text[:7] == "/secret" {
+	// Handle /secret commands (with or without arguments)
+	if len(msg.Text) >= 7 && msg.Text[:7] == "/secret" {
 		return uh.connector.commandHandler.HandleCommand(uh.connector.ctx, uh.connector.isAllowedUser, msg, "secret", userID)
 	}
 

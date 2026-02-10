@@ -166,8 +166,6 @@ func (c *Connector) registerCommands() error {
 
 	commands := &telego.SetMyCommandsParams{
 		Commands: []telego.BotCommand{
-			{Command: "help", Description: "Show help message"},
-			{Command: "settings", Description: "Show bot settings"},
 			{Command: "new", Description: "Start a new session (clear history)"},
 			{Command: "status", Description: "Show session and bot status"},
 			{Command: "restart", Description: "Restart bot"},
