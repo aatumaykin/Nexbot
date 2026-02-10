@@ -161,7 +161,9 @@ type SubagentConfig struct {
 
 // MessageBusConfig представляет конфигурацию message bus
 type MessageBusConfig struct {
-	Capacity int `toml:"capacity"`
+	Capacity                  int  `toml:"capacity"`
+	ResultChannelCapacity     int  `toml:"result_channel_capacity"`
+	EnableHighPriorityResults bool `toml:"enable_high_priority_results"`
 }
 
 // HeartbeatConfig представляет конфигурацию HEARTBEAT loader (v0.2)
