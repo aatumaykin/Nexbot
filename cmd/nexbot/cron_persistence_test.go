@@ -139,7 +139,7 @@ func TestCronJobPersistence(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	err = msgBus.Start(context.Background())
 	require.NoError(t, err)
 	t.Cleanup(func() {

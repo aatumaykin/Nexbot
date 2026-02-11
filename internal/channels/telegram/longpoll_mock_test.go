@@ -22,7 +22,7 @@ func TestLongPollManager_Start_WithMockUpdates(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	// Create a test update
@@ -154,7 +154,7 @@ func TestLongPollManager_Start_WithMultipleUpdates(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	// Create multiple test updates
@@ -294,7 +294,7 @@ func TestLongPollManager_Start_WithCommandUpdate(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	// Create a command update
@@ -362,7 +362,7 @@ func TestLongPollManager_Start_WithNilMessage(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	// Create an update with nil message

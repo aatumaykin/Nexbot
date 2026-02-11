@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/aatumaykin/nexbot/internal/config"
 )
@@ -35,8 +36,9 @@ const (
 
 // Workspace represents a Nexbot workspace with path management capabilities.
 type Workspace struct {
-	path     string // Expanded workspace path
-	basePath string // Original path from config (may contain ~)
+	path         string   // Expanded workspace path
+	basePath     string   // Original path from config (may contain ~)
+	symlinkCache sync.Map // Cache for resolved symlink paths
 }
 
 // New creates a new Workspace from the given configuration.
@@ -190,6 +192,163 @@ func (w *Workspace) EnsureSubpath(name string) error {
 	// Create subdirectory
 	if err := os.MkdirAll(subpath, 0755); err != nil {
 		return fmt.Errorf("failed to create subdirectory %s: %w", subpath, err)
+	}
+
+	return nil
+}
+
+// ResolveSymlinks resolves all symlinks in the path and returns the final real path.
+// Uses caching to avoid repeated filesystem calls.
+func (w *Workspace) ResolveSymlinks(path string) (string, error) {
+	if path == "" {
+		return "", fmt.Errorf("path is empty")
+	}
+
+	// Get absolute path first
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to get absolute path: %w", err)
+	}
+
+	// Check cache
+	if cached, ok := w.symlinkCache.Load(absPath); ok {
+		if resolved, ok := cached.(string); ok {
+			return resolved, nil
+		}
+	}
+
+	// Resolve symlinks
+	resolved, err := filepath.EvalSymlinks(absPath)
+	if err != nil {
+		// If path doesn't exist, return absolute path
+		if os.IsNotExist(err) {
+			w.symlinkCache.Store(absPath, absPath)
+			return absPath, nil
+		}
+		return "", fmt.Errorf("failed to resolve symlinks: %w", err)
+	}
+
+	// Cache the result
+	w.symlinkCache.Store(absPath, resolved)
+	return resolved, nil
+}
+
+// ValidatePath validates that a path is safe for file operations within the workspace.
+// It checks for:
+//   - Path traversal attempts (.. components)
+//   - Symlinks pointing outside the workspace
+//   - Non-existent files with symlink parents pointing outside
+func (w *Workspace) ValidatePath(path string) error {
+	if path == "" {
+		return fmt.Errorf("path is empty")
+	}
+
+	// Get absolute path
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path: %w", err)
+	}
+
+	// Get absolute workspace path
+	absWorkspace, err := filepath.Abs(w.path)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute workspace path: %w", err)
+	}
+
+	// Resolve both workspace and path to their real paths to handle system symlinks
+	resolvedWorkspace := absWorkspace
+	if rw, err := filepath.EvalSymlinks(absWorkspace); err == nil {
+		resolvedWorkspace = rw
+	}
+
+	// Check for existing file first
+	fileInfo, err := os.Lstat(absPath)
+	if err == nil {
+		// File exists, check if it's a symlink
+		if fileInfo.Mode()&os.ModeSymlink != 0 {
+			// It's a symlink, resolve it
+			resolved, err := w.ResolveSymlinks(absPath)
+			if err != nil {
+				return fmt.Errorf("failed to resolve symlinks: %w", err)
+			}
+
+			// Verify resolved path is within resolved workspace
+			rel, err := filepath.Rel(resolvedWorkspace, resolved)
+			if err != nil {
+				return fmt.Errorf("failed to check path relationship: %w", err)
+			}
+
+			// Check if path starts with ".." (escapes workspace)
+			if filepath.IsAbs(rel) || (len(rel) >= 2 && rel[0:2] == "..") {
+				return fmt.Errorf("path attempts to escape workspace: %s", path)
+			}
+		} else {
+			// Not a symlink, just check if it's within workspace
+			rel, err := filepath.Rel(absWorkspace, absPath)
+			if err != nil {
+				return fmt.Errorf("failed to check path relationship: %w", err)
+			}
+
+			// Check if path starts with ".." (escapes workspace)
+			if filepath.IsAbs(rel) || (len(rel) >= 2 && rel[0:2] == "..") {
+				return fmt.Errorf("path attempts to escape workspace: %s", path)
+			}
+		}
+	} else if os.IsNotExist(err) {
+		// File doesn't exist, check parent directories for symlinks
+		parentDir := filepath.Dir(absPath)
+
+		// Check if parent is within workspace
+		relParent, err := filepath.Rel(absWorkspace, parentDir)
+		if err != nil {
+			return fmt.Errorf("failed to check parent path relationship: %w", err)
+		}
+
+		// If parent is outside workspace, that's an error
+		if filepath.IsAbs(relParent) || (len(relParent) >= 2 && relParent[0:2] == "..") {
+			return fmt.Errorf("path attempts to escape workspace: %s", path)
+		}
+
+		// Check each parent directory until we reach workspace
+		absWorkspaceClean := filepath.Clean(absWorkspace)
+		for parentDir != absWorkspaceClean && parentDir != "/" {
+			// Check if this directory exists
+			parentInfo, err := os.Lstat(parentDir)
+			if err == nil {
+				// Directory exists, check if it's a symlink
+				if parentInfo.Mode()&os.ModeSymlink != 0 {
+					// It's a symlink, resolve it
+					resolvedParent, err := filepath.EvalSymlinks(parentDir)
+					if err != nil {
+						return fmt.Errorf("failed to resolve parent symlink: %w", err)
+					}
+
+					// Verify resolved parent is within resolved workspace
+					relResolved, err := filepath.Rel(resolvedWorkspace, resolvedParent)
+					if err != nil {
+						return fmt.Errorf("failed to check resolved parent path relationship: %w", err)
+					}
+
+					// Check if resolved parent starts with ".." (escapes workspace)
+					if filepath.IsAbs(relResolved) || (len(relResolved) >= 2 && relResolved[0:2] == "..") {
+						return fmt.Errorf("path attempts to escape workspace via symlink parent: %s", path)
+					}
+				}
+			} else if !os.IsNotExist(err) {
+				// Some other error
+				return fmt.Errorf("failed to stat parent directory: %w", err)
+			}
+
+			// Move up to next parent
+			newParent := filepath.Dir(parentDir)
+			if newParent == parentDir {
+				// Reached root
+				break
+			}
+			parentDir = newParent
+		}
+	} else {
+		return fmt.Errorf("failed to stat path: %w", err)
 	}
 
 	return nil

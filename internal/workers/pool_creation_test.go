@@ -14,7 +14,7 @@ func TestNewPool(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 

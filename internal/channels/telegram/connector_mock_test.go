@@ -28,7 +28,7 @@ func TestConnector_RegisterCommands_WithMock(t *testing.T) {
 		AllowedUsers: []string{"123456789"},
 	}
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() {
 		_ = msgBus.Stop()
 	}()
@@ -90,7 +90,7 @@ func TestConnector_HandleOutbound_WithMockError(t *testing.T) {
 		AllowedUsers: []string{"123456789"},
 	}
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -145,7 +145,7 @@ func TestConnector_HandleEvents_WithMock(t *testing.T) {
 		AllowedUsers: []string{"123456789"},
 	}
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -203,7 +203,7 @@ func TestConnector_SendStartupMessage_WithMock(t *testing.T) {
 		AllowedUsers: []string{"123456789"},
 	}
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	conn := New(cfg, log, msgBus)
@@ -240,7 +240,7 @@ func TestConnector_GetMe_WithMock(t *testing.T) {
 		Enabled: true,
 	}
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	conn := New(cfg, log, msgBus)
@@ -275,7 +275,7 @@ func TestConnector_Start_WithMock(t *testing.T) {
 		AllowedUsers: []string{"123456789"},
 	}
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	conn := New(cfg, log, msgBus)
@@ -338,7 +338,7 @@ func TestConnector_Start_WithMockGetMeError(t *testing.T) {
 		Enabled: true,
 	}
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	conn := New(cfg, log, msgBus)

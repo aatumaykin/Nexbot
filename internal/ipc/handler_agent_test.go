@@ -21,7 +21,7 @@ func TestHandleAgent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	if err := messageBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestHandleUnknownRequest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	if err := messageBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
 	}
@@ -206,7 +206,7 @@ func TestHandleAgentPublishError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	// Не запускаем message bus, чтобы PublishInbound вернул ошибку
 
 	handler, err := NewHandler(log, tempDir, messageBus)
@@ -290,7 +290,7 @@ func TestHandleConnectionInvalidJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	if err := messageBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
 	}

@@ -22,7 +22,7 @@ func TestIntegration_HeartbeatWithScheduler(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create message bus
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 
 	// Create scheduler
 	scheduler := cron.NewScheduler(log, messageBus, nil, nil)
@@ -106,7 +106,7 @@ func TestIntegration_HeartbeatWithInvalidTasks(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create message bus
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 
 	// Create scheduler
 	scheduler := cron.NewScheduler(log, messageBus, nil, nil)
@@ -219,7 +219,7 @@ func TestIntegration_HeartbeatEmptyWorkspace(t *testing.T) {
 	assert.Equal(t, "No active heartbeat tasks", context)
 
 	// Try to register tasks with scheduler (should be no tasks)
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	scheduler := cron.NewScheduler(log, messageBus, nil, nil)
 
 	// List jobs from scheduler (should be empty)

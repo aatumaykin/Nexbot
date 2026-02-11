@@ -522,7 +522,7 @@ func TestAgentMessageSender(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			log, _ := logger.New(logger.Config{Level: "info", Format: "text", Output: "stdout"})
-			messageBus := bus.New(100, log)
+			messageBus := bus.New(100, 10, log)
 			if err := messageBus.Start(context.Background()); err != nil {
 				t.Fatalf("Failed to start message bus: %v", err)
 			}

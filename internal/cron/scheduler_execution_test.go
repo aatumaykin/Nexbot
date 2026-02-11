@@ -12,7 +12,7 @@ import (
 
 func TestScheduler_JobExecution(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
@@ -66,7 +66,7 @@ func TestScheduler_JobExecution(t *testing.T) {
 
 func TestScheduler_JobExecutionWithMetadata(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)

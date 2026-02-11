@@ -21,7 +21,7 @@ func TestHandlerSessionCreation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	if err := messageBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestValidateChannel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	handler, err := NewHandler(log, tempDir, messageBus)
 	if err != nil {
 		t.Fatalf("Failed to create handler: %v", err)
@@ -114,7 +114,7 @@ func TestValidateSession(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	handler, err := NewHandler(log, tempDir, messageBus)
 	if err != nil {
 		t.Fatalf("Failed to create handler: %v", err)
@@ -146,7 +146,7 @@ func TestSendErrorResponse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	handler, err := NewHandler(log, tempDir, messageBus)
 	if err != nil {
 		t.Fatalf("Failed to create handler: %v", err)
@@ -194,7 +194,7 @@ func TestValidateSessionWithError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	handler, err := NewHandler(log, tempDir, messageBus)
 	if err != nil {
 		t.Fatalf("Failed to create handler: %v", err)
@@ -218,7 +218,7 @@ func TestStopError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	if err := messageBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
 	}
@@ -273,7 +273,7 @@ func TestStopWithoutStart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	handler, err := NewHandler(log, tempDir, messageBus)
 	if err != nil {
 		t.Fatalf("Failed to create handler: %v", err)

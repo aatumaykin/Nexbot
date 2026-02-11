@@ -22,7 +22,7 @@ func TestWorkerPool_Integration_CronTasks(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -84,7 +84,7 @@ func TestWorkerPool_Integration_SubagentTasks(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -141,7 +141,7 @@ func TestWorkerPool_Integration_MixedTasks(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -207,7 +207,7 @@ func TestWorkerPool_Integration_CronWithCancellation(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -261,7 +261,7 @@ func TestWorkerPool_Integration_HighLoad(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "info", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -328,7 +328,7 @@ func TestWorkerPool_Integration_GracefulShutdownWithTasks(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -377,7 +377,7 @@ func TestWorkerPool_Integration_TaskTimeout(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -425,7 +425,7 @@ func TestWorkerPool_Integration_SequentialSubmissions(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -481,7 +481,7 @@ func TestWorkerPool_Integration_MetricsTracking(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -549,7 +549,7 @@ func TestWorkerPool_Integration_Restart(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 

@@ -104,7 +104,7 @@ func TestE2E_TelegramToAgentWithToolCalls(t *testing.T) {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	mockLLMResponses := []MockResponse{
 		{
@@ -251,7 +251,7 @@ func TestE2E_MultipleToolCalls(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	mockLLMResponses := []MockResponse{
 		{

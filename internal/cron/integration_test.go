@@ -47,7 +47,7 @@ func TestFullWorkflow(t *testing.T) {
 	assert.Empty(t, jobs, "Initial storage should be empty")
 
 	// Step 3: Create scheduler
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	err = msgBus.Start(context.Background())
 	require.NoError(t, err, "Failed to start message bus")
 	defer func() {
@@ -293,7 +293,7 @@ func TestFullWorkflowWithMultipleJobs(t *testing.T) {
 	require.NoError(t, err)
 
 	storage := NewStorage(tempDir, log)
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	err = msgBus.Start(context.Background())
 	require.NoError(t, err)
 	defer func() {
@@ -430,7 +430,7 @@ func TestFullWorkflowPersistenceAcrossRestarts(t *testing.T) {
 	require.NoError(t, err)
 
 	storage := NewStorage(tempDir, log)
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	err = msgBus.Start(context.Background())
 	require.NoError(t, err)
 	defer func() {

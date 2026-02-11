@@ -17,7 +17,7 @@ func TestPool_ExecuteCronTask(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -65,7 +65,7 @@ func TestPool_ExecuteSubagentTask(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -106,7 +106,7 @@ func TestPool_UnknownTaskType(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -146,7 +146,7 @@ func TestPool_InvalidCronPayload(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -185,7 +185,7 @@ func TestPool_MultipleTasks(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 

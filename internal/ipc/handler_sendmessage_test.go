@@ -22,7 +22,7 @@ func TestHandleSendMessage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	if err := messageBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestHandleSendMessageWithInvalidChannel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	if err := messageBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
 	}
@@ -190,7 +190,7 @@ func TestHandleSendMessagePublishError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	// Не запускаем message bus, чтобы PublishOutbound вернул ошибку
 
 	handler, err := NewHandler(log, tempDir, messageBus)
@@ -270,7 +270,7 @@ func TestNewHandlerInvalidSessionDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 
 	// Попытка создать handler с недопустимым путем (например, пустая строка может вызвать ошибку)
 	// Или с путем к файлу вместо директории

@@ -26,7 +26,7 @@ func TestConnector_New(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	cfg := config.TelegramConfig{
 		Enabled: true,
@@ -60,7 +60,7 @@ func TestConnector_Start_Disabled(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	cfg := config.TelegramConfig{
 		Enabled: false,
@@ -87,7 +87,7 @@ func TestConnector_Start_ValidationError(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	cfg := config.TelegramConfig{
 		Enabled: true,
@@ -115,7 +115,7 @@ func TestConnector_isAllowedUser(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	tests := []struct {
 		name       string
@@ -173,7 +173,7 @@ func TestConnector_handleUpdate_NilMessage(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	ctx := context.Background()
 
 	cfg := config.TelegramConfig{}
@@ -198,7 +198,7 @@ func TestConnector_handleUpdate_NilText(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	ctx := context.Background()
 
 	cfg := config.TelegramConfig{}
@@ -235,7 +235,7 @@ func TestConnector_handleUpdate_Success(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -327,7 +327,7 @@ func TestConnector_handleUpdate_WhitelistBlocked(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -395,7 +395,7 @@ func TestConnector_Stop(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	cfg := config.TelegramConfig{
 		Enabled: true,
@@ -435,7 +435,7 @@ func TestConnector_handleOutbound_Basic(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -478,7 +478,7 @@ func TestConnector_handleOutbound_NonTelegramMessage(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -521,7 +521,7 @@ func TestConnector_handleUpdate_NewCommand(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -617,7 +617,7 @@ func TestConnector_handleUpdate_NewCommand_Unauthorized(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -679,7 +679,7 @@ func TestConnector_handleUpdate_NewCommand_ThenRegularMessage(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -776,7 +776,7 @@ func TestConnector_handleEvents(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -827,7 +827,7 @@ func TestConnector_handleEvents_NonTelegram(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -868,7 +868,7 @@ func TestConnector_sendTypingIndicator_NilBot(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	cfg := config.TelegramConfig{}
 	conn := New(cfg, log, msgBus)
@@ -895,7 +895,7 @@ func TestConnector_sendTypingIndicator_InvalidSessionID(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	cfg := config.TelegramConfig{}
 	conn := New(cfg, log, msgBus)
@@ -921,7 +921,7 @@ func TestConnector_validateConfig(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	tests := []struct {
 		name      string
@@ -964,7 +964,7 @@ func TestConnector_registerCommands(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	cfg := config.TelegramConfig{}
 	conn := New(cfg, log, msgBus)
@@ -1009,7 +1009,7 @@ func TestLongPollManager_Start_WithMock(t *testing.T) {
 	defer mockBot.AssertExpectations(t)
 
 	// Create LongPollManager
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	cfg := config.TelegramConfig{
 		AllowedUsers: []string{"123456789"},
 	}
@@ -1047,7 +1047,7 @@ func TestConnector_handleOutbound_NewFormat(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -1105,7 +1105,7 @@ func TestConnector_handleOutbound_InvalidNewFormat(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -1155,7 +1155,7 @@ func TestConnector_handleOutbound_ChannelMismatch(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -1205,7 +1205,7 @@ func TestConnector_handleOutbound_InvalidChatID(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

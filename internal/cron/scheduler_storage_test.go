@@ -24,7 +24,7 @@ func TestSchedulerOneshotExecution(t *testing.T) {
 	tempDir := t.TempDir()
 	log, err := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	workerPool := &mockWorkerPool{}
 	storage := NewStorage(tempDir, log)
 	scheduler := NewScheduler(log, messageBus, workerPool, storage)
@@ -57,7 +57,7 @@ func TestSchedulerOneshotAlreadyExecuted(t *testing.T) {
 	tempDir := t.TempDir()
 	log, err := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	workerPool := &mockWorkerPool{}
 	storage := NewStorage(tempDir, log)
 	scheduler := NewScheduler(log, messageBus, workerPool, storage)
@@ -87,7 +87,7 @@ func TestSchedulerCleanupExecuted(t *testing.T) {
 	tempDir := t.TempDir()
 	log, err := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	workerPool := &mockWorkerPool{}
 	storage := NewStorage(tempDir, log)
 	scheduler := NewScheduler(log, messageBus, workerPool, storage)
@@ -133,7 +133,7 @@ func TestSchedulerStorageIntegration(t *testing.T) {
 	tempDir := t.TempDir()
 	log, err := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	storage := NewStorage(tempDir, log)
 	scheduler := NewScheduler(log, messageBus, nil, storage)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -206,7 +206,7 @@ func TestSchedulerOneshotNotExecutedTwice(t *testing.T) {
 	tempDir := t.TempDir()
 	log, err := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	workerPool := &mockWorkerPool{}
 	storage := NewStorage(tempDir, log)
 	scheduler := NewScheduler(log, messageBus, workerPool, storage)

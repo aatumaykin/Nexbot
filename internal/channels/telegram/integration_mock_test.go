@@ -28,7 +28,7 @@ func TestTelegramConnector_FullWorkflow_WithMock(t *testing.T) {
 		AllowedUsers: []string{"123456789"},
 	}
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -97,7 +97,7 @@ func TestTelegramConnector_Concurrent_WithMock(t *testing.T) {
 		Enabled: true,
 	}
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -160,7 +160,7 @@ func TestTelegramConnector_ErrorHandling_WithMock(t *testing.T) {
 		AllowedUsers: []string{"123456789"},
 	}
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -223,7 +223,7 @@ func TestTelegramConnector_MultipleUsers_WithMock(t *testing.T) {
 		Enabled: true,
 	}
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -287,7 +287,7 @@ func TestTelegramConnector_TypingIndicators_WithMock(t *testing.T) {
 		AllowedUsers: []string{"123456789"},
 	}
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -359,7 +359,7 @@ func TestTelegramConnector_CommandHandling_WithMock(t *testing.T) {
 		AllowedUsers: []string{"123456789"},
 	}
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -432,7 +432,7 @@ func TestTelegramConnector_GracefulShutdown_WithMock(t *testing.T) {
 		AllowedUsers: []string{"123456789"},
 	}
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
 	ctx, cancel := context.WithCancel(context.Background())

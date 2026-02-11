@@ -113,7 +113,7 @@ func TestCronExpressionValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			log := testLogger()
-			msgBus := bus.New(100, log)
+			msgBus := bus.New(100, 10, log)
 
 			err := msgBus.Start(context.Background())
 			require.NoError(t, err)
@@ -154,7 +154,7 @@ func TestCronExpressionValidation(t *testing.T) {
 // TestSchedulerDuplicateJobID tests adding jobs with the same ID
 func TestSchedulerDuplicateJobID(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
@@ -204,7 +204,7 @@ func TestSchedulerDuplicateJobID(t *testing.T) {
 // TestSchedulerRemoveNonExistentJob tests removing a job that doesn't exist
 func TestSchedulerRemoveNonExistentJob(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
@@ -228,7 +228,7 @@ func TestSchedulerRemoveNonExistentJob(t *testing.T) {
 // TestSchedulerListWithNoJobs tests listing jobs when no jobs are scheduled
 func TestSchedulerListWithNoJobs(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
@@ -252,7 +252,7 @@ func TestSchedulerListWithNoJobs(t *testing.T) {
 // TestSchedulerConcurrentAddRemove tests concurrent add/remove operations
 func TestSchedulerConcurrentAddRemove(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)

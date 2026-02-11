@@ -28,7 +28,7 @@ func setupTestEnvironment(t *testing.T) (*cron.Scheduler, *cron.Storage, *logger
 	require.NoError(t, err, "Failed to create logger")
 
 	// Create message bus
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 
 	// Create storage
 	storage := cron.NewStorage(tempDir, log)

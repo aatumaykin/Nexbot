@@ -18,7 +18,7 @@ func Test_publishResult_Success(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
 	defer func() {
@@ -64,7 +64,7 @@ func Test_publishResult_Error(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
 	defer func() {
@@ -111,7 +111,7 @@ func Test_sendTextMessage_PublishesResultImmediately(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
 	defer func() {
@@ -164,7 +164,7 @@ func Test_sendTextMessage_PublishesErrorResult(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
 	defer func() {
@@ -217,7 +217,7 @@ func Test_editMessage_PublishesResultImmediately(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
 	defer func() {
@@ -270,7 +270,7 @@ func Test_deleteMessage_PublishesResultImmediately(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
 	defer func() {
@@ -322,7 +322,7 @@ func Test_handleOutbound_ConcurrentMessages(t *testing.T) {
 		Output: "stdout",
 	})
 
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
 	defer func() {

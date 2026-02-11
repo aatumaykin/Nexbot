@@ -12,7 +12,7 @@ import (
 
 func TestNewScheduler(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	scheduler := NewScheduler(log, msgBus, nil, nil)
 
 	assert.NotNil(t, scheduler)
@@ -26,7 +26,7 @@ func TestNewScheduler(t *testing.T) {
 
 func TestScheduler_StartStop(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
@@ -60,7 +60,7 @@ func TestScheduler_StartStop(t *testing.T) {
 
 func TestScheduler_AddJob(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
@@ -94,7 +94,7 @@ func TestScheduler_AddJob(t *testing.T) {
 
 func TestScheduler_AddJobAutoID(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
@@ -127,7 +127,7 @@ func TestScheduler_AddJobAutoID(t *testing.T) {
 
 func TestScheduler_AddJobInvalidSchedule(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
@@ -155,7 +155,7 @@ func TestScheduler_AddJobInvalidSchedule(t *testing.T) {
 
 func TestScheduler_RemoveJob(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
@@ -197,7 +197,7 @@ func TestScheduler_RemoveJob(t *testing.T) {
 
 func TestScheduler_ListJobs(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
@@ -247,7 +247,7 @@ func TestScheduler_ListJobs(t *testing.T) {
 
 func TestScheduler_GetJob(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
@@ -284,7 +284,7 @@ func TestScheduler_GetJob(t *testing.T) {
 
 func TestScheduler_GracefulShutdown(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
@@ -328,7 +328,7 @@ func TestScheduler_GracefulShutdown(t *testing.T) {
 
 func TestScheduler_AddJobInvalidOneshotWithSchedule(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)
@@ -357,7 +357,7 @@ func TestScheduler_AddJobInvalidOneshotWithSchedule(t *testing.T) {
 
 func TestScheduler_AddJobNormalizeToolCommand(t *testing.T) {
 	log := testLogger()
-	msgBus := bus.New(100, log)
+	msgBus := bus.New(100, 10, log)
 	err := msgBus.Start(context.Background())
 	require.NoError(t, err)
 	defer stopMessageBus(msgBus)

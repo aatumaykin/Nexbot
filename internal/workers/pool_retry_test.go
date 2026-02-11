@@ -21,7 +21,7 @@ func TestPool_ExecuteWithRetry_Success(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -48,7 +48,7 @@ func TestPool_ExecuteWithRetry_ExecutorError(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -76,7 +76,7 @@ func TestPool_ExecuteWithRetry_ContextCancellation(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -107,7 +107,7 @@ func TestPool_ExecuteWithRetry_PanicRecovery(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -135,7 +135,7 @@ func TestPool_ExecuteWithRetry_OutputCapture(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -163,7 +163,7 @@ func TestPool_ExecuteWithRetry_ContextPassed(t *testing.T) {
 	log, err := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 	require.NoError(t, err)
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(context.Background()))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -197,7 +197,7 @@ func TestPool_ExecuteSendMessage_Success(t *testing.T) {
 
 	ctx := context.Background()
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(ctx))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -241,7 +241,7 @@ func TestPool_ExecuteAgent_Success(t *testing.T) {
 
 	ctx := context.Background()
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(ctx))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -286,7 +286,7 @@ func TestPool_ExecuteSendMessage_InvalidSessionID(t *testing.T) {
 
 	ctx := context.Background()
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(ctx))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -317,7 +317,7 @@ func TestPool_ExecuteAgent_InvalidSessionID(t *testing.T) {
 
 	ctx := context.Background()
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(ctx))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -348,7 +348,7 @@ func TestPool_ExecuteSendMessage_NoMessageContent(t *testing.T) {
 
 	ctx := context.Background()
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(ctx))
 	defer func() { _ = messageBus.Stop() }()
 
@@ -379,7 +379,7 @@ func TestPool_ExecuteSendMessage_ChannelMismatch(t *testing.T) {
 
 	ctx := context.Background()
 
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	require.NoError(t, messageBus.Start(ctx))
 	defer func() { _ = messageBus.Stop() }()
 

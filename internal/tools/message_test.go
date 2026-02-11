@@ -86,7 +86,7 @@ func setupTestEnvironmentForMessage(t *testing.T) (*bus.MessageBus, *logger.Logg
 	require.NoError(t, err, "Failed to create logger")
 
 	// Create message bus
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 
 	// Start message bus
 	ctx, cancel := context.WithCancel(context.Background())

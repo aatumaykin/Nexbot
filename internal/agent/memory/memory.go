@@ -28,8 +28,9 @@ type Store struct {
 
 // Config holds configuration for the memory store.
 type Config struct {
-	BaseDir string // Base directory for memory files
-	Format  Format // Storage format
+	BaseDir     string // Base directory for memory files
+	Format      Format // Storage format
+	MaxFileSize int64  // Maximum file size in bytes (0 = no limit)
 }
 
 // NewStore creates a new memory store with the specified configuration.

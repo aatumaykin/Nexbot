@@ -39,7 +39,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	// Test 1: Worker pool spawns subagents via tasks
 	t.Run("pool_spawn_workflow", func(t *testing.T) {
 		// Create worker pool for this sub-test
-		messageBus := bus.New(100, log)
+		messageBus := bus.New(100, 10, log)
 		require.NoError(t, messageBus.Start(context.Background()))
 		defer func() { _ = messageBus.Stop() }()
 
@@ -81,7 +81,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	// Test 2: Worker pool with multiple subagent tasks
 	t.Run("mixed_task_types", func(t *testing.T) {
 		// Create worker pool for this sub-test
-		messageBus := bus.New(100, log)
+		messageBus := bus.New(100, 10, log)
 		require.NoError(t, messageBus.Start(context.Background()))
 		defer func() { _ = messageBus.Stop() }()
 
@@ -114,7 +114,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	// Test 3: Worker pool high load with subagent spawning
 	t.Run("high_load_subagents", func(t *testing.T) {
 		// Create worker pool for this sub-test
-		messageBus := bus.New(100, log)
+		messageBus := bus.New(100, 10, log)
 		require.NoError(t, messageBus.Start(context.Background()))
 		defer func() { _ = messageBus.Stop() }()
 
@@ -163,7 +163,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	// Test 4: Worker pool with context cancellation
 	t.Run("context_cancellation", func(t *testing.T) {
 		// Create worker pool for this sub-test
-		messageBus := bus.New(100, log)
+		messageBus := bus.New(100, 10, log)
 		require.NoError(t, messageBus.Start(context.Background()))
 		defer func() { _ = messageBus.Stop() }()
 
@@ -195,7 +195,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	// Test 5: Worker pool graceful shutdown
 	t.Run("graceful_shutdown", func(t *testing.T) {
 		// Create worker pool for this sub-test
-		messageBus := bus.New(100, log)
+		messageBus := bus.New(100, 10, log)
 		require.NoError(t, messageBus.Start(context.Background()))
 		defer func() { _ = messageBus.Stop() }()
 

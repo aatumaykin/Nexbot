@@ -21,7 +21,7 @@ func TestNewCallbackHandler(t *testing.T) {
 		Output: "stdout",
 	})
 	require.NoError(t, err)
-	mockBus := bus.New(10, log)
+	mockBus := bus.New(10, 10, log)
 
 	handler := NewCallbackHandler(nil, log, mockBus)
 	assert.NotNil(t, handler)
@@ -36,7 +36,7 @@ func TestCallbackHandler_Handle_NilCallback(t *testing.T) {
 		Output: "stdout",
 	})
 	require.NoError(t, err)
-	mockBus := bus.New(10, log)
+	mockBus := bus.New(10, 10, log)
 
 	handler := NewCallbackHandler(nil, log, mockBus)
 	err = handler.Handle(nil)
@@ -51,7 +51,7 @@ func TestCallbackHandler_Handle_UnauthorizedUser(t *testing.T) {
 		Output: "stdout",
 	})
 	require.NoError(t, err)
-	mockBus := bus.New(10, log)
+	mockBus := bus.New(10, 10, log)
 	require.NoError(t, mockBus.Start(ctx))
 
 	// Create mock bot
@@ -102,7 +102,7 @@ func TestCallbackHandler_Handle_AuthorizedUser(t *testing.T) {
 		Output: "stdout",
 	})
 	require.NoError(t, err)
-	mockBus := bus.New(10, log)
+	mockBus := bus.New(10, 10, log)
 	require.NoError(t, mockBus.Start(ctx))
 
 	// Create mock bot
@@ -180,7 +180,7 @@ func TestCallbackHandler_Handle_InlineMessage(t *testing.T) {
 		Output: "stdout",
 	})
 	require.NoError(t, err)
-	mockBus := bus.New(10, log)
+	mockBus := bus.New(10, 10, log)
 	require.NoError(t, mockBus.Start(ctx))
 
 	// Create mock bot

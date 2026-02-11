@@ -21,7 +21,7 @@ func TestHandlerStartStop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	if err := messageBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestHandlerAcceptConnection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	if err := messageBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestHandlerGracefulShutdown(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	if err := messageBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
 	}
@@ -182,7 +182,7 @@ func TestHandlerCleanupOldSocket(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
-	messageBus := bus.New(100, log)
+	messageBus := bus.New(100, 10, log)
 	if err := messageBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
 	}
