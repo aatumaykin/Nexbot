@@ -33,7 +33,7 @@ func NewStorage(baseDir string) (*Storage, error) {
 
 // Save saves a session entry to storage.
 // The entry is appended to the subagent's JSONL file.
-func (s *Storage) Save(subagentID string, entry interface{}) error {
+func (s *Storage) Save(subagentID string, entry any) error {
 	// Create subagent session directory if not exists
 	subagentPath := filepath.Join(s.baseDir, subagentID)
 	if err := os.MkdirAll(subagentPath, 0755); err != nil {
@@ -56,7 +56,7 @@ func (s *Storage) Save(subagentID string, entry interface{}) error {
 
 // Load loads session entries for a subagent.
 // Returns entries from the subagent's JSONL file.
-func (s *Storage) Load(subagentID string) ([]interface{}, error) {
+func (s *Storage) Load(subagentID string) ([]any, error) {
 	// Create subagent session path
 	subagentPath := filepath.Join(s.baseDir, subagentID)
 	sessionFile := filepath.Join(subagentPath, "session.jsonl")
@@ -64,12 +64,12 @@ func (s *Storage) Load(subagentID string) ([]interface{}, error) {
 	// Check if file exists
 	if _, err := os.Stat(sessionFile); os.IsNotExist(err) {
 		// File doesn't exist yet, return empty slice
-		return []interface{}{}, nil
+		return []any{}, nil
 	}
 
 	// In a full implementation, this would read and parse JSONL file
 	// For now, return empty slice
-	return []interface{}{}, nil
+	return []any{}, nil
 }
 
 // Delete deletes all session data for a subagent.

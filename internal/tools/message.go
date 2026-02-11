@@ -66,67 +66,67 @@ func (t *SendMessageTool) Description() string {
 }
 
 // Parameters returns the JSON Schema for the tool's parameters.
-func (t *SendMessageTool) Parameters() map[string]interface{} {
-	return map[string]interface{}{
+func (t *SendMessageTool) Parameters() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"session_id": map[string]interface{}{
+		"properties": map[string]any{
+			"session_id": map[string]any{
 				"type":        "string",
 				"description": "Session ID for the message context (e.g., 'telegram:123456789').",
 			},
-			"message_type": map[string]interface{}{
+			"message_type": map[string]any{
 				"type":        "string",
 				"description": "Message type: 'text' (default), 'edit', 'delete', 'photo', 'document'.",
 				"enum":        []string{"text", "edit", "delete", "photo", "document"},
 			},
-			"message": map[string]interface{}{
+			"message": map[string]any{
 				"type":        "string",
 				"description": "Message content to send. Required for 'text' and 'edit' types.",
 			},
-			"format": map[string]interface{}{
+			"format": map[string]any{
 				"type":        "string",
 				"description": "Message format: 'plain' (default), 'markdown', 'html', 'markdownv2'.",
 				"enum":        []string{"plain", "markdown", "html", "markdownv2"},
 			},
-			"message_id": map[string]interface{}{
+			"message_id": map[string]any{
 				"type":        "string",
 				"description": "ID of the message to edit or delete. Required for 'edit' and 'delete' types.",
 			},
-			"media_url": map[string]interface{}{
+			"media_url": map[string]any{
 				"type":        "string",
 				"description": "URL of the media file. Required for 'photo' and 'document' types.",
 			},
-			"media_caption": map[string]interface{}{
+			"media_caption": map[string]any{
 				"type":        "string",
 				"description": "Caption for the media (photo/document).",
 			},
-			"reply_to": map[string]interface{}{
+			"reply_to": map[string]any{
 				"type":        "string",
 				"description": "Message ID to reply to.",
 			},
-			"inline_keyboard": map[string]interface{}{
+			"inline_keyboard": map[string]any{
 				"type":        "object",
 				"description": "Optional inline keyboard with interactive buttons.",
-				"properties": map[string]interface{}{
-					"rows": map[string]interface{}{
+				"properties": map[string]any{
+					"rows": map[string]any{
 						"type":        "array",
 						"description": "Array of button rows (each row is an array of buttons).",
-						"items": map[string]interface{}{
+						"items": map[string]any{
 							"type":        "array",
 							"description": "Array of buttons in a row.",
-							"items": map[string]interface{}{
+							"items": map[string]any{
 								"type":        "object",
 								"description": "A single button definition.",
-								"properties": map[string]interface{}{
-									"text": map[string]interface{}{
+								"properties": map[string]any{
+									"text": map[string]any{
 										"type":        "string",
 										"description": "Button label text (required).",
 									},
-									"data": map[string]interface{}{
+									"data": map[string]any{
 										"type":        "string",
 										"description": "Callback data sent when button is pressed (for callback buttons).",
 									},
-									"url": map[string]interface{}{
+									"url": map[string]any{
 										"type":        "string",
 										"description": "URL to open when button is clicked (for URL buttons).",
 									},
@@ -138,11 +138,11 @@ func (t *SendMessageTool) Parameters() map[string]interface{} {
 				},
 				"required": []string{"rows"},
 			},
-			"wait_for_confirmation": map[string]interface{}{
+			"wait_for_confirmation": map[string]any{
 				"type":        "boolean",
 				"description": "Wait for confirmation from channel before returning (default: true). Set to false for async (fire-and-forget) mode.",
 			},
-			"timeout": map[string]interface{}{
+			"timeout": map[string]any{
 				"type":        "integer",
 				"description": "Timeout in seconds for sync mode (default: 5). Ignored in async mode.",
 			},
@@ -403,6 +403,6 @@ The message was not delivered. You may need to:
 }
 
 // ToSchema returns the OpenAI-compatible schema for this tool.
-func (t *SendMessageTool) ToSchema() map[string]interface{} {
+func (t *SendMessageTool) ToSchema() map[string]any {
 	return t.Parameters()
 }

@@ -9,7 +9,7 @@ import (
 type mockTool struct {
 	name        string
 	description string
-	parameters  map[string]interface{}
+	parameters  map[string]any
 	executeFunc func(args string) (string, error)
 }
 
@@ -21,7 +21,7 @@ func (m *mockTool) Description() string {
 	return m.description
 }
 
-func (m *mockTool) Parameters() map[string]interface{} {
+func (m *mockTool) Parameters() map[string]any {
 	return m.parameters
 }
 
@@ -38,10 +38,10 @@ func TestRegistry_Register(t *testing.T) {
 	tool := &mockTool{
 		name:        "test_tool",
 		description: "A test tool",
-		parameters: map[string]interface{}{
+		parameters: map[string]any{
 			"type": "object",
-			"properties": map[string]interface{}{
-				"input": map[string]interface{}{
+			"properties": map[string]any{
+				"input": map[string]any{
 					"type": "string",
 				},
 			},
@@ -66,7 +66,7 @@ func TestRegistry_Register(t *testing.T) {
 	}
 
 	// Verify parameters
-	props, ok := schema.Parameters["properties"].(map[string]interface{})
+	props, ok := schema.Parameters["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Expected properties to be a map")
 	}
@@ -82,10 +82,10 @@ func TestExecuteToolCall(t *testing.T) {
 	tool := &mockTool{
 		name:        "execute_test",
 		description: "Tool for execute testing",
-		parameters: map[string]interface{}{
+		parameters: map[string]any{
 			"type": "object",
-			"properties": map[string]interface{}{
-				"value": map[string]interface{}{"type": "string"},
+			"properties": map[string]any{
+				"value": map[string]any{"type": "string"},
 			},
 		},
 		executeFunc: func(args string) (string, error) {
@@ -145,7 +145,7 @@ func TestExecuteToolCall_ExecutionError(t *testing.T) {
 	tool := &mockTool{
 		name:        "error_tool",
 		description: "Tool that returns error",
-		parameters:  map[string]interface{}{},
+		parameters:  map[string]any{},
 		executeFunc: func(args string) (string, error) {
 			return "", fmt.Errorf("execution failed")
 		},
@@ -176,7 +176,7 @@ func TestRegistry_ToJSON(t *testing.T) {
 	tool := &mockTool{
 		name:        "json_tool",
 		description: "Tool for JSON testing",
-		parameters: map[string]interface{}{
+		parameters: map[string]any{
 			"type": "object",
 		},
 	}
@@ -206,12 +206,12 @@ func TestRegistry_ConcurrentAccess(t *testing.T) {
 	// Register tools concurrently
 	done := make(chan bool)
 	errChan := make(chan error, 100)
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		go func(n int) {
 			tool := &mockTool{
 				name:        fmt.Sprintf("tool_%d", n),
 				description: fmt.Sprintf("Tool %d", n),
-				parameters:  map[string]interface{}{},
+				parameters:  map[string]any{},
 			}
 			if err := registry.Register(tool); err != nil {
 				errChan <- err
@@ -222,7 +222,7 @@ func TestRegistry_ConcurrentAccess(t *testing.T) {
 	}
 
 	// Wait for all registrations
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		select {
 		case <-done:
 			continue
@@ -238,7 +238,7 @@ func TestRegistry_ConcurrentAccess(t *testing.T) {
 	}
 
 	// Test concurrent reads
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		go func(n int) {
 			name := fmt.Sprintf("tool_%d", n)
 			_, ok := registry.Get(name)
@@ -250,7 +250,7 @@ func TestRegistry_ConcurrentAccess(t *testing.T) {
 	}
 
 	// Wait for all reads
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		<-done
 	}
 }

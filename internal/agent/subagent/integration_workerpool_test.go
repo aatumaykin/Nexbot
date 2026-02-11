@@ -50,7 +50,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		numTasks := 5
 
 		// Submit tasks that will spawn subagents
-		for i := 0; i < numTasks; i++ {
+		for i := range numTasks {
 			task := workers.Task{
 				ID:      fmt.Sprintf("pool-task-%d", i),
 				Type:    "subagent",
@@ -61,7 +61,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 
 		// Wait for results
 		results := make(map[string]workers.Result)
-		for i := 0; i < numTasks; i++ {
+		for range numTasks {
 			result := <-pool.Results()
 			results[result.TaskID] = result
 		}
@@ -91,7 +91,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 
 		// Submit multiple subagent tasks
 		numTasks := 6
-		for i := 0; i < numTasks; i++ {
+		for i := range numTasks {
 			subagentTask := workers.Task{
 				ID:      fmt.Sprintf("subagent-%d", i),
 				Type:    "subagent",
@@ -101,7 +101,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		}
 
 		// Wait for all results
-		for i := 0; i < numTasks; i++ {
+		for range numTasks {
 			result := <-pool.Results()
 			assert.NoError(t, result.Error)
 		}
@@ -125,7 +125,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		numHighLoadTasks := 20
 
 		// Submit many tasks rapidly
-		for i := 0; i < numHighLoadTasks; i++ {
+		for i := range numHighLoadTasks {
 			task := workers.Task{
 				ID:      fmt.Sprintf("load-%d", i),
 				Type:    "subagent",
@@ -139,7 +139,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		for i := 0; i < numHighLoadTasks; i++ {
+		for range numHighLoadTasks {
 			select {
 			case result := <-pool.Results():
 				results[result.TaskID] = result
@@ -203,7 +203,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		pool.Start()
 
 		// Submit tasks
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			task := workers.Task{
 				ID: fmt.Sprintf("shutdown-%d", i),
 			}

@@ -82,11 +82,11 @@ func TestCronTool_Parameters(t *testing.T) {
 	assert.NotNil(t, params, "Parameters should not be nil")
 	assert.Equal(t, "object", params["type"], "Type should be 'object'")
 
-	props, ok := params["properties"].(map[string]interface{})
+	props, ok := params["properties"].(map[string]any)
 	assert.True(t, ok, "Properties should be a map")
 
 	// Check action property
-	actionProp, ok := props["action"].(map[string]interface{})
+	actionProp, ok := props["action"].(map[string]any)
 	assert.True(t, ok, "Action property should be a map")
 	assert.Equal(t, "string", actionProp["type"], "Action type should be 'string'")
 	assert.Contains(t, actionProp["enum"], "add_recurring", "Action enum should contain 'add_recurring'")
@@ -97,7 +97,7 @@ func TestCronTool_Parameters(t *testing.T) {
 	// Check required fields - try both types
 	required := params["required"]
 	switch v := required.(type) {
-	case []interface{}:
+	case []any:
 		assert.Contains(t, v, "action", "Required should contain 'action'")
 	case []string:
 		assert.Contains(t, v, "action", "Required should contain 'action'")

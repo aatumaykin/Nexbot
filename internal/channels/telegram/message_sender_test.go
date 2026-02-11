@@ -18,8 +18,7 @@ func TestMessageSender_PrepareMessage_ParseMode(t *testing.T) {
 	})
 
 	msgBus := bus.New(100, 100, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	cfg := config.TelegramConfig{}
 	conn := New(cfg, log, msgBus)

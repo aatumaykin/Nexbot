@@ -330,8 +330,7 @@ func Test_handleOutbound_ConcurrentMessages(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	cfg := config.TelegramConfig{
 		SendTimeoutSeconds: 5,
@@ -351,7 +350,7 @@ func Test_handleOutbound_ConcurrentMessages(t *testing.T) {
 	go conn.handleOutbound()
 
 	messageCount := 5
-	for i := 0; i < messageCount; i++ {
+	for i := range messageCount {
 		outboundCh <- bus.OutboundMessage{
 			CorrelationID: testCorrelationID(i),
 			ChannelType:   bus.ChannelTypeTelegram,

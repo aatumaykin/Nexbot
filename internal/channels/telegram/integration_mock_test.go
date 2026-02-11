@@ -30,8 +30,7 @@ func TestTelegramConnector_FullWorkflow_WithMock(t *testing.T) {
 
 	msgBus := bus.New(100, 10, log)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Start message bus
 	if err := msgBus.Start(ctx); err != nil {
@@ -124,7 +123,7 @@ func TestTelegramConnector_Concurrent_WithMock(t *testing.T) {
 	go conn.handleOutbound()
 
 	// Send multiple messages concurrently
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		go func(idx int) {
 			outboundCh <- bus.OutboundMessage{
 				ChannelType: bus.ChannelTypeTelegram,
@@ -362,8 +361,7 @@ func TestTelegramConnector_CommandHandling_WithMock(t *testing.T) {
 	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Start message bus
 	if err := msgBus.Start(ctx); err != nil {
@@ -435,8 +433,7 @@ func TestTelegramConnector_GracefulShutdown_WithMock(t *testing.T) {
 	msgBus := bus.New(100, 10, log)
 	defer func() { _ = msgBus.Stop() }()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Create mock bot
 	mockBot := NewMockBotSuccess()

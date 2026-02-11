@@ -77,7 +77,7 @@ func TestApp_processMessage_WithCommand(t *testing.T) {
 		"user123",
 		"session456",
 		"/help",
-		map[string]interface{}{"command": "/help"},
+		map[string]any{"command": "/help"},
 	)
 
 	// Publish message
@@ -224,7 +224,7 @@ func TestApp_processMessage_CommandMetadata(t *testing.T) {
 				"user123",
 				"session456",
 				"test",
-				map[string]interface{}{"command": tc.command},
+				map[string]any{"command": tc.command},
 			)
 
 			err = app.messageBus.PublishInbound(*msg)
@@ -290,7 +290,7 @@ func TestApp_processMessage_MultipleMessages(t *testing.T) {
 	}
 
 	// Publish multiple messages
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		msg := bus.NewInboundMessage(
 			bus.ChannelTypeTelegram,
 			"user123",

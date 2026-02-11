@@ -62,13 +62,13 @@ func TestReadFileTool_Parameters(t *testing.T) {
 	}
 
 	// Check properties
-	props, ok := params["properties"].(map[string]interface{})
+	props, ok := params["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Properties should be a map")
 	}
 
 	// Check required fields
-	required, ok := params["required"].([]interface{})
+	required, ok := params["required"].([]any)
 	if !ok {
 		// Try []string if []interface{} fails
 		requiredStr, ok := params["required"].([]string)
@@ -85,7 +85,7 @@ func TestReadFileTool_Parameters(t *testing.T) {
 	}
 
 	// Check path property
-	pathProp, ok := props["path"].(map[string]interface{})
+	pathProp, ok := props["path"].(map[string]any)
 	if !ok {
 		t.Fatal("Path property should be a map")
 	}
@@ -447,7 +447,7 @@ func TestReadFileTool_SchemaGeneration(t *testing.T) {
 		t.Errorf("Expected schema type 'object', got '%v'", schema["type"])
 	}
 
-	props, ok := schema["properties"].(map[string]interface{})
+	props, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Schema properties should be a map")
 	}
@@ -461,7 +461,7 @@ func TestReadFileTool_SchemaGeneration(t *testing.T) {
 	}
 
 	// Verify path property
-	pathProp, ok := props["path"].(map[string]interface{})
+	pathProp, ok := props["path"].(map[string]any)
 	if !ok {
 		t.Fatal("Path property should be a map")
 	}
@@ -475,7 +475,7 @@ func TestReadFileTool_SchemaGeneration(t *testing.T) {
 	}
 
 	// Verify offset property
-	offsetProp, ok := props["offset"].(map[string]interface{})
+	offsetProp, ok := props["offset"].(map[string]any)
 	if !ok {
 		t.Fatal("Offset property should be a map")
 	}
@@ -489,7 +489,7 @@ func TestReadFileTool_SchemaGeneration(t *testing.T) {
 	}
 
 	// Verify limit property
-	limitProp, ok := props["limit"].(map[string]interface{})
+	limitProp, ok := props["limit"].(map[string]any)
 	if !ok {
 		t.Fatal("Limit property should be a map")
 	}
@@ -503,7 +503,7 @@ func TestReadFileTool_SchemaGeneration(t *testing.T) {
 	}
 
 	// Verify encoding property
-	encodingProp, ok := props["encoding"].(map[string]interface{})
+	encodingProp, ok := props["encoding"].(map[string]any)
 	if !ok {
 		t.Fatal("Encoding property should be a map")
 	}
@@ -539,7 +539,7 @@ func TestReadFileTool_SchemaToJSON(t *testing.T) {
 	}
 
 	// Verify it's valid JSON by unmarshaling
-	var unmarshaled map[string]interface{}
+	var unmarshaled map[string]any
 	if err := json.Unmarshal(data, &unmarshaled); err != nil {
 		t.Fatalf("Failed to unmarshal schema JSON: %v", err)
 	}

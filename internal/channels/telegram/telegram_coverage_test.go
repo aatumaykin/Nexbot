@@ -106,8 +106,7 @@ func TestConnector_handleUpdate_StatusCommand_EmptyWhitelist(t *testing.T) {
 	})
 
 	msgBus := bus.New(100, 10, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	if err := msgBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
@@ -170,8 +169,7 @@ func TestConnector_handleUpdate_RestartCommand_EmptyWhitelist(t *testing.T) {
 	})
 
 	msgBus := bus.New(100, 10, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	if err := msgBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
@@ -234,8 +232,7 @@ func TestConnector_handleUpdate_NewCommand_EmptyWhitelist(t *testing.T) {
 	})
 
 	msgBus := bus.New(100, 10, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	if err := msgBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
@@ -468,8 +465,7 @@ func TestConnector_handleUpdate_SpacesOnly(t *testing.T) {
 	})
 
 	msgBus := bus.New(100, 10, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	if err := msgBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
@@ -591,8 +587,7 @@ func TestConnector_handleUpdate_SpecialCharacters(t *testing.T) {
 	})
 
 	msgBus := bus.New(100, 10, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	if err := msgBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
@@ -1212,8 +1207,7 @@ func TestConnector_handleUpdate_StatusCommand(t *testing.T) {
 	})
 
 	msgBus := bus.New(100, 10, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Start message bus
 	if err := msgBus.Start(ctx); err != nil {
@@ -1277,8 +1271,7 @@ func TestConnector_handleUpdate_RestartCommand(t *testing.T) {
 	})
 
 	msgBus := bus.New(100, 10, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Start message bus
 	if err := msgBus.Start(ctx); err != nil {
@@ -1342,8 +1335,7 @@ func TestConnector_handleUpdate_WithChatType(t *testing.T) {
 	})
 
 	msgBus := bus.New(100, 10, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	if err := msgBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)
@@ -1479,7 +1471,7 @@ func TestConnector_handleEvents_EventTypes(t *testing.T) {
 	go conn.handleEvents()
 
 	// Send multiple events
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		startEvent := bus.NewProcessingStartEvent(
 			bus.ChannelTypeTelegram,
 			"123456789",
@@ -1572,8 +1564,7 @@ func TestUpdateHandler_Handle_BlockedUserNilBot(t *testing.T) {
 	})
 
 	msgBus := bus.New(100, 10, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	if err := msgBus.Start(ctx); err != nil {
 		t.Fatalf("Failed to start message bus: %v", err)

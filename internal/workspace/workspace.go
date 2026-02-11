@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 
 	"github.com/aatumaykin/nexbot/internal/config"
@@ -122,10 +123,8 @@ func (w *Workspace) ResolvePath(relPath string) (string, error) {
 
 	// Also check if any component of the path is ".."
 	pathParts := filepath.SplitList(cleanPath)
-	for _, part := range pathParts {
-		if part == ".." {
-			return "", fmt.Errorf("path attempts to escape workspace: %s", relPath)
-		}
+	if slices.Contains(pathParts, "..") {
+		return "", fmt.Errorf("path attempts to escape workspace: %s", relPath)
 	}
 
 	// Join with workspace path

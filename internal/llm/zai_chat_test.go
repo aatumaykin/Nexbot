@@ -161,7 +161,7 @@ func TestZAIProvider_Chat_ToolCalls(t *testing.T) {
 			{
 				Name:        "get_weather",
 				Description: "Get weather",
-				Parameters:  map[string]interface{}{"type": "object"},
+				Parameters:  map[string]any{"type": "object"},
 			},
 		},
 	}

@@ -62,7 +62,7 @@ type Tool interface {
 
 	// Parameters returns a JSON Schema object describing the tool's input parameters.
 	// The schema follows OpenAI function calling format.
-	Parameters() map[string]interface{}
+	Parameters() map[string]any
 
 	// Execute runs the tool with the provided arguments.
 	// args is a JSON-encoded string containing the tool's input parameters.
@@ -166,9 +166,9 @@ func (r *Registry) ToSchema() []ToolDefinition {
 
 // ToolDefinition represents a tool definition in OpenAI function calling format.
 type ToolDefinition struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Parameters  map[string]interface{} `json:"parameters"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Parameters  map[string]any `json:"parameters"`
 }
 
 // ToolCall represents a tool call request from the LLM.

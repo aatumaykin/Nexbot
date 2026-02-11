@@ -79,7 +79,7 @@ type ToolDefinition struct {
 	Description string `json:"description"` // Description of what the tool does
 
 	// Parameters is a JSON Schema object describing the tool's input parameters
-	Parameters map[string]interface{} `json:"parameters"`
+	Parameters map[string]any `json:"parameters"`
 }
 
 // ChatResponse represents a response from the LLM provider.

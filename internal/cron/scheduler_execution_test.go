@@ -21,8 +21,7 @@ func TestScheduler_JobExecution(t *testing.T) {
 	workerPool := &mockWorkerPool{}
 	scheduler := NewScheduler(log, msgBus, workerPool, nil)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
@@ -75,8 +74,7 @@ func TestScheduler_JobExecutionWithMetadata(t *testing.T) {
 	workerPool := &mockWorkerPool{}
 	scheduler := NewScheduler(log, msgBus, workerPool, nil)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)

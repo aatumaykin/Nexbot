@@ -82,7 +82,7 @@ func TestMessage_JSONTags(t *testing.T) {
 	}
 
 	// Check JSON structure
-	var unmarshaled map[string]interface{}
+	var unmarshaled map[string]any
 	if err := json.Unmarshal(data, &unmarshaled); err != nil {
 		t.Fatalf("Failed to unmarshal Message: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestChatRequest_JSONTags(t *testing.T) {
 			{
 				Name:        "test_tool",
 				Description: "Test tool",
-				Parameters:  map[string]interface{}{"type": "object"},
+				Parameters:  map[string]any{"type": "object"},
 			},
 		},
 	}
@@ -122,7 +122,7 @@ func TestChatRequest_JSONTags(t *testing.T) {
 		t.Fatalf("Failed to marshal ChatRequest: %v", err)
 	}
 
-	var unmarshaled map[string]interface{}
+	var unmarshaled map[string]any
 	if err := json.Unmarshal(data, &unmarshaled); err != nil {
 		t.Fatalf("Failed to unmarshal ChatRequest: %v", err)
 	}
@@ -164,7 +164,7 @@ func TestChatResponse_JSONTags(t *testing.T) {
 		t.Fatalf("Failed to marshal ChatResponse: %v", err)
 	}
 
-	var unmarshaled map[string]interface{}
+	var unmarshaled map[string]any
 	if err := json.Unmarshal(data, &unmarshaled); err != nil {
 		t.Fatalf("Failed to unmarshal ChatResponse: %v", err)
 	}
@@ -194,7 +194,7 @@ func TestZAIConfig_JSONTags(t *testing.T) {
 		t.Fatalf("Failed to marshal ZAIConfig: %v", err)
 	}
 
-	var unmarshaled map[string]interface{}
+	var unmarshaled map[string]any
 	if err := json.Unmarshal(data, &unmarshaled); err != nil {
 		t.Fatalf("Failed to unmarshal ZAIConfig: %v", err)
 	}

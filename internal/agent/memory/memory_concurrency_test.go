@@ -70,7 +70,7 @@ func TestConcurrentOperations(t *testing.T) {
 
 		// Concurrently write messages
 		errChan := make(chan error, 10)
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			go func(idx int) {
 				msg := llm.Message{
 					Role:    llm.RoleUser,
@@ -81,7 +81,7 @@ func TestConcurrentOperations(t *testing.T) {
 		}
 
 		// Wait for all goroutines and check errors
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			if err := <-errChan; err != nil {
 				t.Fatalf("Write() error = %v", err)
 			}

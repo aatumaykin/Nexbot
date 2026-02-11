@@ -109,8 +109,7 @@ func TestHandleSendMessage(t *testing.T) {
 // Test 4: Валидация каналов через запрос с невалидным каналом
 // Тест проверяет что недопустимый канал возвращает ошибку валидации
 func TestHandleSendMessageWithInvalidChannel(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	tempDir := t.TempDir()
 	log, err := logger.New(logger.Config{Level: "info", Format: "text", Output: "stdout"})

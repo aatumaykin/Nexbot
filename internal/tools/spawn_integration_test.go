@@ -205,7 +205,7 @@ func TestSpawnToolIntegrationSchema(t *testing.T) {
 	data, err := json.Marshal(schema)
 	require.NoError(t, err)
 
-	var unmarshaled map[string]interface{}
+	var unmarshaled map[string]any
 	err = json.Unmarshal(data, &unmarshaled)
 	require.NoError(t, err)
 
@@ -213,11 +213,11 @@ func TestSpawnToolIntegrationSchema(t *testing.T) {
 	assert.Equal(t, "spawn", unmarshaled["name"])
 
 	// Verify parameters are valid
-	params, ok := unmarshaled["parameters"].(map[string]interface{})
+	params, ok := unmarshaled["parameters"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "object", params["type"])
 
-	props, ok := params["properties"].(map[string]interface{})
+	props, ok := params["properties"].(map[string]any)
 	require.True(t, ok)
 	_, hasTask := props["task"]
 	_, hasTimeout := props["timeout_seconds"]

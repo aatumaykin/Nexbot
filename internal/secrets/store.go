@@ -3,6 +3,7 @@ package secrets
 import (
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Store provides secure storage for secrets with encryption and file-based persistence.
@@ -175,16 +176,16 @@ func sanitizeName(name string) string {
 
 // replaceAll is a simple replacement function to avoid importing strings
 func replaceAll(s, old, new string) string {
-	result := ""
+	var result strings.Builder
 	i := 0
 	for i < len(s) {
 		if i+len(old) <= len(s) && s[i:i+len(old)] == old {
-			result += new
+			result.WriteString(new)
 			i += len(old)
 		} else {
-			result += string(s[i])
+			result.WriteString(string(s[i]))
 			i++
 		}
 	}
-	return result
+	return result.String()
 }

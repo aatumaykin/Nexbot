@@ -17,9 +17,9 @@ func LoadEnv(path string) error {
 		return err
 	}
 
-	lines := strings.Split(string(data), "\n")
+	lines := strings.SplitSeq(string(data), "\n")
 
-	for _, line := range lines {
+	for line := range lines {
 		line = strings.TrimSpace(line)
 
 		// Пропустить пустые строки и комментарии

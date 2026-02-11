@@ -1,7 +1,6 @@
 package cron
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -28,8 +27,7 @@ func TestSchedulerOneshotExecution(t *testing.T) {
 	workerPool := &mockWorkerPool{}
 	storage := NewStorage(tempDir, log)
 	scheduler := NewScheduler(log, messageBus, workerPool, storage)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
 	now := time.Now()
@@ -61,8 +59,7 @@ func TestSchedulerOneshotAlreadyExecuted(t *testing.T) {
 	workerPool := &mockWorkerPool{}
 	storage := NewStorage(tempDir, log)
 	scheduler := NewScheduler(log, messageBus, workerPool, storage)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
 	now := time.Now()
@@ -91,8 +88,7 @@ func TestSchedulerCleanupExecuted(t *testing.T) {
 	workerPool := &mockWorkerPool{}
 	storage := NewStorage(tempDir, log)
 	scheduler := NewScheduler(log, messageBus, workerPool, storage)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
 	now := time.Now()
@@ -136,8 +132,7 @@ func TestSchedulerStorageIntegration(t *testing.T) {
 	messageBus := bus.New(100, 10, log)
 	storage := NewStorage(tempDir, log)
 	scheduler := NewScheduler(log, messageBus, nil, storage)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
 	t.Cleanup(func() {
@@ -210,8 +205,7 @@ func TestSchedulerOneshotNotExecutedTwice(t *testing.T) {
 	workerPool := &mockWorkerPool{}
 	storage := NewStorage(tempDir, log)
 	scheduler := NewScheduler(log, messageBus, workerPool, storage)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
 	now := time.Now()

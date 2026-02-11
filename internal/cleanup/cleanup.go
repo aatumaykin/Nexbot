@@ -114,10 +114,9 @@ func (r *Runner) cleanupExpiredMessages(filePath string, totalLines int) (int, i
 	if r.config.MessageTTLDays < 30 {
 		keepRatio = 0.3
 	}
-	keepCount := int(float64(totalLines) * keepRatio)
-	if keepCount < 10 {
-		keepCount = 10 // Always keep at least 10 messages
-	}
+	keepCount := max(int(float64(totalLines)*keepRatio),
+		// Always keep at least 10 messages
+		10)
 
 	lineNum := 0
 	for scanner.Scan() {

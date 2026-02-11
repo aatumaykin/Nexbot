@@ -59,8 +59,7 @@ func TestFullWorkflow(t *testing.T) {
 	scheduler := NewScheduler(log, msgBus, workerPool, storage)
 	assert.NotNil(t, scheduler, "Scheduler should be created")
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err = scheduler.Start(ctx)
 	require.NoError(t, err, "Failed to start scheduler")
@@ -304,8 +303,7 @@ func TestFullWorkflowWithMultipleJobs(t *testing.T) {
 	workerPool := &mockWorkerPool{}
 	scheduler := NewScheduler(log, msgBus, workerPool, storage)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
@@ -505,8 +503,7 @@ func TestFullWorkflowPersistenceAcrossRestarts(t *testing.T) {
 
 	// Start second scheduler instance
 	scheduler2 := NewScheduler(log, msgBus, workerPool, storage)
-	ctx2, cancel2 := context.WithCancel(context.Background())
-	defer cancel2()
+	ctx2 := t.Context()
 
 	err = scheduler2.Start(ctx2)
 	require.NoError(t, err)

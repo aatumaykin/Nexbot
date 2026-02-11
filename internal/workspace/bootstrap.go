@@ -38,7 +38,7 @@ import (
 type BootstrapLoader struct {
 	workspace  *Workspace
 	maxChars   int
-	loggerFunc func(string, ...interface{}) // For logging warnings about missing files
+	loggerFunc func(string, ...any) // For logging warnings about missing files
 }
 
 // BootstrapFile represents a bootstrap file with its name and priority.
@@ -68,7 +68,7 @@ var defaultBootstrapFiles = []BootstrapFile{
 // NewBootstrapLoader creates a new BootstrapLoader.
 // If maxChars is 0, no limit is enforced.
 // loggerFunc is an optional function for logging warnings (can be nil).
-func NewBootstrapLoader(ws *Workspace, cfg config.WorkspaceConfig, loggerFunc func(string, ...interface{})) *BootstrapLoader {
+func NewBootstrapLoader(ws *Workspace, cfg config.WorkspaceConfig, loggerFunc func(string, ...any)) *BootstrapLoader {
 	maxChars := cfg.BootstrapMaxChars
 	if maxChars == 0 {
 		maxChars = 20000 // Default from config

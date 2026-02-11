@@ -236,8 +236,7 @@ func TestConnector_handleUpdate_Success(t *testing.T) {
 	})
 
 	msgBus := bus.New(100, 10, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Start message bus
 	if err := msgBus.Start(ctx); err != nil {
@@ -328,8 +327,7 @@ func TestConnector_handleUpdate_WhitelistBlocked(t *testing.T) {
 	})
 
 	msgBus := bus.New(100, 10, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Start message bus
 	if err := msgBus.Start(ctx); err != nil {
@@ -522,8 +520,7 @@ func TestConnector_handleUpdate_NewCommand(t *testing.T) {
 	})
 
 	msgBus := bus.New(100, 10, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Start message bus
 	if err := msgBus.Start(ctx); err != nil {
@@ -618,8 +615,7 @@ func TestConnector_handleUpdate_NewCommand_Unauthorized(t *testing.T) {
 	})
 
 	msgBus := bus.New(100, 10, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Start message bus
 	if err := msgBus.Start(ctx); err != nil {
@@ -680,8 +676,7 @@ func TestConnector_handleUpdate_NewCommand_ThenRegularMessage(t *testing.T) {
 	})
 
 	msgBus := bus.New(100, 10, log)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Start message bus
 	if err := msgBus.Start(ctx); err != nil {
@@ -985,8 +980,7 @@ func TestLongPollManager_Start_WithMock(t *testing.T) {
 		Output: "stdout",
 	})
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Create test update
 	update := telego.Update{
@@ -1255,8 +1249,7 @@ func TestTypingManager_Start_WithMock(t *testing.T) {
 		Output: "stdout",
 	})
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Create mock bot
 	mockBot := NewMockBotSuccess()

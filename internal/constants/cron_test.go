@@ -54,7 +54,7 @@ func TestCronJobIDFormat(t *testing.T) {
 	}
 
 	// Test with different values
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		result := fmt.Sprintf(CronJobIDFormat, i)
 		expected := fmt.Sprintf("job_%d", i)
 		if result != expected {
@@ -77,7 +77,7 @@ func TestCronJobsFile(t *testing.T) {
 func TestCronConsistency(t *testing.T) {
 	// Test that job ID format produces valid identifiers
 	// This ensures that job IDs can be used as filenames
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		jobID := fmt.Sprintf(CronJobIDFormat, i)
 		if jobID == "" {
 			t.Errorf("Job ID should not be empty for i=%d", i)

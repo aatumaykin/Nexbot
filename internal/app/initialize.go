@@ -42,7 +42,7 @@ func (a *workerPoolAdapter) Submit(task cron.Task) {
 		Type:    task.Type,
 		Payload: task.Payload,
 		Context: task.Context,
-		Metrics: make(map[string]interface{}),
+		Metrics: make(map[string]any),
 	}
 
 	// Submit to workers pool

@@ -80,13 +80,7 @@ func (b *SummaryBuilder) filterSkills(skills map[string]*Skill, opts SummaryOpti
 	for _, skill := range skills {
 		// Filter by category if specified
 		if len(opts.Categories) > 0 {
-			found := false
-			for _, cat := range opts.Categories {
-				if skill.Metadata.Category == cat {
-					found = true
-					break
-				}
-			}
+			found := slices.Contains(opts.Categories, skill.Metadata.Category)
 			if !found {
 				continue
 			}

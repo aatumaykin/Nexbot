@@ -2,6 +2,7 @@ package skills
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"sync"
@@ -223,14 +224,10 @@ func (l *Loader) mergeSkills(builtin, workspace map[string]*Skill) map[string]*S
 	merged := make(map[string]*Skill)
 
 	// First add all builtin skills
-	for name, skill := range builtin {
-		merged[name] = skill
-	}
+	maps.Copy(merged, builtin)
 
 	// Then override with workspace skills
-	for name, skill := range workspace {
-		merged[name] = skill
-	}
+	maps.Copy(merged, workspace)
 
 	return merged
 }
@@ -238,9 +235,7 @@ func (l *Loader) mergeSkills(builtin, workspace map[string]*Skill) map[string]*S
 // copyCache creates a copy of the skills cache.
 func (l *Loader) copyCache() map[string]*Skill {
 	copy := make(map[string]*Skill, len(l.cache))
-	for k, v := range l.cache {
-		copy[k] = v
-	}
+	maps.Copy(copy, l.cache)
 	return copy
 }
 

@@ -96,7 +96,7 @@ func (s *Store) Read(sessionID string) ([]llm.Message, error) {
 
 	// Default line-by-line parsing for JSONL and other formats
 	var messages []llm.Message
-	for _, line := range strings.Split(string(data), "\n") {
+	for line := range strings.SplitSeq(string(data), "\n") {
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
@@ -189,8 +189,8 @@ func (s *Store) GetSessions() ([]string, error) {
 		}
 
 		name := entry.Name()
-		if strings.HasSuffix(name, suffix) {
-			sessionID := strings.TrimSuffix(name, suffix)
+		if before, ok := strings.CutSuffix(name, suffix); ok {
+			sessionID := before
 			sessions = append(sessions, sessionID)
 		}
 	}

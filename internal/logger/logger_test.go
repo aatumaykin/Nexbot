@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -322,7 +321,7 @@ func TestLogger_JSONFormat(t *testing.T) {
 	logger.Info("test message", Field{Key: "key", Value: "value"})
 
 	// Verify it's valid JSON
-	var result map[string]interface{}
+	var result map[string]any
 	if err := json.Unmarshal(buf.Bytes(), &result); err != nil {
 		t.Errorf("Output is not valid JSON: %v", err)
 	}
@@ -405,13 +404,11 @@ func BenchmarkLogger_Debug(b *testing.B) {
 		Level:  "debug",
 		Format: "json",
 	})
-	// Create handler with no output (discard)
-	handler := slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug})
-	logger.slog = slog.New(handler)
+	logger.slog = slog.New(slog.DiscardHandler)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		logger.Debug("benchmark debug message", Field{Key: "iteration", Value: i})
+	for b.Loop() {
+		logger.Debug("benchmark debug message", Field{Key: "iteration", Value: 0})
 	}
 }
 
@@ -420,12 +417,10 @@ func BenchmarkLogger_Info(b *testing.B) {
 		Level:  "info",
 		Format: "json",
 	})
-	// Create handler with no output (discard)
-	handler := slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelInfo})
-	logger.slog = slog.New(handler)
+	logger.slog = slog.New(slog.DiscardHandler)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		logger.Info("benchmark info message", Field{Key: "iteration", Value: i})
+	for b.Loop() {
+		logger.Info("benchmark info message", Field{Key: "iteration", Value: 0})
 	}
 }

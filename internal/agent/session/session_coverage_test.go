@@ -133,7 +133,7 @@ func TestSessionMessageCount(t *testing.T) {
 		}
 
 		// Add messages
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			msg := llm.Message{
 				Role:    llm.RoleUser,
 				Content: "Message",

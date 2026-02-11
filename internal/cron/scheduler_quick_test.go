@@ -1,7 +1,6 @@
 package cron
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -19,8 +18,7 @@ func TestSchedulerOneshotAlreadyExecutedQuick(t *testing.T) {
 	workerPool := &mockWorkerPool{}
 	storage := NewStorage(tempDir, log)
 	scheduler := NewScheduler(log, messageBus, workerPool, storage)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
 	now := time.Now()

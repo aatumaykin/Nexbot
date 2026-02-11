@@ -93,7 +93,7 @@ func (a *workerPoolAdapter) Submit(task cron.Task) {
 		Type:    task.Type,
 		Payload: task.Payload,
 		Context: task.Context,
-		Metrics: make(map[string]interface{}),
+		Metrics: make(map[string]any),
 	}
 	a.pool.Submit(workersTask)
 }

@@ -46,14 +46,14 @@ func TestSystemTimeToolParameters(t *testing.T) {
 	assert.NotNil(t, params, "Parameters should not be nil")
 	assert.Equal(t, "object", params["type"], "Type should be 'object'")
 
-	props, ok := params["properties"].(map[string]interface{})
+	props, ok := params["properties"].(map[string]any)
 	assert.True(t, ok, "Properties should be a map")
 	assert.Empty(t, props, "Properties should be empty")
 
 	// Check required fields - try both types
 	required := params["required"]
 	switch v := required.(type) {
-	case []interface{}:
+	case []any:
 		assert.Empty(t, v, "Required should be empty")
 	case []string:
 		assert.Empty(t, v, "Required should be empty")

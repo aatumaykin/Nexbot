@@ -148,7 +148,7 @@ func (p *WorkerPool) executeSendMessage(ctx context.Context, task Task, payload 
 		Content:     content,
 		Format:      format,
 		Timestamp:   time.Now(),
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"cron_job_id": task.ID,
 		},
 	}
@@ -206,7 +206,7 @@ func (p *WorkerPool) executeAgent(ctx context.Context, task Task, payload cron.C
 		"", // Empty user_id for cron tasks
 		fmt.Sprintf("%s:%s", channel, chatID),
 		content,
-		map[string]interface{}{
+		map[string]any{
 			"cron_job_id": task.ID,
 			"tool":        "agent",
 			"payload":     payload.Payload,

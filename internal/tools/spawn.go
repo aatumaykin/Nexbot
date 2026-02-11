@@ -45,15 +45,15 @@ func (t *SpawnTool) Description() string {
 }
 
 // Parameters returns the JSON Schema for the tool's parameters.
-func (t *SpawnTool) Parameters() map[string]interface{} {
-	return map[string]interface{}{
+func (t *SpawnTool) Parameters() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"task": map[string]interface{}{
+		"properties": map[string]any{
+			"task": map[string]any{
 				"type":        "string",
 				"description": "Task description for the subagent",
 			},
-			"timeout_seconds": map[string]interface{}{
+			"timeout_seconds": map[string]any{
 				"type":        "number",
 				"description": "Optional timeout in seconds (default: 300)",
 			},

@@ -47,25 +47,25 @@ func (t *ReadFileTool) Description() string {
 }
 
 // Parameters returns the JSON Schema for the tool's parameters.
-func (t *ReadFileTool) Parameters() map[string]interface{} {
-	return map[string]interface{}{
+func (t *ReadFileTool) Parameters() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"path": map[string]interface{}{
+		"properties": map[string]any{
+			"path": map[string]any{
 				"type":        "string",
 				"description": "The path to the file to read. Can be absolute or relative to the workspace directory. Examples: {\"path\": \"config.json\"}",
 			},
-			"offset": map[string]interface{}{
+			"offset": map[string]any{
 				"type":        "integer",
 				"description": "The line number to start reading from (0-based). Defaults to 0. Examples: {\"path\": \"logs/app.log\", \"offset\": 100, \"limit\": 50}",
 				"default":     0,
 			},
-			"limit": map[string]interface{}{
+			"limit": map[string]any{
 				"type":        "integer",
 				"description": "The maximum number of lines to read. Defaults to 2000.",
 				"default":     2000,
 			},
-			"encoding": map[string]interface{}{
+			"encoding": map[string]any{
 				"type":        "string",
 				"description": "The file encoding. Currently only 'utf-8' is supported. Examples: {\"path\": \"data.txt\", \"encoding\": \"utf-8\"}",
 				"default":     "utf-8",
@@ -172,22 +172,19 @@ func (t *ReadFileTool) Execute(args string) (string, error) {
 	}
 
 	startLine := fileArgs.Offset
-	endLine := startLine + fileArgs.Limit
-
-	if endLine > len(lines) {
-		endLine = len(lines)
-	}
+	endLine := min(startLine+fileArgs.Limit, len(lines))
 
 	selectedLines := lines[startLine:endLine]
 
 	// Format output with line numbers
-	result := fmt.Sprintf("# File: %s (lines %d-%d of %d)\n",
-		filepath.Clean(fullPath), startLine+1, endLine, len(lines))
+	var result strings.Builder
+	result.WriteString(fmt.Sprintf("# File: %s (lines %d-%d of %d)\n",
+		filepath.Clean(fullPath), startLine+1, endLine, len(lines)))
 
 	for i, line := range selectedLines {
 		lineNum := startLine + i + 1
-		result += fmt.Sprintf("%06d| %s\n", lineNum, line)
+		result.WriteString(fmt.Sprintf("%06d| %s\n", lineNum, line))
 	}
 
-	return result, nil
+	return result.String(), nil
 }

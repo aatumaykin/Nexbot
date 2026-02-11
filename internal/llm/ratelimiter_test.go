@@ -9,7 +9,7 @@ func TestTokenBucketRateLimiter_TryAcquire(t *testing.T) {
 	limiter := NewTokenBucketRateLimiter(10, time.Second, 1)
 
 	// Test initial capacity
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		allowed, _ := limiter.TryAcquire()
 		if !allowed {
 			t.Errorf("Expected request %d to be allowed", i+1)
@@ -85,7 +85,7 @@ func TestTokenBucketRateLimiter_Reset(t *testing.T) {
 	limiter := NewTokenBucketRateLimiter(10, time.Second, 1)
 
 	// Consume all tokens
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		limiter.TryAcquire()
 	}
 
@@ -93,7 +93,7 @@ func TestTokenBucketRateLimiter_Reset(t *testing.T) {
 	limiter.Reset()
 
 	// Should have full capacity again
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		allowed, _ := limiter.TryAcquire()
 		if !allowed {
 			t.Errorf("Expected request %d to be allowed after reset", i+1)

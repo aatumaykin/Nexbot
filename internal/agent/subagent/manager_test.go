@@ -382,7 +382,7 @@ func TestManagerConcurrency(t *testing.T) {
 
 	// Spawn multiple subagents concurrently
 	done := make(chan *Subagent, 10)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go func() {
 			sub, err := manager.Spawn(ctx, "parent-123", "Task")
 			assert.NoError(t, err)
@@ -392,7 +392,7 @@ func TestManagerConcurrency(t *testing.T) {
 
 	// Wait for all spawns to complete
 	subagents := make([]*Subagent, 0, 10)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		sub := <-done
 		subagents = append(subagents, sub)
 	}
@@ -432,7 +432,7 @@ func TestStorageSaveAndLoad(t *testing.T) {
 	subagentID := "test-subagent-123"
 
 	// Save an entry
-	entry := map[string]interface{}{
+	entry := map[string]any{
 		"message": "test",
 		"time":    time.Now().Unix(),
 	}
@@ -455,7 +455,7 @@ func TestStorageDelete(t *testing.T) {
 	subagentID := "test-subagent-123"
 
 	// Save an entry
-	err = storage.Save(subagentID, map[string]interface{}{"message": "test"})
+	err = storage.Save(subagentID, map[string]any{"message": "test"})
 	require.NoError(t, err)
 
 	// Check directory exists
@@ -489,9 +489,9 @@ func TestStorageList(t *testing.T) {
 	assert.Len(t, subagentIDs, 0)
 
 	// Create some subagent directories
-	ignoreError(storage.Save("subagent-1", map[string]interface{}{}))
-	ignoreError(storage.Save("subagent-2", map[string]interface{}{}))
-	ignoreError(storage.Save("subagent-3", map[string]interface{}{}))
+	ignoreError(storage.Save("subagent-1", map[string]any{}))
+	ignoreError(storage.Save("subagent-2", map[string]any{}))
+	ignoreError(storage.Save("subagent-3", map[string]any{}))
 
 	// List should return all subagent IDs
 	subagentIDs, err = storage.List()

@@ -9,7 +9,7 @@ import (
 func TestTestConstants(t *testing.T) {
 	tests := []struct {
 		name  string
-		value interface{}
+		value any
 	}{
 		{
 			name:  "TestRequestTimeout",
@@ -223,7 +223,7 @@ func TestTestResponseMessages(t *testing.T) {
 
 			// Test format strings
 			if containsString(tt.value, "%") {
-				var testVal interface{}
+				var testVal any
 				if containsString(tt.value, "%s") {
 					testVal = "test"
 				} else if containsString(tt.value, "%v") {

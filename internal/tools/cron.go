@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aatumaykin/nexbot/internal/agent"
@@ -47,37 +48,37 @@ func (t *CronTool) Description() string {
 }
 
 // Parameters returns the JSON Schema for the tool's parameters.
-func (t *CronTool) Parameters() map[string]interface{} {
-	return map[string]interface{}{
+func (t *CronTool) Parameters() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"action": map[string]interface{}{
+		"properties": map[string]any{
+			"action": map[string]any{
 				"type":        "string",
 				"description": "Action to perform: 'add_recurring' to create a recurring job, 'add_oneshot' to create a one-time job, 'list' to show all jobs, 'remove' to delete a job.",
 				"enum":        []string{"add_recurring", "add_oneshot", "remove", "list"},
 			},
-			"schedule": map[string]interface{}{
+			"schedule": map[string]any{
 				"type":        "string",
 				"description": "Cron expression defining the schedule (e.g., '0 * * * *' for hourly). Required for 'add_recurring' action.",
 			},
-			"execute_at": map[string]interface{}{
+			"execute_at": map[string]any{
 				"type":        "string",
 				"description": "ISO8601 datetime for one-time job execution (e.g., '2026-02-05T18:00:00Z'). Required for 'add_oneshot' action.",
 			},
-			"tool": map[string]interface{}{
+			"tool": map[string]any{
 				"type":        "string",
 				"description": "Internal tool to use: 'send_message' (sends message directly to chat) OR 'agent' (processes command via agent).",
 				"enum":        []string{"send_message", "agent"},
 			},
-			"payload": map[string]interface{}{
+			"payload": map[string]any{
 				"type":        "string",
 				"description": "JSON string with parameters for the tool. For 'send_message' or 'agent', this should be {\"message\": \"your text\"}. Required when tool is not empty.",
 			},
-			"session_id": map[string]interface{}{
+			"session_id": map[string]any{
 				"type":        "string",
 				"description": "Session ID for sending message. Format: 'channel:chat_id' (e.g., 'telegram:35052705'). REQUIRED for send_message or agent tools to know where to send.",
 			},
-			"job_id": map[string]interface{}{
+			"job_id": map[string]any{
 				"type":        "string",
 				"description": "Job ID to remove. Required for 'remove' action.",
 			},
@@ -101,7 +102,7 @@ func (t *CronTool) Execute(args string) (string, error) {
 		if params.Tool == "" {
 			return "", fmt.Errorf("tool parameter is required for add_recurring action. Use 'send_message' or 'agent'")
 		}
-		return t.addRecurring(context.Background(), map[string]interface{}{
+		return t.addRecurring(context.Background(), map[string]any{
 			"schedule":   params.Schedule,
 			"tool":       params.Tool,
 			"payload":    params.Payload,
@@ -111,25 +112,25 @@ func (t *CronTool) Execute(args string) (string, error) {
 		if params.Tool == "" {
 			return "", fmt.Errorf("tool parameter is required for add_oneshot action. Use 'send_message' or 'agent'")
 		}
-		return t.addOneshot(context.Background(), map[string]interface{}{
+		return t.addOneshot(context.Background(), map[string]any{
 			"execute_at": params.ExecuteAt,
 			"tool":       params.Tool,
 			"payload":    params.Payload,
 			"session_id": params.SessionID,
 		})
 	case "remove":
-		return t.removeJob(context.Background(), map[string]interface{}{
+		return t.removeJob(context.Background(), map[string]any{
 			"job_id": params.JobID,
 		})
 	case "list":
-		return t.listJobs(context.Background(), map[string]interface{}{})
+		return t.listJobs(context.Background(), map[string]any{})
 	default:
 		return "", fmt.Errorf("invalid action: %s. Valid actions: add_recurring, add_oneshot, remove, list", params.Action)
 	}
 }
 
 // addRecurring creates a recurring cron job.
-func (t *CronTool) addRecurring(ctx context.Context, params map[string]interface{}) (string, error) {
+func (t *CronTool) addRecurring(ctx context.Context, params map[string]any) (string, error) {
 	// Extract parameters
 	schedule, ok := params["schedule"].(string)
 	if !ok || schedule == "" {
@@ -187,7 +188,7 @@ func (t *CronTool) addRecurring(ctx context.Context, params map[string]interface
 }
 
 // addOneshot creates a one-time cron job.
-func (t *CronTool) addOneshot(ctx context.Context, params map[string]interface{}) (string, error) {
+func (t *CronTool) addOneshot(ctx context.Context, params map[string]any) (string, error) {
 	// Extract parameters
 	executeAtStr, ok := params["execute_at"].(string)
 	if !ok || executeAtStr == "" {
@@ -256,7 +257,7 @@ func (t *CronTool) addOneshot(ctx context.Context, params map[string]interface{}
 }
 
 // removeJob removes a cron job.
-func (t *CronTool) removeJob(ctx context.Context, params map[string]interface{}) (string, error) {
+func (t *CronTool) removeJob(ctx context.Context, params map[string]any) (string, error) {
 	// Extract parameters
 	jobID, ok := params["job_id"].(string)
 	if !ok || jobID == "" {
@@ -279,37 +280,38 @@ func (t *CronTool) removeJob(ctx context.Context, params map[string]interface{})
 }
 
 // listJobs lists all cron jobs.
-func (t *CronTool) listJobs(ctx context.Context, params map[string]interface{}) (string, error) {
+func (t *CronTool) listJobs(ctx context.Context, params map[string]any) (string, error) {
 	jobs := t.cronManager.ListJobs()
 
 	if len(jobs) == 0 {
 		return "No scheduled jobs found.", nil
 	}
 
-	result := "Scheduled Jobs:\n---------------\n"
+	var result strings.Builder
+	result.WriteString("Scheduled Jobs:\n---------------\n")
 	for _, job := range jobs {
-		result += fmt.Sprintf("Job ID: %s\n", job.ID)
-		result += fmt.Sprintf("Type: %s\n", job.Type)
-		result += fmt.Sprintf("Schedule: %s\n", job.Schedule)
+		result.WriteString(fmt.Sprintf("Job ID: %s\n", job.ID))
+		result.WriteString(fmt.Sprintf("Type: %s\n", job.Type))
+		result.WriteString(fmt.Sprintf("Schedule: %s\n", job.Schedule))
 		if job.ExecuteAt != nil {
-			result += fmt.Sprintf("Execute at: %s\n", job.ExecuteAt.Format(time.RFC1123))
+			result.WriteString(fmt.Sprintf("Execute at: %s\n", job.ExecuteAt.Format(time.RFC1123)))
 		}
-		result += fmt.Sprintf("Tool: %s\n", job.Tool)
+		result.WriteString(fmt.Sprintf("Tool: %s\n", job.Tool))
 		if job.Payload != nil {
 			if msg, ok := job.Payload["message"].(string); ok {
-				result += fmt.Sprintf("Message: %s\n", msg)
+				result.WriteString(fmt.Sprintf("Message: %s\n", msg))
 			}
 		}
 		if job.SessionID != "" {
-			result += fmt.Sprintf("Session ID: %s\n", job.SessionID)
+			result.WriteString(fmt.Sprintf("Session ID: %s\n", job.SessionID))
 		}
-		result += "---------------\n"
+		result.WriteString("---------------\n")
 	}
 
-	return result, nil
+	return result.String(), nil
 }
 
 // ToSchema returns the OpenAI-compatible schema for this tool.
-func (t *CronTool) ToSchema() map[string]interface{} {
+func (t *CronTool) ToSchema() map[string]any {
 	return t.Parameters()
 }

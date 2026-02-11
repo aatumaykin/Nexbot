@@ -303,12 +303,12 @@ func TestAgentIntegration_ConcurrentAccess(t *testing.T) {
 
 		done := make(chan bool, numGoroutines)
 
-		for i := 0; i < numGoroutines; i++ {
+		for i := range numGoroutines {
 			go func(id int) {
 				defer func() { done <- true }()
 
 				sessionID := "concurrent-session"
-				for j := 0; j < messagesPerGoroutine; j++ {
+				for j := range messagesPerGoroutine {
 					sess, _, err := sessionManager.GetOrCreate(sessionID)
 					require.NoError(t, err)
 
@@ -322,7 +322,7 @@ func TestAgentIntegration_ConcurrentAccess(t *testing.T) {
 		}
 
 		// Wait for all goroutines
-		for i := 0; i < numGoroutines; i++ {
+		for range numGoroutines {
 			<-done
 		}
 
@@ -348,12 +348,12 @@ func TestAgentIntegration_ConcurrentAccess(t *testing.T) {
 
 		done := make(chan bool, numGoroutines)
 
-		for i := 0; i < numGoroutines; i++ {
+		for i := range numGoroutines {
 			go func(id int) {
 				defer func() { done <- true }()
 
 				sessionID := "concurrent-memory"
-				for j := 0; j < messagesPerGoroutine; j++ {
+				for j := range messagesPerGoroutine {
 					err := memoryStore.Write(sessionID, llm.Message{
 						Role:    llm.RoleSystem,
 						Content: string(rune('A' + j)),
@@ -364,7 +364,7 @@ func TestAgentIntegration_ConcurrentAccess(t *testing.T) {
 		}
 
 		// Wait for all goroutines
-		for i := 0; i < numGoroutines; i++ {
+		for range numGoroutines {
 			<-done
 		}
 

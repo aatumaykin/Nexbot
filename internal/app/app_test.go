@@ -208,8 +208,7 @@ func TestApp_Run_InitializeError(t *testing.T) {
 
 	app := New(cfg, createTestLogger(t))
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err := app.Run(ctx)
 	if err == nil {

@@ -67,8 +67,7 @@ func TestZAIProvider_Chat_HTTPError(t *testing.T) {
 		t.Fatal("Chat() expected HTTP error, got nil")
 	}
 
-	var httpErr *zaiHTTPError
-	if errors.As(err, &httpErr) {
+	if httpErr, ok := errors.AsType[*zaiHTTPError](err); ok {
 		if httpErr.StatusCode != http.StatusUnauthorized {
 			t.Errorf("HTTP error status = %d, want 401", httpErr.StatusCode)
 		}

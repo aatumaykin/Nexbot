@@ -27,7 +27,7 @@ const (
 type Task struct {
 	ID      string          // Unique task identifier
 	Type    string          // Task type: "cron"
-	Payload interface{}     // Task payload (command, user_id, metadata, etc.)
+	Payload any             // Task payload (command, user_id, metadata, etc.)
 	Context context.Context // Task-specific context for cancellation/timeout
 }
 

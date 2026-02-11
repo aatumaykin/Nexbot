@@ -56,11 +56,11 @@ func (t *ShellExecTool) Description() string {
 }
 
 // Parameters returns the JSON Schema for the tool's parameters.
-func (t *ShellExecTool) Parameters() map[string]interface{} {
-	return map[string]interface{}{
+func (t *ShellExecTool) Parameters() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"command": map[string]interface{}{
+		"properties": map[string]any{
+			"command": map[string]any{
 				"type":        "string",
 				"description": "The shell command to execute. Examples: ls -la, pwd, cat /var/log/syslog, df -h",
 			},

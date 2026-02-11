@@ -56,18 +56,18 @@ func TestFetchTool_Parameters(t *testing.T) {
 
 	// Check structure
 	assert.Equal(t, "object", params["type"])
-	properties, ok := params["properties"].(map[string]interface{})
+	properties, ok := params["properties"].(map[string]any)
 	require.True(t, ok)
 
 	// Check url property
-	urlProp, ok := properties["url"].(map[string]interface{})
+	urlProp, ok := properties["url"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "string", urlProp["type"])
 	assert.Contains(t, urlProp["description"].(string), "http://")
 	assert.Contains(t, urlProp["description"].(string), "https://")
 
 	// Check format property
-	formatProp, ok := properties["format"].(map[string]interface{})
+	formatProp, ok := properties["format"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "string", formatProp["type"])
 	assert.Contains(t, formatProp["enum"], "text")
@@ -75,7 +75,7 @@ func TestFetchTool_Parameters(t *testing.T) {
 	assert.Equal(t, "text", formatProp["default"])
 
 	// Check required fields
-	required, ok := params["required"].([]interface{})
+	required, ok := params["required"].([]any)
 	require.True(t, ok)
 	assert.Len(t, required, 1)
 	assert.Equal(t, "url", required[0])
@@ -101,7 +101,7 @@ func TestFetchTool_Execute_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	// Parse result JSON
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -184,7 +184,7 @@ func TestFetchTool_Execute_HTMLStrip(t *testing.T) {
 	require.NoError(t, err)
 
 	// Parse result JSON
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -231,7 +231,7 @@ func TestFetchTool_Execute_RawHTML(t *testing.T) {
 	require.NoError(t, err)
 
 	// Parse result JSON
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -327,7 +327,7 @@ func TestFetchTool_Execute_JSONResponse(t *testing.T) {
 	require.NoError(t, err)
 
 	// Parse result JSON
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -355,7 +355,7 @@ func TestFetchTool_Execute_HTTPError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Parse result JSON
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -447,7 +447,7 @@ func TestFetchTool_Execute_UserAgent(t *testing.T) {
 	require.NoError(t, err)
 
 	// Parse result JSON
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -531,7 +531,7 @@ func TestFetchTool_Execute_FollowRedirects_True(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
 	tool := NewFetchTool(testConfig(), log)
 
-	args, _ := json.Marshal(map[string]interface{}{
+	args, _ := json.Marshal(map[string]any{
 		"url":             initialServer.URL,
 		"followRedirects": true,
 	})
@@ -540,7 +540,7 @@ func TestFetchTool_Execute_FollowRedirects_True(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -565,7 +565,7 @@ func TestFetchTool_Execute_FollowRedirects_False(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
 	tool := NewFetchTool(testConfig(), log)
 
-	args, _ := json.Marshal(map[string]interface{}{
+	args, _ := json.Marshal(map[string]any{
 		"url":             redirectServer.URL,
 		"followRedirects": false,
 	})
@@ -574,7 +574,7 @@ func TestFetchTool_Execute_FollowRedirects_False(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -605,7 +605,7 @@ func TestFetchTool_Execute_FollowRedirects_Default(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -634,7 +634,7 @@ func TestFetchTool_Execute_TimeoutOverride(t *testing.T) {
 	}
 	tool := NewFetchTool(cfg, log)
 
-	args, _ := json.Marshal(map[string]interface{}{
+	args, _ := json.Marshal(map[string]any{
 		"url":     server.URL,
 		"timeout": 2,
 	})
@@ -666,7 +666,7 @@ func TestFetchTool_Execute_TimeoutOverride_Valid(t *testing.T) {
 	}
 	tool := NewFetchTool(cfg, log)
 
-	args, _ := json.Marshal(map[string]interface{}{
+	args, _ := json.Marshal(map[string]any{
 		"url":     server.URL,
 		"timeout": 5,
 	})
@@ -675,7 +675,7 @@ func TestFetchTool_Execute_TimeoutOverride_Valid(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -706,7 +706,7 @@ func TestFetchTool_Execute_Timeout_TooLow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			args, _ := json.Marshal(map[string]interface{}{
+			args, _ := json.Marshal(map[string]any{
 				"url":     "http://example.com",
 				"timeout": tt.timeout,
 			})
@@ -742,7 +742,7 @@ func TestFetchTool_Execute_Timeout_TooHigh(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			args, _ := json.Marshal(map[string]interface{}{
+			args, _ := json.Marshal(map[string]any{
 				"url":     "http://example.com",
 				"timeout": tt.timeout,
 			})
@@ -783,7 +783,7 @@ func TestFetchTool_Execute_Timeout_Default(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -812,16 +812,16 @@ func TestFetchTool_Execute_JSONFormat(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
 	assert.Contains(t, resultJSON, "json")
-	jsonData := resultJSON["json"].(map[string]interface{})
+	jsonData := resultJSON["json"].(map[string]any)
 	assert.Equal(t, "Test", jsonData["name"])
 	assert.Equal(t, float64(123), jsonData["value"])
 
-	nested := jsonData["nested"].(map[string]interface{})
+	nested := jsonData["nested"].(map[string]any)
 	assert.Equal(t, "value", nested["key"])
 }
 
@@ -867,7 +867,7 @@ func TestFetchTool_Execute_StatusText(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -896,12 +896,12 @@ func TestFetchTool_Execute_Headers(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
 	assert.Contains(t, resultJSON, "headers")
-	headers := resultJSON["headers"].(map[string]interface{})
+	headers := resultJSON["headers"].(map[string]any)
 	assert.Equal(t, "text/html", headers["Content-Type"])
 	assert.Equal(t, "max-age=3600", headers["Cache-Control"])
 	assert.Equal(t, "TestServer/1.0", headers["Server"])
@@ -927,7 +927,7 @@ func TestFetchTool_Execute_BasicAuth(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
 	tool := NewFetchTool(testConfig(), log)
 
-	args, _ := json.Marshal(map[string]interface{}{
+	args, _ := json.Marshal(map[string]any{
 		"url": server.URL,
 		"basicAuth": map[string]string{
 			"username": "testuser",
@@ -939,7 +939,7 @@ func TestFetchTool_Execute_BasicAuth(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -975,7 +975,7 @@ func TestFetchTool_Execute_BasicAuth_SecretPassword(t *testing.T) {
 	})
 	tool.SetSessionID("test-session")
 
-	args, _ := json.Marshal(map[string]interface{}{
+	args, _ := json.Marshal(map[string]any{
 		"url": server.URL,
 		"basicAuth": map[string]string{
 			"username": "testuser",
@@ -987,7 +987,7 @@ func TestFetchTool_Execute_BasicAuth_SecretPassword(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -1009,7 +1009,7 @@ func TestFetchTool_Execute_BasicAuth_Invalid(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
 	tool := NewFetchTool(testConfig(), log)
 
-	args, _ := json.Marshal(map[string]interface{}{
+	args, _ := json.Marshal(map[string]any{
 		"url": server.URL,
 		"basicAuth": map[string]string{
 			"username": "testuser",
@@ -1021,7 +1021,7 @@ func TestFetchTool_Execute_BasicAuth_Invalid(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -1047,7 +1047,7 @@ func TestFetchTool_Execute_Cookies(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
 	tool := NewFetchTool(testConfig(), log)
 
-	args, _ := json.Marshal(map[string]interface{}{
+	args, _ := json.Marshal(map[string]any{
 		"url": server.URL,
 		"cookies": map[string]string{
 			"sessionid": "abc123",
@@ -1059,7 +1059,7 @@ func TestFetchTool_Execute_Cookies(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -1082,7 +1082,7 @@ func TestFetchTool_Execute_Cookies_Empty(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
 	tool := NewFetchTool(testConfig(), log)
 
-	args, _ := json.Marshal(map[string]interface{}{
+	args, _ := json.Marshal(map[string]any{
 		"url":     server.URL,
 		"cookies": map[string]string{},
 	})
@@ -1091,7 +1091,7 @@ func TestFetchTool_Execute_Cookies_Empty(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -1114,7 +1114,7 @@ func TestFetchTool_Execute_Cookies_Single(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
 	tool := NewFetchTool(testConfig(), log)
 
-	args, _ := json.Marshal(map[string]interface{}{
+	args, _ := json.Marshal(map[string]any{
 		"url": server.URL,
 		"cookies": map[string]string{
 			"singlecookie": "value1",
@@ -1125,7 +1125,7 @@ func TestFetchTool_Execute_Cookies_Single(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -1156,7 +1156,7 @@ func TestFetchTool_Execute_BasicAuthAndCookies(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
 	tool := NewFetchTool(testConfig(), log)
 
-	args, _ := json.Marshal(map[string]interface{}{
+	args, _ := json.Marshal(map[string]any{
 		"url": server.URL,
 		"basicAuth": map[string]string{
 			"username": "user",
@@ -1171,7 +1171,7 @@ func TestFetchTool_Execute_BasicAuthAndCookies(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -1221,7 +1221,7 @@ func TestFetchTool_Execute_MarkdownFormat(t *testing.T) {
 
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 
@@ -1362,10 +1362,10 @@ func TestFetchTool_Parameters_Markdown(t *testing.T) {
 	tool := NewFetchTool(testConfig(), log)
 
 	params := tool.Parameters()
-	properties, ok := params["properties"].(map[string]interface{})
+	properties, ok := params["properties"].(map[string]any)
 	require.True(t, ok)
 
-	formatProp, ok := properties["format"].(map[string]interface{})
+	formatProp, ok := properties["format"].(map[string]any)
 	require.True(t, ok)
 	assert.Contains(t, formatProp["enum"], "markdown")
 	assert.Contains(t, formatProp["description"], "Markdown")
@@ -1376,10 +1376,10 @@ func TestFetchTool_Parameters_Method(t *testing.T) {
 	tool := NewFetchTool(testConfig(), log)
 
 	params := tool.Parameters()
-	properties, ok := params["properties"].(map[string]interface{})
+	properties, ok := params["properties"].(map[string]any)
 	require.True(t, ok)
 
-	methodProp, ok := properties["method"].(map[string]interface{})
+	methodProp, ok := properties["method"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "string", methodProp["type"])
 	assert.Contains(t, methodProp["enum"], "GET")
@@ -1395,10 +1395,10 @@ func TestFetchTool_Parameters_Body(t *testing.T) {
 	tool := NewFetchTool(testConfig(), log)
 
 	params := tool.Parameters()
-	properties, ok := params["properties"].(map[string]interface{})
+	properties, ok := params["properties"].(map[string]any)
 	require.True(t, ok)
 
-	bodyProp, ok := properties["body"].(map[string]interface{})
+	bodyProp, ok := properties["body"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "string", bodyProp["type"])
 	assert.Contains(t, bodyProp["description"], "POST, PUT, PATCH")
@@ -1430,7 +1430,7 @@ func TestFetchTool_Execute_POST(t *testing.T) {
 	result, err := tool.Execute(string(args))
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 	assert.Equal(t, float64(200), resultJSON["status"])
@@ -1462,7 +1462,7 @@ func TestFetchTool_Execute_PUT(t *testing.T) {
 	result, err := tool.Execute(string(args))
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 	assert.Equal(t, float64(200), resultJSON["status"])
@@ -1493,7 +1493,7 @@ func TestFetchTool_Execute_PATCH(t *testing.T) {
 	result, err := tool.Execute(string(args))
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 	assert.Equal(t, float64(200), resultJSON["status"])
@@ -1519,7 +1519,7 @@ func TestFetchTool_Execute_DELETE(t *testing.T) {
 	result, err := tool.Execute(string(args))
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 	assert.Equal(t, float64(204), resultJSON["status"])
@@ -1543,7 +1543,7 @@ func TestFetchTool_Execute_GET_Default(t *testing.T) {
 	result, err := tool.Execute(string(args))
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 	assert.Equal(t, float64(200), resultJSON["status"])
@@ -1575,7 +1575,7 @@ func TestFetchTool_Execute_GET_WithBody_Ignored(t *testing.T) {
 	result, err := tool.Execute(string(args))
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 	assert.Equal(t, float64(200), resultJSON["status"])
@@ -1605,7 +1605,7 @@ func TestFetchTool_Execute_DELETE_WithBody_Ignored(t *testing.T) {
 	result, err := tool.Execute(string(args))
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 	assert.Equal(t, float64(204), resultJSON["status"])
@@ -1628,7 +1628,7 @@ func TestFetchTool_Execute_POST_WithCustomContentType(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "error", Format: "text", Output: "stdout"})
 	tool := NewFetchTool(testConfig(), log)
 
-	args, _ := json.Marshal(map[string]interface{}{
+	args, _ := json.Marshal(map[string]any{
 		"url":    server.URL,
 		"method": "POST",
 		"body":   "plain text data",
@@ -1640,7 +1640,7 @@ func TestFetchTool_Execute_POST_WithCustomContentType(t *testing.T) {
 	result, err := tool.Execute(string(args))
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 	assert.Equal(t, float64(200), resultJSON["status"])
@@ -1670,7 +1670,7 @@ func TestFetchTool_Execute_POST_WithoutBody(t *testing.T) {
 	result, err := tool.Execute(string(args))
 	require.NoError(t, err)
 
-	var resultJSON map[string]interface{}
+	var resultJSON map[string]any
 	err = json.Unmarshal([]byte(result), &resultJSON)
 	require.NoError(t, err)
 	assert.Equal(t, float64(200), resultJSON["status"])

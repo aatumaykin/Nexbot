@@ -10,7 +10,7 @@ func BenchmarkSortedCategories(b *testing.B) {
 	categories := make(map[string][]*Skill)
 
 	// Create 100+ categories for meaningful benchmark
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		category := fmt.Sprintf("cat_%d", rand.Int())
 		categories[category] = []*Skill{}
 	}
@@ -18,7 +18,7 @@ func BenchmarkSortedCategories(b *testing.B) {
 	builder := &SummaryBuilder{}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		builder.sortedCategories(categories)
 	}
 }

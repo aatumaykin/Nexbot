@@ -93,7 +93,7 @@ func TestStatusMessages(t *testing.T) {
 
 			// Test format strings
 			if strings.Contains(tt.value, "%") {
-				var testVal interface{}
+				var testVal any
 				if strings.Contains(tt.value, "%s") {
 					testVal = "test"
 				} else if strings.Contains(tt.value, "%d") {

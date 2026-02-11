@@ -273,7 +273,7 @@ func TestGetLastN(t *testing.T) {
 		sessionID := "test-lastn-1"
 
 		// Add 10 messages
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			msg := llm.Message{
 				Role:    llm.RoleUser,
 				Content: fmt.Sprintf("Message %d", i),
@@ -306,7 +306,7 @@ func TestGetLastN(t *testing.T) {
 		sessionID := "test-lastn-2"
 
 		// Add 3 messages
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			msg := llm.Message{
 				Role:    llm.RoleUser,
 				Content: fmt.Sprintf("Message %d", i),

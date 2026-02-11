@@ -55,71 +55,71 @@ func (t *FetchTool) Description() string {
 	return "Fetch content from a URL. Returns formatted text with metadata."
 }
 
-func (t *FetchTool) Parameters() map[string]interface{} {
-	return map[string]interface{}{
+func (t *FetchTool) Parameters() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"url": map[string]interface{}{
+		"properties": map[string]any{
+			"url": map[string]any{
 				"type":        "string",
 				"description": "The URL to fetch. Must start with http:// or https://",
 			},
-			"format": map[string]interface{}{
+			"format": map[string]any{
 				"type":        "string",
 				"enum":        []string{"text", "html", "markdown", "json"},
 				"default":     "text",
 				"description": "Output format: 'text' (strips HTML tags), 'html' (raw HTML), 'markdown' (converts HTML to Markdown), or 'json' (parse JSON response)",
 			},
-			"headers": map[string]interface{}{
+			"headers": map[string]any{
 				"type":        "object",
 				"description": "Optional HTTP headers. Use $SECRET_NAME to reference secrets. Example: {\"Authorization\": \"Bearer $APIKEY\"}",
-				"additionalProperties": map[string]interface{}{
+				"additionalProperties": map[string]any{
 					"type": "string",
 				},
 			},
-			"basicAuth": map[string]interface{}{
+			"basicAuth": map[string]any{
 				"type":        "object",
 				"description": "Optional Basic Authentication. Use $SECRET_NAME for password to reference secrets. Example: {\"username\": \"user\", \"password\": \"$MYPASS\"}",
-				"properties": map[string]interface{}{
-					"username": map[string]interface{}{
+				"properties": map[string]any{
+					"username": map[string]any{
 						"type":        "string",
 						"description": "Username for Basic Auth",
 					},
-					"password": map[string]interface{}{
+					"password": map[string]any{
 						"type":        "string",
 						"description": "Password for Basic Auth. Supports $SECRET_NAME reference",
 					},
 				},
 			},
-			"cookies": map[string]interface{}{
+			"cookies": map[string]any{
 				"type":        "object",
 				"description": "Optional cookies to send. Example: {\"sessionid\": \"abc123\", \"user_pref\": \"dark\"}",
-				"additionalProperties": map[string]interface{}{
+				"additionalProperties": map[string]any{
 					"type": "string",
 				},
 			},
-			"followRedirects": map[string]interface{}{
+			"followRedirects": map[string]any{
 				"type":        "boolean",
 				"default":     true,
 				"description": "Follow HTTP redirects. Set to false to stop at the first redirect and return the redirect URL",
 			},
-			"timeout": map[string]interface{}{
+			"timeout": map[string]any{
 				"type":        "integer",
 				"description": "Timeout in seconds (1-120). Overrides the default configuration. Omit to use default timeout",
 				"minimum":     1,
 				"maximum":     120,
 			},
-			"method": map[string]interface{}{
+			"method": map[string]any{
 				"type":        "string",
 				"enum":        []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
 				"default":     "GET",
 				"description": "HTTP method to use",
 			},
-			"body": map[string]interface{}{
+			"body": map[string]any{
 				"type":        "string",
 				"description": "Request body (for POST, PUT, PATCH methods)",
 			},
 		},
-		"required": []interface{}{"url"},
+		"required": []any{"url"},
 	}
 }
 
@@ -265,7 +265,7 @@ func (t *FetchTool) Execute(args string) (string, error) {
 		content = t.htmlToMarkdown(content)
 	}
 
-	result := map[string]interface{}{
+	result := map[string]any{
 		"url":         fetchArgs.URL,
 		"status":      resp.StatusCode,
 		"statusText":  resp.Status,
@@ -275,7 +275,7 @@ func (t *FetchTool) Execute(args string) (string, error) {
 	}
 
 	if fetchArgs.Format == "json" {
-		var jsonData interface{}
+		var jsonData any
 		if err := json.Unmarshal(body, &jsonData); err != nil {
 			return "", fmt.Errorf("failed to parse JSON response: %w", err)
 		}
@@ -329,7 +329,7 @@ func (t *FetchTool) htmlToMarkdown(html string) string {
 	converter.AddRules(md.Rule{
 		Filter: []string{"nav", "footer", "aside", "script", "style"},
 		Replacement: func(content string, selec *goquery.Selection, opt *md.Options) *string {
-			return md.String("")
+			return new("")
 		},
 	})
 

@@ -14,9 +14,7 @@ import (
 
 // handleSendError обрабатывает ошибки отправки с smart fallback для markdown
 func (c *Connector) handleSendError(err error, msg bus.OutboundMessage, chatID int64, params telego.SendMessageParams) {
-	var telErr *telegoapi.Error
-
-	if errors.As(err, &telErr) {
+	if telErr, ok := errors.AsType[*telegoapi.Error](err); ok {
 		details := &channels.TelegramErrorDetails{
 			ErrorCode:       telErr.ErrorCode,
 			Description:     telErr.Description,
@@ -96,9 +94,7 @@ func (c *Connector) publishResult(msg bus.OutboundMessage, chatID int64, success
 	}
 
 	if !success && err != nil {
-		var telErr *telegoapi.Error
-
-		if errors.As(err, &telErr) {
+		if telErr, ok := errors.AsType[*telegoapi.Error](err); ok {
 			details := &channels.TelegramErrorDetails{
 				ErrorCode:       telErr.ErrorCode,
 				Description:     telErr.Description,

@@ -415,14 +415,14 @@ func TestApp_Shutdown_ThreadSafety(t *testing.T) {
 
 	// Call shutdown from multiple goroutines
 	done := make(chan error, 10)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go func() {
 			done <- app.Shutdown()
 		}()
 	}
 
 	// Wait for all shutdowns to complete
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		err := <-done
 		if err != nil {
 			t.Errorf("Concurrent Shutdown() #%d failed: %v", i, err)
@@ -441,14 +441,14 @@ func TestApp_Restart_ThreadSafety(t *testing.T) {
 
 	// Call restart from multiple goroutines
 	done := make(chan error, 10)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go func() {
 			done <- app.Restart()
 		}()
 	}
 
 	// Wait for all restarts to complete
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		err := <-done
 		if err != nil {
 			t.Errorf("Concurrent Restart() #%d failed: %v", i, err)

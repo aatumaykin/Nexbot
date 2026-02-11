@@ -10,20 +10,20 @@ import (
 
 // Task represents a unit of work to be executed by a worker.
 type Task struct {
-	ID      string                 // Unique task identifier
-	Type    string                 // Task type: "cron" or "subagent"
-	Payload interface{}            // Task payload (command, agent config, etc.)
-	Context context.Context        // Task-specific context for cancellation/timeout
-	Metrics map[string]interface{} // Optional metrics to track
+	ID      string          // Unique task identifier
+	Type    string          // Task type: "cron" or "subagent"
+	Payload any             // Task payload (command, agent config, etc.)
+	Context context.Context // Task-specific context for cancellation/timeout
+	Metrics map[string]any  // Optional metrics to track
 }
 
 // Result represents the outcome of a task execution.
 type Result struct {
-	TaskID   string                 // ID of the executed task
-	Error    error                  // Error if execution failed
-	Output   string                 // Task output
-	Duration time.Duration          // Execution duration
-	Metrics  map[string]interface{} // Task execution metrics
+	TaskID   string         // ID of the executed task
+	Error    error          // Error if execution failed
+	Output   string         // Task output
+	Duration time.Duration  // Execution duration
+	Metrics  map[string]any // Task execution metrics
 }
 
 // PoolMetrics tracks execution metrics for the worker pool.

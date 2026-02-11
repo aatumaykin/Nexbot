@@ -45,7 +45,7 @@ func TestMultiSubagent(t *testing.T) {
 		var wg sync.WaitGroup
 
 		// Spawn multiple subagents concurrently
-		for i := 0; i < numConcurrent; i++ {
+		for i := range numConcurrent {
 			wg.Add(1)
 			go func(taskNum int) {
 				defer wg.Done()

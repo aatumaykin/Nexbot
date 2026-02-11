@@ -63,13 +63,13 @@ func TestSpawnTool_Parameters(t *testing.T) {
 	}
 
 	// Check properties
-	props, ok := params["properties"].(map[string]interface{})
+	props, ok := params["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Properties should be a map")
 	}
 
 	// Check required fields
-	required, ok := params["required"].([]interface{})
+	required, ok := params["required"].([]any)
 	if !ok {
 		// Try []string if []interface{} fails
 		requiredStr, ok := params["required"].([]string)
@@ -86,7 +86,7 @@ func TestSpawnTool_Parameters(t *testing.T) {
 	}
 
 	// Check task property
-	taskProp, ok := props["task"].(map[string]interface{})
+	taskProp, ok := props["task"].(map[string]any)
 	if !ok {
 		t.Fatal("Task property should be a map")
 	}
@@ -96,7 +96,7 @@ func TestSpawnTool_Parameters(t *testing.T) {
 	}
 
 	// Check timeout_seconds property
-	timeoutProp, ok := props["timeout_seconds"].(map[string]interface{})
+	timeoutProp, ok := props["timeout_seconds"].(map[string]any)
 	if !ok {
 		t.Fatal("Timeout property should be a map")
 	}
@@ -264,7 +264,7 @@ func TestSpawnTool_SchemaGeneration(t *testing.T) {
 		t.Errorf("Expected schema type 'object', got '%v'", schema["type"])
 	}
 
-	props, ok := schema["properties"].(map[string]interface{})
+	props, ok := schema["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Schema properties should be a map")
 	}
@@ -278,7 +278,7 @@ func TestSpawnTool_SchemaGeneration(t *testing.T) {
 	}
 
 	// Verify task property
-	taskProp, ok := props["task"].(map[string]interface{})
+	taskProp, ok := props["task"].(map[string]any)
 	if !ok {
 		t.Fatal("Task property should be a map")
 	}
@@ -292,7 +292,7 @@ func TestSpawnTool_SchemaGeneration(t *testing.T) {
 	}
 
 	// Verify timeout property
-	timeoutProp, ok := props["timeout_seconds"].(map[string]interface{})
+	timeoutProp, ok := props["timeout_seconds"].(map[string]any)
 	if !ok {
 		t.Fatal("Timeout property should be a map")
 	}
@@ -328,7 +328,7 @@ func TestSpawnTool_SchemaToJSON(t *testing.T) {
 	}
 
 	// Verify it's valid JSON by unmarshaling
-	var unmarshaled map[string]interface{}
+	var unmarshaled map[string]any
 	if err := json.Unmarshal(data, &unmarshaled); err != nil {
 		t.Fatalf("Failed to unmarshal schema JSON: %v", err)
 	}

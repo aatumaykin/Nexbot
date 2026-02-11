@@ -125,7 +125,7 @@ func TestMockProvider_Chat_ErrorAfter(t *testing.T) {
 	ctx := context.Background()
 
 	// First two calls should succeed
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		req := ChatRequest{
 			Messages: []Message{{Role: RoleUser, Content: "Test"}},
 		}

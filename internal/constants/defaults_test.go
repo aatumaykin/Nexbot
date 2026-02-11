@@ -93,7 +93,7 @@ func TestDefaultVersionFormat(t *testing.T) {
 	}
 
 	// Check that first three parts are numeric
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if !isNumeric(parts[i]) {
 			// Remove any pre-release suffix before checking
 			cleanPart := strings.Split(parts[i], "-")[0]

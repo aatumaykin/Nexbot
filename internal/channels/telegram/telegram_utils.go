@@ -2,6 +2,7 @@
 package telegram
 
 import (
+	"slices"
 	"strings"
 	"unicode"
 )
@@ -109,12 +110,12 @@ func PreprocessMarkdownV2(text string) string {
 		trimmed := strings.TrimSpace(line)
 
 		// Detect code block start/end
-		if strings.HasPrefix(trimmed, "```") {
+		if after, ok := strings.CutPrefix(trimmed, "```"); ok {
 			if !inCodeBlock {
 				inCodeBlock = true
 				result.WriteString("```")
 				// Extract language if present
-				lang := strings.TrimPrefix(trimmed, "```")
+				lang := after
 				if lang != "" {
 					result.WriteString(lang)
 				}
@@ -213,12 +214,7 @@ func processInlineCodeAndEscape(line string) string {
 
 // isMarkdownV2SpecialChar checks if a rune needs escaping in MarkdownV2.
 func isMarkdownV2SpecialChar(r rune) bool {
-	for _, char := range MarkdownV2SpecialChars {
-		if r == char {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(MarkdownV2SpecialChars, r)
 }
 
 // MarkdownToHTML converts markdown text to HTML format for Telegram.

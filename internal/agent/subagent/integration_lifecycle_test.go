@@ -148,18 +148,18 @@ func TestSpawnToolSchemaSerialization(t *testing.T) {
 	require.NoError(t, err)
 
 	// Deserialize and verify
-	var unmarshaled map[string]interface{}
+	var unmarshaled map[string]any
 	err = json.Unmarshal(data, &unmarshaled)
 	require.NoError(t, err)
 
 	// Verify properties
-	props, ok := unmarshaled["properties"].(map[string]interface{})
+	props, ok := unmarshaled["properties"].(map[string]any)
 	require.True(t, ok)
 	assert.Contains(t, props, "task")
 	assert.Contains(t, props, "timeout_seconds")
 
 	// Verify required fields
-	required, ok := unmarshaled["required"].([]interface{})
+	required, ok := unmarshaled["required"].([]any)
 	require.True(t, ok)
 	assert.Contains(t, required, "task")
 }

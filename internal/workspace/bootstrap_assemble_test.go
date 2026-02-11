@@ -65,7 +65,7 @@ func TestAssembleTruncation(t *testing.T) {
 	}
 
 	var warnings []string
-	loggerFunc := func(format string, args ...interface{}) {
+	loggerFunc := func(format string, args ...any) {
 		warnings = append(warnings, fmt.Sprintf(format, args...))
 	}
 

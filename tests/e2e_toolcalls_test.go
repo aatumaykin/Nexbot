@@ -180,7 +180,7 @@ func TestE2E_TelegramToAgentWithToolCalls(t *testing.T) {
 		SessionID:   testSessionID,
 		Content:     testMessage,
 		Timestamp:   time.Now(),
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"message_id": 1,
 			"chat_id":    testChatID,
 			"chat_type":  "private",

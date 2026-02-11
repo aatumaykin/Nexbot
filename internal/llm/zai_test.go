@@ -232,10 +232,10 @@ func TestZAIClient_WithToolCalling(t *testing.T) {
 			{
 				Name:        "get_weather",
 				Description: "Get the current weather for a location",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"type": "object",
-					"properties": map[string]interface{}{
-						"location": map[string]interface{}{
+					"properties": map[string]any{
+						"location": map[string]any{
 							"type":        "string",
 							"description": "The city name",
 						},
@@ -310,7 +310,7 @@ func BenchmarkZAIClient_Latency(b *testing.B) {
 
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := provider.Chat(ctx, req)
 		if err != nil {
 			b.Fatalf("Request failed: %v", err)

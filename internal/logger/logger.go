@@ -41,7 +41,7 @@ type Logger struct {
 // Field представляет поле для structured logging
 type Field struct {
 	Key   string
-	Value interface{}
+	Value any
 }
 
 // New создает новый logger с заданной конфигурацией

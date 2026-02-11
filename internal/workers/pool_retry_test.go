@@ -209,7 +209,7 @@ func TestPool_ExecuteSendMessage_Success(t *testing.T) {
 	payload := cron.CronTaskPayload{
 		Tool:      "send_message",
 		SessionID: "telegram:987654321",
-		Payload:   map[string]interface{}{"message": "Hello from cron!"},
+		Payload:   map[string]any{"message": "Hello from cron!"},
 	}
 
 	task := Task{
@@ -253,7 +253,7 @@ func TestPool_ExecuteAgent_Success(t *testing.T) {
 	payload := cron.CronTaskPayload{
 		Tool:      "agent",
 		SessionID: "telegram:987654321",
-		Payload:   map[string]interface{}{"message": "Process this task"},
+		Payload:   map[string]any{"message": "Process this task"},
 	}
 
 	task := Task{
@@ -357,7 +357,7 @@ func TestPool_ExecuteSendMessage_NoMessageContent(t *testing.T) {
 	payload := cron.CronTaskPayload{
 		Tool:      "send_message",
 		SessionID: "telegram:987654321",
-		Payload:   map[string]interface{}{},
+		Payload:   map[string]any{},
 	}
 
 	task := Task{
@@ -388,7 +388,7 @@ func TestPool_ExecuteSendMessage_ChannelMismatch(t *testing.T) {
 	payload := cron.CronTaskPayload{
 		Tool:      "agent",
 		SessionID: "discord:123456", // Wrong channel
-		Payload:   map[string]interface{}{"message": "test message"},
+		Payload:   map[string]any{"message": "test message"},
 	}
 
 	task := Task{

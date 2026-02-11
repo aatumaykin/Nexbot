@@ -17,7 +17,7 @@ type fileToolBase struct {
 }
 
 // parseJSON is a helper function to parse JSON arguments.
-func parseJSON(jsonStr string, v interface{}) error {
+func parseJSON(jsonStr string, v any) error {
 	decoder := json.NewDecoder(strings.NewReader(jsonStr))
 	decoder.DisallowUnknownFields()
 	return decoder.Decode(v)

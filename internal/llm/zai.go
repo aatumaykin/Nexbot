@@ -68,8 +68,8 @@ type zaiMessage struct {
 
 // zaiTool represents a tool definition in Z.ai API format.
 type zaiTool struct {
-	Type     string                 `json:"type"`     // Always "function"
-	Function map[string]interface{} `json:"function"` // Function definition
+	Type     string         `json:"type"`     // Always "function"
+	Function map[string]any `json:"function"` // Function definition
 }
 
 // zaiResponse represents the response format from Z.ai API.
@@ -247,7 +247,7 @@ func (p *ZAIProvider) mapChatRequest(req ChatRequest) zaiRequest {
 		for i, tool := range req.Tools {
 			zaiReq.Tools[i] = zaiTool{
 				Type: "function",
-				Function: map[string]interface{}{
+				Function: map[string]any{
 					"name":        tool.Name,
 					"description": tool.Description,
 					"parameters":  tool.Parameters,

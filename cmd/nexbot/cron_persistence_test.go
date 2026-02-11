@@ -148,8 +148,7 @@ func TestCronJobPersistence(t *testing.T) {
 
 	// Create and start first scheduler instance
 	scheduler1 := cron.NewScheduler(log, msgBus, nil, nil)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err = scheduler1.Start(ctx)
 	require.NoError(t, err)
@@ -186,8 +185,7 @@ func TestCronJobPersistence(t *testing.T) {
 
 	// Create second scheduler instance (simulate restart)
 	scheduler2 := cron.NewScheduler(log, msgBus, nil, nil)
-	ctx2, cancel2 := context.WithCancel(context.Background())
-	defer cancel2()
+	ctx2 := t.Context()
 
 	err = scheduler2.Start(ctx2)
 	require.NoError(t, err)

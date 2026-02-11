@@ -3,6 +3,7 @@ package cleanup
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -180,11 +181,11 @@ func TestCleanupExpiredMessages(t *testing.T) {
 	tempFile := t.TempDir() + "/session.jsonl"
 
 	// Create test file with 20 lines
-	var content string
+	var content strings.Builder
 	for i := 1; i <= 20; i++ {
-		content += `{"role":"user","content":"message ` + string(rune('0'+i)) + `"}` + "\n"
+		content.WriteString(`{"role":"user","content":"message ` + string(rune('0'+i)) + `"}` + "\n")
 	}
-	if err := os.WriteFile(tempFile, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(tempFile, []byte(content.String()), 0644); err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
 
@@ -284,11 +285,11 @@ func TestRun(t *testing.T) {
 	// Create test session files
 	for i := 1; i <= 3; i++ {
 		sessionFile := filepath.Join(sessionDir, "session"+string(rune('0'+i))+".jsonl")
-		var content string
+		var content strings.Builder
 		for j := 1; j <= 10; j++ {
-			content += `{"role":"user","content":"message"}` + "\n"
+			content.WriteString(`{"role":"user","content":"message"}` + "\n")
 		}
-		if err := os.WriteFile(sessionFile, []byte(content), 0644); err != nil {
+		if err := os.WriteFile(sessionFile, []byte(content.String()), 0644); err != nil {
 			t.Fatalf("failed to create session file: %v", err)
 		}
 	}

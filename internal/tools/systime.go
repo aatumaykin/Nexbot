@@ -33,16 +33,16 @@ func (t *SystemTimeTool) Description() string {
 }
 
 // Parameters returns the JSON Schema for the tool's parameters.
-func (t *SystemTimeTool) Parameters() map[string]interface{} {
-	return map[string]interface{}{
+func (t *SystemTimeTool) Parameters() map[string]any {
+	return map[string]any{
 		"type":       "object",
-		"properties": map[string]interface{}{},
+		"properties": map[string]any{},
 		"required":   []string{},
 	}
 }
 
 // ToSchema returns the OpenAI-compatible schema for this tool.
-func (t *SystemTimeTool) ToSchema() map[string]interface{} {
+func (t *SystemTimeTool) ToSchema() map[string]any {
 	return t.Parameters()
 }
 

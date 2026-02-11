@@ -29,8 +29,7 @@ func TestTypingManager_SendMock(t *testing.T) {
 	})).Return(nil)
 
 	// Create TypingManager
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	tm := NewTypingManager(mockBot, log)
 	tm.SetContext(ctx)
@@ -68,8 +67,7 @@ func TestTypingManager_Periodic_WithMock(t *testing.T) {
 	})).Return(nil).Times(2) // Expect at least 2 calls
 
 	// Create TypingManager
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	tm := NewTypingManager(mockBot, log)
 	tm.SetContext(ctx)
@@ -113,8 +111,7 @@ func TestTypingManager_Stop_WithMock(t *testing.T) {
 	})).Return(nil).Once()
 
 	// Create TypingManager
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	tm := NewTypingManager(mockBot, log)
 	tm.SetContext(ctx)
@@ -158,8 +155,7 @@ func TestTypingManager_StopAll_WithMock(t *testing.T) {
 	})).Return(nil).Times(2)
 
 	// Create TypingManager
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	tm := NewTypingManager(mockBot, log)
 	tm.SetContext(ctx)
@@ -209,8 +205,7 @@ func TestTypingManager_Send_WithMockError(t *testing.T) {
 	mockBot.On("SendChatAction", mock.Anything, mock.Anything).Return(assert.AnError)
 
 	// Create TypingManager
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	tm := NewTypingManager(mockBot, log)
 	tm.SetContext(ctx)
@@ -241,8 +236,7 @@ func TestTypingManager_Start_WithNilBot(t *testing.T) {
 	})
 
 	// Create TypingManager with nil bot
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	tm := NewTypingManager(nil, log)
 	tm.SetContext(ctx)
@@ -313,8 +307,7 @@ func TestTypingManager_StartAlreadyStarted(t *testing.T) {
 	})).Return(nil).Once()
 
 	// Create TypingManager
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	tm := NewTypingManager(mockBot, log)
 	tm.SetContext(ctx)
@@ -353,8 +346,7 @@ func TestTypingManager_StopNonExistent(t *testing.T) {
 	mockBot := new(MockBot)
 
 	// Create TypingManager
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	tm := NewTypingManager(mockBot, log)
 	tm.SetContext(ctx)

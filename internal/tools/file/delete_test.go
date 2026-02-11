@@ -48,7 +48,7 @@ func TestDeleteFileTool_Parameters(t *testing.T) {
 		t.Errorf("Expected type 'object', got '%v'", params["type"])
 	}
 
-	props, ok := params["properties"].(map[string]interface{})
+	props, ok := params["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Properties should be a map")
 	}
@@ -64,7 +64,7 @@ func TestDeleteFileTool_Parameters(t *testing.T) {
 	}
 
 	// Check path property
-	pathProp, ok := props["path"].(map[string]interface{})
+	pathProp, ok := props["path"].(map[string]any)
 	if !ok {
 		t.Fatal("Path property should be a map")
 	}
@@ -74,7 +74,7 @@ func TestDeleteFileTool_Parameters(t *testing.T) {
 	}
 
 	// Check recursive property
-	recursiveProp, ok := props["recursive"].(map[string]interface{})
+	recursiveProp, ok := props["recursive"].(map[string]any)
 	if !ok {
 		t.Fatal("Recursive property should be a map")
 	}

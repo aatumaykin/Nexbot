@@ -46,20 +46,20 @@ func (t *ListDirTool) Description() string {
 }
 
 // Parameters returns the JSON Schema for the tool's parameters.
-func (t *ListDirTool) Parameters() map[string]interface{} {
-	return map[string]interface{}{
+func (t *ListDirTool) Parameters() map[string]any {
+	return map[string]any{
 		"type": "object",
-		"properties": map[string]interface{}{
-			"path": map[string]interface{}{
+		"properties": map[string]any{
+			"path": map[string]any{
 				"type":        "string",
 				"description": "The path to the directory to list. Can be absolute or relative to the workspace directory. Examples: {\"path\": \"src\"}",
 			},
-			"recursive": map[string]interface{}{
+			"recursive": map[string]any{
 				"type":        "boolean",
 				"description": "Whether to list directory contents recursively. Examples: {\"path\": \"src\", \"recursive\": true}",
 				"default":     false,
 			},
-			"include_hidden": map[string]interface{}{
+			"include_hidden": map[string]any{
 				"type":        "boolean",
 				"description": "Whether to include hidden files and directories (those starting with '.'). Examples: {\"path\": \"config\", \"include_hidden\": true}",
 				"default":     false,
@@ -132,18 +132,19 @@ func (t *ListDirTool) Execute(args string) (string, error) {
 	}
 
 	// Format output
-	result := fmt.Sprintf("# Directory: %s\n", filepath.Clean(cleanPath))
+	var result strings.Builder
+	result.WriteString(fmt.Sprintf("# Directory: %s\n", filepath.Clean(cleanPath)))
 	if dirArgs.Recursive {
-		result += fmt.Sprintf("# Recursive: %d items\n\n", len(entries))
+		result.WriteString(fmt.Sprintf("# Recursive: %d items\n\n", len(entries)))
 	} else {
-		result += fmt.Sprintf("# %d items\n\n", len(entries))
+		result.WriteString(fmt.Sprintf("# %d items\n\n", len(entries)))
 	}
 
 	for _, entry := range entries {
-		result += entry + "\n"
+		result.WriteString(entry + "\n")
 	}
 
-	return result, nil
+	return result.String(), nil
 }
 
 // listFlat lists entries in a single directory (non-recursive).

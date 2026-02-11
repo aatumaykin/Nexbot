@@ -117,7 +117,7 @@ func TestReadPIDFile(t *testing.T) {
 	expectedPID := 12345
 
 	// Создать файл вручную
-	err := os.WriteFile(pidPath, []byte(fmt.Sprintf("%d\n", expectedPID)), 0600)
+	err := os.WriteFile(pidPath, fmt.Appendf(nil, "%d\n", expectedPID), 0600)
 	if err != nil {
 		t.Fatalf("Failed to create PID file: %v", err)
 	}

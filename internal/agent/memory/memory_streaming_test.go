@@ -23,7 +23,7 @@ func TestStreamingRead(t *testing.T) {
 		sessionID := "test-streaming-jsonl"
 
 		// Write 1000 messages
-		for i := 0; i < 1000; i++ {
+		for range 1000 {
 			msg := llm.Message{
 				Role:    llm.RoleUser,
 				Content: strings.Repeat("x", 100),
@@ -68,7 +68,7 @@ func TestStreamingRead(t *testing.T) {
 		sessionID := "test-streaming-md"
 
 		// Write 500 messages (markdown is more verbose)
-		for i := 0; i < 500; i++ {
+		for range 500 {
 			msg := llm.Message{
 				Role:    llm.RoleUser,
 				Content: strings.Repeat("y", 200),
@@ -115,7 +115,7 @@ func TestMaxFileSize(t *testing.T) {
 		sessionID := "test-oversize"
 
 		// Write messages until file exceeds max size
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			msg := llm.Message{
 				Role:    llm.RoleUser,
 				Content: strings.Repeat("x", 100),
@@ -150,7 +150,7 @@ func TestMaxFileSize(t *testing.T) {
 		sessionID := "test-maxsize-ok"
 
 		// Write messages within limit
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			msg := llm.Message{
 				Role:    llm.RoleUser,
 				Content: strings.Repeat("x", 50),
@@ -297,7 +297,7 @@ func TestMemoryEfficiency(t *testing.T) {
 		sessionID := "test-memory-efficiency"
 
 		// Write enough messages to create a file ~1MB
-		for i := 0; i < 1000; i++ {
+		for range 1000 {
 			msg := llm.Message{
 				Role:    llm.RoleUser,
 				Content: strings.Repeat("test content ", 50), // ~650 bytes per message

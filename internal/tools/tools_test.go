@@ -84,7 +84,7 @@ func TestShellExecTool_Parameters(t *testing.T) {
 		t.Errorf("Expected type 'object', got '%v'", params["type"])
 	}
 
-	props, ok := params["properties"].(map[string]interface{})
+	props, ok := params["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Properties should be a map")
 	}
@@ -100,7 +100,7 @@ func TestShellExecTool_Parameters(t *testing.T) {
 	}
 
 	// Check command property
-	commandProp, ok := props["command"].(map[string]interface{})
+	commandProp, ok := props["command"].(map[string]any)
 	if !ok {
 		t.Fatal("Command property should be a map")
 	}

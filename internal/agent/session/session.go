@@ -23,7 +23,7 @@ type Session struct {
 type Entry struct {
 	Message   llm.Message `json:"message"`
 	Timestamp string      `json:"timestamp,omitempty"`
-	Metadata  interface{} `json:"metadata,omitempty"`
+	Metadata  any         `json:"metadata,omitempty"`
 }
 
 // Manager manages sessions stored as JSONL files.

@@ -125,8 +125,8 @@ func (v *ShellValidator) MatchPattern(command, pattern string) bool {
 	}
 
 	// Wildcard with one *: e.g., "git *" matches "git status"
-	if strings.HasSuffix(pattern, "*") {
-		prefix := strings.TrimSuffix(pattern, "*")
+	if before, ok := strings.CutSuffix(pattern, "*"); ok {
+		prefix := before
 		prefix = strings.TrimSpace(prefix)
 		// Validate prefix doesn't contain dangerous characters
 		if prefix != "" && strings.ContainsAny(prefix, "|&;<>`$()") {

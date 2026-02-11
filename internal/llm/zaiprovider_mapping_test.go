@@ -78,7 +78,7 @@ func TestMapChatRequest_WithTools(t *testing.T) {
 			{
 				Name:        "get_weather",
 				Description: "Get weather",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"type": "object",
 				},
 			},

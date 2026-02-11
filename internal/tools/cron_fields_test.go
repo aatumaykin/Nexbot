@@ -36,7 +36,7 @@ func TestCronToolFieldsPreservation(t *testing.T) {
 	payload := map[string]string{"message": "Test reminder"}
 	payloadJSON, _ := json.Marshal(payload)
 
-	args := map[string]interface{}{
+	args := map[string]any{
 		"action":     "add_oneshot",
 		"execute_at": executeAt,
 		"tool":       "send_message",
@@ -105,7 +105,7 @@ func TestCronToolFieldsPreservation(t *testing.T) {
 	payload2 := map[string]string{"message": "Recurring test"}
 	payloadJSON2, _ := json.Marshal(payload2)
 
-	args2 := map[string]interface{}{
+	args2 := map[string]any{
 		"action":     "add_recurring",
 		"schedule":   "0 0 * * * *",
 		"tool":       "agent",

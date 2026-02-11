@@ -120,8 +120,7 @@ func TestLongPollManager_Start_WithClosedChannel(t *testing.T) {
 	mockBot.On("UpdatesViaLongPolling", mock.Anything, mock.Anything, mock.Anything).Return(updateCh, nil)
 
 	// Create LongPollManager
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	lp := NewLongPollManager(nil, nil, log)
 	lp.SetContext(ctx)
@@ -245,8 +244,7 @@ func TestLongPollManager_Start_WithNilBot(t *testing.T) {
 	})
 
 	// Create LongPollManager with nil bot
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	lp := NewLongPollManager(nil, nil, log)
 	lp.SetContext(ctx)
@@ -272,8 +270,7 @@ func TestLongPollManager_Start_WithUpdateError(t *testing.T) {
 	mockBot.On("UpdatesViaLongPolling", mock.Anything, mock.Anything, mock.Anything).Return(nilCh, assert.AnError)
 
 	// Create LongPollManager
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	lp := NewLongPollManager(nil, nil, log)
 	lp.SetContext(ctx)

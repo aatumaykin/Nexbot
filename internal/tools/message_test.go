@@ -258,37 +258,37 @@ func TestSendMessageToolParameters(t *testing.T) {
 	assert.NotNil(t, params, "Parameters should not be nil")
 	assert.Equal(t, "object", params["type"], "Type should be 'object'")
 
-	props, ok := params["properties"].(map[string]interface{})
+	props, ok := params["properties"].(map[string]any)
 	assert.True(t, ok, "Properties should be a map")
 
 	// Check session_id property
-	sessionIDProp, ok := props["session_id"].(map[string]interface{})
+	sessionIDProp, ok := props["session_id"].(map[string]any)
 	assert.True(t, ok, "session_id property should be a map")
 	assert.Equal(t, "string", sessionIDProp["type"], "session_id type should be 'string'")
 	assert.Nil(t, sessionIDProp["default"], "session_id should not have default")
 
 	// Check message property
-	messageProp, ok := props["message"].(map[string]interface{})
+	messageProp, ok := props["message"].(map[string]any)
 	assert.True(t, ok, "message property should be a map")
 	assert.Equal(t, "string", messageProp["type"], "message type should be 'string'")
 	assert.Nil(t, messageProp["default"], "message should not have default")
 
 	// Check inline_keyboard property (optional)
-	inlineKeyboardProp, ok := props["inline_keyboard"].(map[string]interface{})
+	inlineKeyboardProp, ok := props["inline_keyboard"].(map[string]any)
 	assert.True(t, ok, "inline_keyboard property should be a map")
 	assert.Equal(t, "object", inlineKeyboardProp["type"], "inline_keyboard type should be 'object'")
 
 	// Verify inline_keyboard structure
-	inlineKeyboardProps, ok := inlineKeyboardProp["properties"].(map[string]interface{})
+	inlineKeyboardProps, ok := inlineKeyboardProp["properties"].(map[string]any)
 	assert.True(t, ok, "inline_keyboard properties should be a map")
-	rowsProp, ok := inlineKeyboardProps["rows"].(map[string]interface{})
+	rowsProp, ok := inlineKeyboardProps["rows"].(map[string]any)
 	assert.True(t, ok, "rows property should be a map")
 	assert.Equal(t, "array", rowsProp["type"], "rows type should be 'array'")
 
 	// Check required fields - try both types
 	required := params["required"]
 	switch v := required.(type) {
-	case []interface{}:
+	case []any:
 		assert.Contains(t, v, "session_id", "Required should contain 'session_id'")
 		assert.Len(t, v, 1, "Only 'session_id' should be required")
 	case []string:

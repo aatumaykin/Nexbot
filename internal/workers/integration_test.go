@@ -33,7 +33,7 @@ func TestWorkerPool_Integration_CronTasks(t *testing.T) {
 
 	// Simulate cron scheduler submitting tasks
 	numCronJobs := 5
-	for i := 0; i < numCronJobs; i++ {
+	for i := range numCronJobs {
 		task := Task{
 			ID:   fmt.Sprintf("cron-job-%d", i),
 			Type: "cron",
@@ -52,7 +52,7 @@ func TestWorkerPool_Integration_CronTasks(t *testing.T) {
 	defer cancel()
 
 	results := make(map[string]Result)
-	for i := 0; i < numCronJobs; i++ {
+	for range numCronJobs {
 		select {
 		case result := <-pool.Results():
 			results[result.TaskID] = result
@@ -94,7 +94,7 @@ func TestWorkerPool_Integration_SubagentTasks(t *testing.T) {
 	defer pool.Stop()
 
 	// Simulate subagent tasks with different configurations
-	subagentConfigs := []map[string]interface{}{
+	subagentConfigs := []map[string]any{
 		{"agent": "planner", "priority": "high"},
 		{"agent": "developer", "priority": "medium"},
 		{"agent": "tester", "priority": "low"},
@@ -114,7 +114,7 @@ func TestWorkerPool_Integration_SubagentTasks(t *testing.T) {
 	defer cancel()
 
 	results := make(map[string]Result)
-	for i := 0; i < len(subagentConfigs); i++ {
+	for range subagentConfigs {
 		select {
 		case result := <-pool.Results():
 			results[result.TaskID] = result
@@ -152,9 +152,9 @@ func TestWorkerPool_Integration_MixedTasks(t *testing.T) {
 
 	// Submit mix of cron and subagent tasks
 	totalTasks := 20
-	for i := 0; i < totalTasks; i++ {
+	for i := range totalTasks {
 		var taskType string
-		var payload interface{}
+		var payload any
 
 		if i%2 == 0 {
 			// Cron task
@@ -183,7 +183,7 @@ func TestWorkerPool_Integration_MixedTasks(t *testing.T) {
 	defer cancel()
 
 	results := make(map[string]Result)
-	for i := 0; i < totalTasks; i++ {
+	for range totalTasks {
 		select {
 		case result := <-pool.Results():
 			results[result.TaskID] = result
@@ -276,7 +276,7 @@ func TestWorkerPool_Integration_HighLoad(t *testing.T) {
 	startTime := time.Now()
 
 	// Submit many tasks rapidly
-	for i := 0; i < numTasks; i++ {
+	for i := range numTasks {
 		task := Task{
 			ID:   fmt.Sprintf("load-task-%d", i),
 			Type: "cron",
@@ -296,7 +296,7 @@ func TestWorkerPool_Integration_HighLoad(t *testing.T) {
 	defer cancel()
 
 	results := make(map[string]Result)
-	for i := 0; i < numTasks; i++ {
+	for range numTasks {
 		select {
 		case result := <-pool.Results():
 			results[result.TaskID] = result
@@ -338,7 +338,7 @@ func TestWorkerPool_Integration_GracefulShutdownWithTasks(t *testing.T) {
 
 	// Submit tasks
 	numTasks := 10
-	for i := 0; i < numTasks; i++ {
+	for i := range numTasks {
 		task := Task{
 			ID:   fmt.Sprintf("shutdown-task-%d", i),
 			Type: "cron",
@@ -437,9 +437,9 @@ func TestWorkerPool_Integration_SequentialSubmissions(t *testing.T) {
 	numBatches := 3
 	tasksPerBatch := 3
 
-	for batch := 0; batch < numBatches; batch++ {
+	for batch := range numBatches {
 		// Submit batch of tasks
-		for i := 0; i < tasksPerBatch; i++ {
+		for i := range tasksPerBatch {
 			task := Task{
 				ID:   fmt.Sprintf("batch-%d-task-%d", batch, i),
 				Type: "cron",
@@ -453,7 +453,7 @@ func TestWorkerPool_Integration_SequentialSubmissions(t *testing.T) {
 		}
 
 		// Wait for all tasks in this batch to complete
-		for i := 0; i < tasksPerBatch; i++ {
+		for range tasksPerBatch {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
@@ -494,7 +494,7 @@ func TestWorkerPool_Integration_MetricsTracking(t *testing.T) {
 	var successfulTasks, failedTasks int
 
 	// Submit successful tasks
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		task := Task{
 			ID:   fmt.Sprintf("success-%d", i),
 			Type: "cron",
@@ -509,7 +509,7 @@ func TestWorkerPool_Integration_MetricsTracking(t *testing.T) {
 	}
 
 	// Submit tasks that will fail (invalid type)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		task := Task{
 			ID:      fmt.Sprintf("fail-%d", i),
 			Type:    "invalid",
@@ -524,7 +524,7 @@ func TestWorkerPool_Integration_MetricsTracking(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	for i := 0; i < totalTasks; i++ {
+	for range totalTasks {
 		select {
 		case <-pool.Results():
 		case <-ctx.Done():
@@ -558,7 +558,7 @@ func TestWorkerPool_Integration_Restart(t *testing.T) {
 	pool.Start()
 
 	// Submit and complete some tasks
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		task := Task{
 			ID:   fmt.Sprintf("run1-task-%d", i),
 			Type: "cron",
@@ -575,7 +575,7 @@ func TestWorkerPool_Integration_Restart(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		select {
 		case <-pool.Results():
 		case <-ctx.Done():
@@ -592,7 +592,7 @@ func TestWorkerPool_Integration_Restart(t *testing.T) {
 	defer newPool.Stop()
 
 	// Submit tasks to new pool
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		task := Task{
 			ID:   fmt.Sprintf("run2-task-%d", i),
 			Type: "cron",
@@ -609,7 +609,7 @@ func TestWorkerPool_Integration_Restart(t *testing.T) {
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		select {
 		case result := <-newPool.Results():
 			assert.NoError(t, result.Error)

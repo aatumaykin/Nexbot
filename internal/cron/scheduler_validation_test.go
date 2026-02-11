@@ -121,8 +121,7 @@ func TestCronExpressionValidation(t *testing.T) {
 
 			scheduler := NewScheduler(log, msgBus, nil, nil)
 
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
+			ctx := t.Context()
 
 			err = scheduler.Start(ctx)
 			require.NoError(t, err)
@@ -162,8 +161,7 @@ func TestSchedulerDuplicateJobID(t *testing.T) {
 
 	scheduler := NewScheduler(log, msgBus, nil, nil)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
@@ -212,8 +210,7 @@ func TestSchedulerRemoveNonExistentJob(t *testing.T) {
 
 	scheduler := NewScheduler(log, msgBus, nil, nil)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
@@ -236,8 +233,7 @@ func TestSchedulerListWithNoJobs(t *testing.T) {
 
 	scheduler := NewScheduler(log, msgBus, nil, nil)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
@@ -273,7 +269,7 @@ func TestSchedulerConcurrentAddRemove(t *testing.T) {
 	errors := make(chan error, numGoroutines)
 
 	// Spawn goroutines for concurrent job additions
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		go func(id int) {
 			job := Job{
 				ID:       fmt.Sprintf("concurrent-job-%d", id),
@@ -291,7 +287,7 @@ func TestSchedulerConcurrentAddRemove(t *testing.T) {
 
 	// Wait for all jobs to be added
 	jobIDs := make(map[string]bool)
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		select {
 		case id := <-results:
 			jobIDs[id] = true
@@ -306,7 +302,7 @@ func TestSchedulerConcurrentAddRemove(t *testing.T) {
 	assert.Len(t, jobIDs, numGoroutines)
 
 	// Spawn goroutines for concurrent job removals
-	for i := 0; i < numGoroutines/2; i++ {
+	for i := range numGoroutines / 2 {
 		go func(id int) {
 			err := scheduler.RemoveJob(fmt.Sprintf("concurrent-job-%d", id))
 			if err != nil {
@@ -316,7 +312,7 @@ func TestSchedulerConcurrentAddRemove(t *testing.T) {
 	}
 
 	// Wait for removals to complete
-	for i := 0; i < numGoroutines/2; i++ {
+	for range numGoroutines / 2 {
 		select {
 		case err := <-errors:
 			t.Logf("Concurrent remove error (may be expected): %v", err)

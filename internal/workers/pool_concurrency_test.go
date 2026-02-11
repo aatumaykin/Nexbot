@@ -71,9 +71,9 @@ func TestPool_ConcurrentSubmissions(t *testing.T) {
 	numGoroutines := 10
 	tasksPerGoroutine := 5
 
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		go func(goroutineID int) {
-			for j := 0; j < tasksPerGoroutine; j++ {
+			for j := range tasksPerGoroutine {
 				task := Task{
 					ID:   fmt.Sprintf("goroutine-%d-task-%d", goroutineID, j),
 					Type: "cron",
@@ -93,7 +93,7 @@ func TestPool_ConcurrentSubmissions(t *testing.T) {
 
 	totalTasks := numGoroutines * tasksPerGoroutine
 	results := make(map[string]Result)
-	for i := 0; i < totalTasks; i++ {
+	for range totalTasks {
 		select {
 		case result := <-pool.Results():
 			results[result.TaskID] = result

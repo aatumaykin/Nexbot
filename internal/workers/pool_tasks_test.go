@@ -197,12 +197,12 @@ func TestPool_MultipleTasks(t *testing.T) {
 	tasks := make([]Task, numTasks)
 
 	// Submit multiple tasks
-	for i := 0; i < numTasks; i++ {
+	for i := range numTasks {
 		taskType := "cron"
 		if i%2 == 0 {
 			taskType = "subagent"
 		}
-		payload := interface{}(fmt.Sprintf("command %d", i))
+		payload := any(fmt.Sprintf("command %d", i))
 		if taskType == "cron" {
 			payload = cron.CronTaskPayload{
 				Tool:      "send_message",
@@ -223,7 +223,7 @@ func TestPool_MultipleTasks(t *testing.T) {
 	defer cancel()
 
 	results := make(map[string]Result)
-	for i := 0; i < numTasks; i++ {
+	for range numTasks {
 		select {
 		case result := <-pool.Results():
 			results[result.TaskID] = result

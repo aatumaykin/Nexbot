@@ -50,7 +50,7 @@ func TestWriteFileTool_Parameters(t *testing.T) {
 		t.Errorf("Expected type 'object', got '%v'", params["type"])
 	}
 
-	props, ok := params["properties"].(map[string]interface{})
+	props, ok := params["properties"].(map[string]any)
 	if !ok {
 		t.Fatal("Properties should be a map")
 	}
@@ -66,7 +66,7 @@ func TestWriteFileTool_Parameters(t *testing.T) {
 	}
 
 	// Check path property
-	pathProp, ok := props["path"].(map[string]interface{})
+	pathProp, ok := props["path"].(map[string]any)
 	if !ok {
 		t.Fatal("Path property should be a map")
 	}
@@ -76,7 +76,7 @@ func TestWriteFileTool_Parameters(t *testing.T) {
 	}
 
 	// Check content property
-	contentProp, ok := props["content"].(map[string]interface{})
+	contentProp, ok := props["content"].(map[string]any)
 	if !ok {
 		t.Fatal("Content property should be a map")
 	}
@@ -86,7 +86,7 @@ func TestWriteFileTool_Parameters(t *testing.T) {
 	}
 
 	// Check mode property
-	modeProp, ok := props["mode"].(map[string]interface{})
+	modeProp, ok := props["mode"].(map[string]any)
 	if !ok {
 		t.Fatal("Mode property should be a map")
 	}

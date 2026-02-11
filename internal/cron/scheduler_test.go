@@ -33,8 +33,7 @@ func TestScheduler_StartStop(t *testing.T) {
 
 	scheduler := NewScheduler(log, msgBus, nil, nil)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Start scheduler
 	err = scheduler.Start(ctx)
@@ -68,8 +67,7 @@ func TestScheduler_AddJob(t *testing.T) {
 
 	scheduler := NewScheduler(log, msgBus, nil, nil)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
@@ -102,8 +100,7 @@ func TestScheduler_AddJobAutoID(t *testing.T) {
 
 	scheduler := NewScheduler(log, msgBus, nil, nil)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
@@ -135,8 +132,7 @@ func TestScheduler_AddJobInvalidSchedule(t *testing.T) {
 
 	scheduler := NewScheduler(log, msgBus, nil, nil)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
@@ -163,8 +159,7 @@ func TestScheduler_RemoveJob(t *testing.T) {
 
 	scheduler := NewScheduler(log, msgBus, nil, nil)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
@@ -205,8 +200,7 @@ func TestScheduler_ListJobs(t *testing.T) {
 
 	scheduler := NewScheduler(log, msgBus, nil, nil)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
@@ -255,8 +249,7 @@ func TestScheduler_GetJob(t *testing.T) {
 
 	scheduler := NewScheduler(log, msgBus, nil, nil)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
@@ -292,8 +285,7 @@ func TestScheduler_GracefulShutdown(t *testing.T) {
 
 	scheduler := NewScheduler(log, msgBus, nil, nil)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
@@ -334,8 +326,7 @@ func TestScheduler_AddJobInvalidOneshotWithSchedule(t *testing.T) {
 	defer stopMessageBus(msgBus)
 
 	scheduler := NewScheduler(log, msgBus, nil, nil)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
 	defer stopScheduler(scheduler)
@@ -365,8 +356,7 @@ func TestScheduler_AddJobNormalizeToolCommand(t *testing.T) {
 	tempDir := t.TempDir()
 	storage := NewStorage(tempDir, log)
 	scheduler := NewScheduler(log, msgBus, nil, storage)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	err = scheduler.Start(ctx)
 	require.NoError(t, err)
 	defer stopScheduler(scheduler)
