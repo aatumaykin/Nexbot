@@ -132,43 +132,6 @@ func TestBuilderGetComponentMissingFile(t *testing.T) {
 	}
 }
 
-// TestBuilderBuildWithHeartbeat tests Build with heartbeat context
-func TestBuilderBuildWithHeartbeat(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	// Create HEARTBEAT.md file with active tasks
-	heartbeatContent := `# Heartbeat Tasks
-
-## Daily Review
-
-### Daily Standup
-- Schedule: "0 9 * * *"
-- Task: "Review daily progress, check for blocked tasks, update priorities"
-
-### Weekly Summary
-- Schedule: "0 17 * * 5"
-- Task: "Generate weekly summary report"
-`
-	if err := os.WriteFile(filepath.Join(tmpDir, workspace.BootstrapHeartbeat), []byte(heartbeatContent), 0644); err != nil {
-		t.Fatalf("Failed to create HEARTBEAT.md: %v", err)
-	}
-
-	builder, err := NewBuilder(Config{Workspace: tmpDir})
-	if err != nil {
-		t.Fatalf("Failed to create builder: %v", err)
-	}
-
-	result, err := builder.Build()
-	if err != nil {
-		t.Fatalf("Build() error: %v", err)
-	}
-
-	// Verify heartbeat content is included
-	if !strings.Contains(result, "Daily Standup") || !strings.Contains(result, "Weekly Summary") {
-		t.Error("Build() should include heartbeat context")
-	}
-}
-
 // TestBuilderBuildWithMemoryEmpty tests BuildWithMemory with empty memory
 func TestBuilderBuildWithMemoryEmpty(t *testing.T) {
 	tmpDir := t.TempDir()

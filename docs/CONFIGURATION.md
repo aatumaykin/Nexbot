@@ -486,88 +486,6 @@ queue_size = 100
 
 ---
 
-### `[heartbeat]` — Настройки HEARTBEAT (v0.2)
-
-Конфигурация системы proactive задач из HEARTBEAT.md.
-
-| Параметр | Тип | По умолчанию | Описание |
-|----------|-----|--------------|----------|
-| `enabled` | bool | `true` | Включить выполнение HEARTBEAT задач |
-| `heartbeat_file` | string | `HEARTBEAT.md` | Файл с задачами в workspace |
-| `check_interval` | string | `"* * * * *"` | Как часто проверять HEARTBEAT.md на изменения |
-| `workspace_path` | string | `~/.nexbot` | Путь к workspace для HEARTBEAT.md |
-
-**Heartbeat Configuration (краткая справка):**
-
-| Параметр | Тип  | Default | Описание                    |
-| --------- | ---- | ------- | --------------------------- |
-| enabled   | bool | true    | Включить heartbeat проверки |
-| check_interval_minutes | int | 10      | Интервал проверки в минутах |
-
-**Пример:**
-
-```toml
-[heartbeat]
-enabled = true
-heartbeat_file = "HEARTBEAT.md"
-check_interval = "* * * * *"
-workspace_path = "~/.nexbot"
-```
-
-**Формат HEARTBEAT.md:**
-
-HEARTBEAT.md должен быть размещён в workspace (по умолчанию: `~/.nexbot/`).
-
-Каждая задача определяется в следующем формате:
-
-```markdown
-- Task: "Описание задачи"
-  Schedule: "cron-expression"
-  Description: "Подробное описание"
-```
-
-**Пример HEARTBEAT.md:**
-
-```markdown
-# HEARTBEAT - Proactive Tasks
-
-## Daily Tasks
-
-- Task: "Daily health check"
-  Schedule: "0 9 * * *"
-  Description: "Проверить состояние системы"
-
-- Task: "Daily report generation"
-  Schedule: "0 18 * * *"
-  Description: "Создать ежедневный отчёт"
-
-## Weekly Tasks
-
-- Task: "Weekly cleanup"
-  Schedule: "0 3 * * 0"
-  Description: "Очистить старые лог-файлы"
-
-- Task: "Weekly backup"
-  Schedule: "0 4 * * 0"
-  Description: "Создать резервную копию данных"
-```
-
-**Cron expression format:**
-- Минимум: `0-59`
-- Час: `0-23`
-- День месяца: `1-31`
-- Месяц: `1-12`
-- День недели: `0-6` (0=воскресенье, 6=суббота)
-
-**Примеры cron expressions:**
-- `* * * * *` — каждую минуту
-- `0 * * * *` — каждый час
-- `0 9 * * *` — ежедневно в 9:00
-- `*/5 * * * *` — каждые 5 минут
-- `0 0 * * 0` — каждую неделю в полночь (воскресенье)
-
----
-
 ### `[subagent]` — Настройки Subagent Manager (v0.2)
 
 Конфигурация управления subagent'ами.
@@ -684,11 +602,6 @@ enabled = true
 max_concurrent = 10
 timeout_seconds = 300
 session_prefix = "subagent-"
-
-# Конфигурация HEARTBEAT (v0.2.0)
-[heartbeat]
-enabled = true
-check_interval_minutes = 30
 
 # Конфигурация логирования
 [logging]

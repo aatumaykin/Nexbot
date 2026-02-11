@@ -14,7 +14,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/commands"
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/cron"
-	"github.com/aatumaykin/nexbot/internal/heartbeat"
+
 	"github.com/aatumaykin/nexbot/internal/ipc"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/workers"
@@ -46,9 +46,6 @@ type App struct {
 
 	// Subagent manager
 	subagentManager *subagent.Manager
-
-	// Heartbeat checker
-	heartbeatChecker *heartbeat.Checker
 
 	// Cleanup scheduler
 	cleanupScheduler *cleanup.Scheduler

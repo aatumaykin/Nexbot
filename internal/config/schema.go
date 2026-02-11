@@ -21,14 +21,14 @@ import "path/filepath"
 
 // Config represents the main application configuration.
 type Config struct {
-	Workspace  WorkspaceConfig  `toml:"workspace"`
-	Agent      AgentConfig      `toml:"agent"`
-	LLM        LLMConfig        `toml:"llm"`
-	Logging    LoggingConfig    `toml:"logging"`
-	Channels   ChannelsConfig   `toml:"channels"`
-	Tools      ToolsConfig      `toml:"tools"`
-	Cron       CronConfig       `toml:"cron"`
-	Heartbeat  HeartbeatConfig  `toml:"heartbeat"`
+	Workspace WorkspaceConfig `toml:"workspace"`
+	Agent     AgentConfig     `toml:"agent"`
+	LLM       LLMConfig       `toml:"llm"`
+	Logging   LoggingConfig   `toml:"logging"`
+	Channels  ChannelsConfig  `toml:"channels"`
+	Tools     ToolsConfig     `toml:"tools"`
+	Cron      CronConfig      `toml:"cron"`
+
 	Workers    WorkersConfig    `toml:"workers"`
 	Subagent   SubagentConfig   `toml:"subagent"`
 	MessageBus MessageBusConfig `toml:"message_bus"`
@@ -167,12 +167,6 @@ type MessageBusConfig struct {
 	ResultChannelCapacity     int  `toml:"result_channel_capacity"`
 	EnableHighPriorityResults bool `toml:"enable_high_priority_results"`
 	SubscriberChannelSize     int  `toml:"subscriber_channel_size"`
-}
-
-// HeartbeatConfig представляет конфигурацию HEARTBEAT loader (v0.2)
-type HeartbeatConfig struct {
-	Enabled              bool `toml:"enabled"`
-	CheckIntervalMinutes int  `toml:"check_interval_minutes"`
 }
 
 // CleanupConfig представляет конфигурацию cleanup механизма для памяти и сессий

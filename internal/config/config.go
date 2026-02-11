@@ -292,11 +292,6 @@ func applyDefaults(c *Config) {
 		c.Cron.Timezone = "UTC"
 	}
 
-	// Heartbeat defaults
-	if c.Heartbeat.CheckIntervalMinutes == 0 {
-		c.Heartbeat.CheckIntervalMinutes = 5
-	}
-
 	// Workers defaults
 	if c.Workers.PoolSize == 0 {
 		c.Workers.PoolSize = 5

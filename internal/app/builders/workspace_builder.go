@@ -7,7 +7,6 @@ import (
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/cron"
-	"github.com/aatumaykin/nexbot/internal/heartbeat"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/workers"
 	"github.com/aatumaykin/nexbot/internal/workspace"
@@ -46,41 +45,6 @@ func (b *WorkspaceBuilder) InitializeSecrets(secretsDir string) error {
 	return nil
 }
 
-func (b *WorkspaceBuilder) InitializeHeartbeat(ws *workspace.Workspace) error {
-	heartbeatPath := ws.Subpath("HEARTBEAT.md")
-	if _, err := os.Stat(heartbeatPath); os.IsNotExist(err) {
-		b.logger.Info("Creating HEARTBEAT.md bootstrap", logger.Field{Key: "path", Value: heartbeatPath})
-
-		heartbeatContent := `# HEARTBEAT - Задачи и отправка
-
-Этот файл читается каждые 10 минут.
-
-## Как использовать
-
-### Для LLM
-
-1. Читай секцию "Задачи"
-2. Проверяй время выполнения
-3. Если пора выполнить:
-   - Выполни задачу (используй доступные tools: read_file, write_file, send_message)
-   - Если нужно отправить сообщение — используй send_message tool
-   - Если нужно обновить HEARTBEAT.md — используй write_file tool
-4. Если ничего — верни "HEARTBEAT_OK"
-
-## Задачи
-
----
-
-Добавляй задачи сюда.
-`
-		if err := os.WriteFile(heartbeatPath, []byte(heartbeatContent), 0644); err != nil {
-			return fmt.Errorf("failed to create HEARTBEAT.md: %w", err)
-		}
-		b.logger.Info("HEARTBEAT.md created")
-	}
-	return nil
-}
-
 func (b *WorkspaceBuilder) BuildWorkerPool() *workers.WorkerPool {
 	workerPool := workers.NewPool(b.config.Workers.PoolSize, b.config.Workers.QueueSize, b.logger, b.messageBus)
 	workerPool.Start()
@@ -95,16 +59,4 @@ func (b *WorkspaceBuilder) BuildCronStorage(ws *workspace.Workspace) (*cron.Stor
 	}
 	b.logger.Info("loaded cron jobs from storage", logger.Field{Key: "count", Value: len(cronJobs)})
 	return cronStorage, cronJobs, nil
-}
-
-func (b *WorkspaceBuilder) BuildHeartbeatChecker(agentLoop heartbeat.Agent) (*heartbeat.Checker, error) {
-	checker := heartbeat.NewChecker(
-		b.config.Heartbeat.CheckIntervalMinutes,
-		agentLoop,
-		b.logger,
-	)
-	if err := checker.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start heartbeat checker: %w", err)
-	}
-	return checker, nil
 }

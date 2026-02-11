@@ -389,9 +389,6 @@ func createBootstrapFiles(t *testing.T, dir string) {
 
 	toolsPath := filepath.Join(dir, workspace.BootstrapTools)
 	require.NoError(t, os.WriteFile(toolsPath, []byte("Test Tools"), 0644))
-
-	heartbeatPath := filepath.Join(dir, workspace.BootstrapHeartbeat)
-	require.NoError(t, os.WriteFile(heartbeatPath, []byte("## Heartbeat\nNo active tasks"), 0644))
 }
 
 // Mock LLM provider для тестов

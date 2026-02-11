@@ -16,7 +16,6 @@
 - ⏰ **Cron scheduling** — планирование задач по расписанию
 - 🧬 **Subagent spawning** — создание дочерних агентов
 - 🔄 **Background tasks** — async worker pool
-- 💓 **HEARTBEAT** — система health check
 - 🚀 **Single binary** — Linux/macOS/Windows
 
 ## Быстрый старт за 5 минут
@@ -268,7 +267,6 @@ workspace/            — bootstrap файлы (~/.nexbot/)
    - Прочтите [Конфигурация](KONFIGURACIYA.md) для подробной справки
    - Попробуйте [Cron scheduling](PRIMERY.md#cron)
    - Попробуйте [Subagent spawning](PRIMERY.md#subagenty)
-   - Попробуйте [HEARTBEAT задачи](PRIMERY.md#serdecebeat)
 
 ## Версия Go
 

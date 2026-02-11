@@ -43,11 +43,11 @@ Nexbot использует модульную многослойную архи
 └────────────┬────────────────────────────────┘            │
              │                                             │
              ▼                                             ▼
-      ┌──────────────┐                               ┌─────────────────┐
-      │   Subagent   │                               │   HEARTBEAT     │
-      │   Manager    │                               │   System        │
-      │  (NEW v0.2)  │                               │   (NEW v0.2)   │
-      └──────────────┘                               └─────────────────┘
+       ┌──────────────┐
+       │   Subagent   │
+       │   Manager    │
+       │  (NEW v0.2)  │
+       └──────────────┘
              │
       ┌────────┴────────┐
       │                 │
@@ -322,67 +322,6 @@ Task Types:
 - Panic recovery для каждого воркера
 - Context cancellation для graceful shutdown
 
-### HEARTBEAT System
-
-Система периодических проверок состояния через HEARTBEAT.md файл.
-
-**Подробная документация:** [docs/architecture/heartbeat_system.md](architecture/heartbeat_system.md)
-
-**Компоненты:**
-- **Loader**: Загрузка и валидация HEARTBEAT.md
-- **Parser**: Парсинг markdown контента в список задач
-- **Checker**: Периодическая проверка через Agent interface
-- **Agent Interface**: Обработка heartbeat проверок
-
-**Архитектура:**
-```
-HEARTBEAT.md (workspace)
-         │
-         ▼
-     Loader → Parser → Validate Tasks
-         │
-         ▼
-  Checker (periodic interval)
-         │
-         ▼
-  Agent.ProcessHeartbeatCheck()
-         │
-         ├─ Read HEARTBEAT.md
-         ├─ Follow tasks
-         ├─ Use tools
-         └─ Return response
-              │
-              ▼
-         Process Response
-              │
-              ├─ HEARTBEAT_OK (all good)
-              └─ Actions taken
-```
-
-**Хранилище:** `~/.nexbot/HEARTBEAT.md`
-
-**Формат HEARTBEAT.md:**
-```markdown
-# Heartbeat Tasks
-
-## Periodic Reviews
-
-### Daily Standup
-- Schedule: "0 9 * * *"
-- Task: "Review daily progress, check for blocked tasks, update priorities"
-
-### Weekly Summary
-- Schedule: "0 17 * * 5"
-- Task: "Review weekly achievements, plan next week"
-```
-
-**Ключевые возможности:**
-- Парсинг задач из markdown формата
-- Валидация cron выражений
-- Интеграция с Cron Scheduler для планирования
-- Периодические проверки через Checker
-- Agent-driven выполнение с инструментами
-
 ## Поток данных
 
 ### Основной поток сообщений
@@ -631,7 +570,6 @@ config.toml в текущей директории
 - [Cron Scheduler Architecture](architecture/cron_scheduler.md) — Полная документация планировщика задач
 - [Subagent Manager Architecture](architecture/subagent_manager.md) — Архитектура управления subagents
 - [Worker Pool Architecture](architecture/worker_pool.md) — Архитектура пула воркеров
-- [HEARTBEAT System Architecture](architecture/heartbeat_system.md) — Архитектура системы проверок
 
 ### Внешние ресурсы
 
@@ -642,4 +580,4 @@ config.toml в текущей директории
 
 ---
 
-**Последнее обновление:** v0.2.0 Архитектура (обновлено для компонентов Cron Scheduler, Subagent Manager, Worker Pool, HEARTBEAT System)
+**Последнее обновление:** v0.2.0 Архитектура (обновлено для компонентов Cron Scheduler, Subagent Manager, Worker Pool)

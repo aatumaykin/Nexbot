@@ -113,13 +113,6 @@ func (a *App) shutdownInternal() error {
 		a.subagentManager.StopAll()
 	}
 
-	// Stop heartbeat checker if not nil
-	if a.heartbeatChecker != nil {
-		if err := a.heartbeatChecker.Stop(); err != nil {
-			a.logger.Error("Failed to stop heartbeat checker", err)
-		}
-	}
-
 	// Stop message bus
 	var busErr error
 	if a.messageBus != nil {

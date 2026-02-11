@@ -12,7 +12,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/channels/telegram"
 	"github.com/aatumaykin/nexbot/internal/commands"
 	"github.com/aatumaykin/nexbot/internal/cron"
-	"github.com/aatumaykin/nexbot/internal/heartbeat"
+
 	"github.com/aatumaykin/nexbot/internal/ipc"
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
@@ -91,40 +91,6 @@ func (a *App) Initialize(ctx context.Context) error {
 	}
 	a.logger.Info("Secrets directory initialized",
 		logger.Field{Key: "path", Value: secretsDir})
-
-	// 4.1. Create HEARTBEAT.md bootstrap if it doesn't exist
-	heartbeatPath := ws.Subpath("HEARTBEAT.md")
-	if _, err := os.Stat(heartbeatPath); os.IsNotExist(err) {
-		a.logger.Info("Creating HEARTBEAT.md bootstrap",
-			logger.Field{Key: "path", Value: heartbeatPath})
-
-		heartbeatContent := `# HEARTBEAT - Задачи и отправка
-
-Этот файл читается каждые 10 минут.
-
-## Как использовать
-
-### Для LLM
-
-1. Читай секцию "Задачи"
-2. Проверяй время выполнения
-3. Если пора выполнить:
-   - Выполни задачу (используй доступные tools: read_file, write_file, send_message)
-   - Если нужно отправить сообщение — используй send_message tool
-   - Если нужно обновить HEARTBEAT.md — используй write_file tool
-4. Если ничего — верни "HEARTBEAT_OK"
-
-## Задачи
-
----
-
-Добавляй задачи сюда.
-`
-		if err := os.WriteFile(heartbeatPath, []byte(heartbeatContent), 0644); err != nil {
-			return fmt.Errorf("failed to create HEARTBEAT.md: %w", err)
-		}
-		a.logger.Info("HEARTBEAT.md created")
-	}
 
 	// 4.1. Initialize worker pool
 	workerPool := workers.NewPool(a.config.Workers.PoolSize, a.config.Workers.QueueSize, a.logger, a.messageBus)
@@ -338,19 +304,7 @@ func (a *App) Initialize(ctx context.Context) error {
 		}
 	}
 
-	// 10. Initialize heartbeat checker if enabled
-	if a.config.Heartbeat.Enabled {
-		a.heartbeatChecker = heartbeat.NewChecker(
-			a.config.Heartbeat.CheckIntervalMinutes,
-			a.agentLoop,
-			a.logger,
-		)
-		if err := a.heartbeatChecker.Start(); err != nil {
-			return fmt.Errorf("failed to start heartbeat checker: %w", err)
-		}
-	}
-
-	// 11. Initialize IPC handler
+	// 10. Initialize IPC handler
 	a.ipcHandler, err = ipc.NewHandler(a.logger, ws.Subpath("sessions"), a.messageBus)
 	if err != nil {
 		return fmt.Errorf("failed to create IPC handler: %w", err)
