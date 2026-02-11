@@ -39,6 +39,7 @@ type WorkerPool interface {
 // CronTaskPayload represents the payload for a cron task
 type CronTaskPayload struct {
 	Tool      string            // Internal tool: "send_message" | "agent"
+	Format    string            // Format type: "plain", "markdown", "html", "markdownv2" (default: "plain")
 	Payload   map[string]any    // Tool parameters (JSON). For send_message/agent: {"message": "text"}
 	SessionID string            // Session ID for context (format: "channel:chat_id")
 	Metadata  map[string]string // Job metadata

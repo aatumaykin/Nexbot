@@ -18,14 +18,14 @@ type mockMessageSender struct {
 	sendKeyboardFunc func(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error)
 }
 
-func (m *mockMessageSender) SendMessage(userID, channelType, sessionID, message string, timeout time.Duration) (*agent.MessageResult, error) {
+func (m *mockMessageSender) SendMessage(userID, channelType, sessionID, message string, format bus.FormatType, timeout time.Duration) (*agent.MessageResult, error) {
 	if m.sendFunc != nil {
 		return m.sendFunc(userID, channelType, sessionID, message, timeout)
 	}
 	return &agent.MessageResult{Success: true}, nil
 }
 
-func (m *mockMessageSender) SendMessageWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error) {
+func (m *mockMessageSender) SendMessageWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard, format bus.FormatType, timeout time.Duration) (*agent.MessageResult, error) {
 	if m.sendKeyboardFunc != nil {
 		return m.sendKeyboardFunc(userID, channelType, sessionID, message, keyboard, timeout)
 	}
@@ -35,7 +35,7 @@ func (m *mockMessageSender) SendMessageWithKeyboard(userID, channelType, session
 	return &agent.MessageResult{Success: true}, nil
 }
 
-func (m *mockMessageSender) SendEditMessage(userID, channelType, sessionID, messageID, content string, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error) {
+func (m *mockMessageSender) SendEditMessage(userID, channelType, sessionID, messageID, content string, keyboard *bus.InlineKeyboard, format bus.FormatType, timeout time.Duration) (*agent.MessageResult, error) {
 	return &agent.MessageResult{Success: true}, nil
 }
 
@@ -43,11 +43,11 @@ func (m *mockMessageSender) SendDeleteMessage(userID, channelType, sessionID, me
 	return &agent.MessageResult{Success: true}, nil
 }
 
-func (m *mockMessageSender) SendPhotoMessage(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error) {
+func (m *mockMessageSender) SendPhotoMessage(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, format bus.FormatType, timeout time.Duration) (*agent.MessageResult, error) {
 	return &agent.MessageResult{Success: true}, nil
 }
 
-func (m *mockMessageSender) SendDocumentMessage(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error) {
+func (m *mockMessageSender) SendDocumentMessage(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, format bus.FormatType, timeout time.Duration) (*agent.MessageResult, error) {
 	return &agent.MessageResult{Success: true}, nil
 }
 
@@ -55,11 +55,11 @@ func (m *mockMessageSender) SendMessageAsync(userID, channelType, sessionID, mes
 	return nil
 }
 
-func (m *mockMessageSender) SendMessageAsyncWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) error {
+func (m *mockMessageSender) SendMessageAsyncWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard, format bus.FormatType) error {
 	return nil
 }
 
-func (m *mockMessageSender) SendEditMessageAsync(userID, channelType, sessionID, messageID, content string, keyboard *bus.InlineKeyboard) error {
+func (m *mockMessageSender) SendEditMessageAsync(userID, channelType, sessionID, messageID, content string, keyboard *bus.InlineKeyboard, format bus.FormatType) error {
 	return nil
 }
 
@@ -67,11 +67,11 @@ func (m *mockMessageSender) SendDeleteMessageAsync(userID, channelType, sessionI
 	return nil
 }
 
-func (m *mockMessageSender) SendPhotoMessageAsync(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard) error {
+func (m *mockMessageSender) SendPhotoMessageAsync(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, format bus.FormatType) error {
 	return nil
 }
 
-func (m *mockMessageSender) SendDocumentMessageAsync(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard) error {
+func (m *mockMessageSender) SendDocumentMessageAsync(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, format bus.FormatType) error {
 	return nil
 }
 
@@ -117,6 +117,7 @@ func setupSendMessageTool(t *testing.T) *SendMessageTool {
 				sessionID,
 				message,
 				correlationID,
+				bus.FormatTypePlain,
 				nil, // no metadata
 			)
 			err := messageBus.PublishOutbound(*event)

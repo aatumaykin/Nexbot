@@ -140,9 +140,6 @@ func (t *FetchTool) Execute(args string) (string, error) {
 	if fetchArgs.URL == "" {
 		return "", fmt.Errorf("url is required")
 	}
-	if !strings.HasPrefix(fetchArgs.URL, "http://") && !strings.HasPrefix(fetchArgs.URL, "https://") {
-		return "", fmt.Errorf("url must start with http:// or https://")
-	}
 	if fetchArgs.Format == "" {
 		fetchArgs.Format = "text"
 	}
@@ -182,7 +179,17 @@ func (t *FetchTool) Execute(args string) (string, error) {
 	if fetchArgs.Body != "" {
 		bodyReader = strings.NewReader(fetchArgs.Body)
 	}
-	req, err := http.NewRequest(fetchArgs.Method, fetchArgs.URL, bodyReader)
+
+	url := fetchArgs.URL
+	if t.resolver != nil && t.sessionID != "" {
+		url = t.resolver(t.sessionID, url)
+	}
+
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		return "", fmt.Errorf("url must start with http:// or https://")
+	}
+
+	req, err := http.NewRequest(fetchArgs.Method, url, bodyReader)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}

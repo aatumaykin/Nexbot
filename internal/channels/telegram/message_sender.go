@@ -13,8 +13,8 @@ import (
 
 // sendTextMessage sends a text message to Telegram
 func (c *Connector) sendTextMessage(msg bus.OutboundMessage, chatID int64) {
-	// Prepare message with smart content detection
-	params, err := c.prepareMessage(msg.Content, chatID)
+	// Prepare message with format
+	params, err := c.prepareMessage(msg.Content, chatID, msg.Format)
 	if err != nil {
 		c.logger.ErrorCtx(c.ctx, "failed to prepare text message", err,
 			logger.Field{Key: "chat_id", Value: chatID},
@@ -28,7 +28,7 @@ func (c *Connector) sendTextMessage(msg bus.OutboundMessage, chatID int64) {
 		params.ReplyMarkup = c.buildInlineKeyboard(msg.InlineKeyboard)
 	}
 
-	// Try to send with detected formatting and timeout
+	// Try to send with format and timeout
 	sendCtx, cancel := c.getSendTimeout()
 	defer cancel()
 	_, err = c.bot.SendMessage(sendCtx, &params)
@@ -51,15 +51,15 @@ func (c *Connector) editMessage(msg bus.OutboundMessage, chatID int64) {
 		return
 	}
 
-	// Prepare message with smart content detection
-	params := c.prepareEditMessageParams(msg.Content, chatID, msg.MessageID)
+	// Prepare message with format
+	params := c.prepareEditMessageParams(msg.Content, chatID, msg.MessageID, msg.Format)
 
 	// Attach inline keyboard if enabled and present
 	if msg.InlineKeyboard != nil && c.cfg.EnableInlineKeyboard {
 		params.ReplyMarkup = c.buildInlineKeyboard(msg.InlineKeyboard)
 	}
 
-	// Try to send with detected formatting and timeout
+	// Try to send with format and timeout
 	sendCtx, cancel := c.getSendTimeout()
 	defer cancel()
 	_, err := c.bot.EditMessageText(sendCtx, &params)
@@ -192,7 +192,7 @@ func (c *Connector) sendDocument(msg bus.OutboundMessage, chatID int64) {
 }
 
 // prepareEditMessageParams prepares parameters for editing a message
-func (c *Connector) prepareEditMessageParams(content string, chatID int64, messageID string) telego.EditMessageTextParams {
+func (c *Connector) prepareEditMessageParams(content string, chatID int64, messageID string, format bus.FormatType) telego.EditMessageTextParams {
 	messageIDInt, err := strconv.Atoi(messageID)
 	if err != nil {
 		// If conversion fails, we'll let the API call handle the error
@@ -205,31 +205,47 @@ func (c *Connector) prepareEditMessageParams(content string, chatID int64, messa
 		Text:      content,
 	}
 
-	// Detect content type
-	contentType := DetectContentType(content)
-
-	switch contentType {
-	case ContentTypeCode:
-		// Code content - use HTML for better code block support
-		params.ParseMode = telego.ModeHTML
-		params.Text = MarkdownToHTML(content)
-	case ContentTypeMarkdown:
-		// Markdown content - try HTML first (more robust)
-		params.ParseMode = telego.ModeHTML
-		params.Text = MarkdownToHTML(content)
-	case ContentTypePlain:
-		// Plain text - no formatting
-		params.ParseMode = ""
-	default:
-		// Default: no formatting
-		params.ParseMode = ""
+	// Use format if specified, otherwise detect content type
+	if format != "" {
+		params.ParseMode = mapFormatTypeToTelego(format)
+	} else {
+		// Detect content type for backward compatibility
+		contentType := DetectContentType(content)
+		switch contentType {
+		case ContentTypeCode:
+			params.ParseMode = telego.ModeHTML
+			params.Text = MarkdownToHTML(content)
+		case ContentTypeMarkdown:
+			params.ParseMode = telego.ModeHTML
+			params.Text = MarkdownToHTML(content)
+		case ContentTypePlain:
+			params.ParseMode = ""
+		default:
+			params.ParseMode = ""
+		}
 	}
 
 	return params
 }
 
-// prepareMessage подготавливает параметры сообщения с определением типа контента
-func (c *Connector) prepareMessage(content string, chatID int64) (telego.SendMessageParams, error) {
+// mapFormatTypeToTelego maps FormatType to telego parse mode
+func mapFormatTypeToTelego(format bus.FormatType) string {
+	switch format {
+	case bus.FormatTypeMarkdown:
+		return telego.ModeMarkdown
+	case bus.FormatTypeHTML:
+		return telego.ModeHTML
+	case bus.FormatTypeMarkdownV2:
+		return "MarkdownV2"
+	case bus.FormatTypePlain:
+		return ""
+	default:
+		return ""
+	}
+}
+
+// prepareMessage подготавливает параметры сообщения с форматом
+func (c *Connector) prepareMessage(content string, chatID int64, format bus.FormatType) (telego.SendMessageParams, error) {
 	params := telego.SendMessageParams{
 		ChatID: telego.ChatID{ID: chatID},
 		Text:   content,
@@ -240,28 +256,21 @@ func (c *Connector) prepareMessage(content string, chatID int64) (telego.SendMes
 		params.DisableNotification = true
 	}
 
-	// Detect content type
-	contentType := DetectContentType(content)
-
-	switch contentType {
-	case ContentTypeCode:
-		// Code content - use HTML for better code block support
-		params.ParseMode = telego.ModeHTML
-		params.Text = MarkdownToHTML(content)
-	case ContentTypeMarkdown:
-		// Markdown content - try HTML first (more robust)
-		params.ParseMode = telego.ModeHTML
-		params.Text = MarkdownToHTML(content)
-	case ContentTypePlain:
-		// Plain text - no formatting
-		params.ParseMode = ""
-	default:
-		// Default: use parse mode from config
-		switch c.cfg.DefaultParseMode {
-		case "markdown":
-			params.ParseMode = telego.ModeMarkdown
-		case "html":
+	// Use format if specified, otherwise detect content type
+	if format != "" {
+		params.ParseMode = mapFormatTypeToTelego(format)
+	} else {
+		// Detect content type for backward compatibility
+		contentType := DetectContentType(content)
+		switch contentType {
+		case ContentTypeCode:
 			params.ParseMode = telego.ModeHTML
+			params.Text = MarkdownToHTML(content)
+		case ContentTypeMarkdown:
+			params.ParseMode = telego.ModeHTML
+			params.Text = MarkdownToHTML(content)
+		case ContentTypePlain:
+			params.ParseMode = ""
 		default:
 			params.ParseMode = ""
 		}

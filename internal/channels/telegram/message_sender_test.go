@@ -83,7 +83,7 @@ func TestMessageSender_PrepareMessage_ParseMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			params, err := conn.prepareMessage(tt.content, 123)
+			params, err := conn.prepareMessage(tt.content, 123, "")
 			if err != nil {
 				t.Fatalf("prepareMessage() failed: %v", err)
 			}
@@ -158,7 +158,7 @@ func TestMessageSender_PrepareEditMessageParams_ParseMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			params := conn.prepareEditMessageParams(tt.content, 123, tt.messageID)
+			params := conn.prepareEditMessageParams(tt.content, 123, tt.messageID, "")
 
 			if params.ParseMode != tt.wantMode {
 				t.Errorf("prepareEditMessageParams() ParseMode = %v, want %v", params.ParseMode, tt.wantMode)

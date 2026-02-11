@@ -158,7 +158,8 @@ func (h *Handler) handleSendMessage(req *Request, conn net.Conn) {
 		userID,
 		req.SessionID,
 		req.Content,
-		"",  // correlationID (not used for IPC)
+		"", // correlationID (not used for IPC)
+		bus.FormatTypePlain,
 		nil, // metadata
 	)
 

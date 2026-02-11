@@ -136,6 +136,7 @@ func (a *App) processMessage(ctx context.Context, msg bus.InboundMessage) {
 			msg.SessionID,
 			cleanedResponse,
 			correlationID,
+			bus.FormatTypePlain,
 			nil,
 		)
 		if err := a.messageBus.PublishOutbound(*outboundMsg); err != nil {

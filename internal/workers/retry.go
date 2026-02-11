@@ -140,11 +140,13 @@ func (p *WorkerPool) executeSendMessage(ctx context.Context, task Task, payload 
 	}
 
 	// Create outbound message
+	format := bus.FormatType(payload.Format)
 	outboundMsg := bus.OutboundMessage{
 		ChannelType: bus.ChannelType(channel),
 		UserID:      "",
 		SessionID:   fmt.Sprintf("%s:%s", channel, chatID),
 		Content:     content,
+		Format:      format,
 		Timestamp:   time.Now(),
 		Metadata: map[string]interface{}{
 			"cron_job_id": task.ID,

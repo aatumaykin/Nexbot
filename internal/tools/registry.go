@@ -233,6 +233,13 @@ func ExecuteToolCallWithContext(registry *Registry, tc ToolCall, ctx context.Con
 		}
 	}
 
+	// Set session ID on tool if it supports it
+	if cfg != nil && cfg.SessionID != "" {
+		if sessionAware, ok := tool.(interface{ SetSessionID(string) }); ok {
+			sessionAware.SetSessionID(cfg.SessionID)
+		}
+	}
+
 	// Determine timeout
 	var timeout time.Duration
 	if cfg != nil {

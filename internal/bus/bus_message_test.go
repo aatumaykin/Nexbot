@@ -39,7 +39,7 @@ func TestMessageBus_PublishOutbound(t *testing.T) {
 		t.Fatalf("Start() failed: %v", err)
 	}
 
-	msg := NewOutboundMessage(ChannelTypeTelegram, "user123", "session456", "Hello", "", nil)
+	msg := NewOutboundMessage(ChannelTypeTelegram, "user123", "session456", "Hello", "", FormatTypePlain, nil)
 	err = bus.PublishOutbound(*msg)
 	if err != nil {
 		t.Fatalf("PublishOutbound() failed: %v", err)
@@ -50,8 +50,8 @@ func TestMessageBus_PublishOutbound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	msg1 := NewOutboundMessage(ChannelTypeTelegram, "user1", "session1", "Hello1", "", nil)
-	msg2 := NewOutboundMessage(ChannelTypeTelegram, "user2", "session2", "Hello2", "", nil)
+	msg1 := NewOutboundMessage(ChannelTypeTelegram, "user1", "session1", "Hello1", "", FormatTypePlain, nil)
+	msg2 := NewOutboundMessage(ChannelTypeTelegram, "user2", "session2", "Hello2", "", FormatTypePlain, nil)
 
 	err = bus.PublishOutbound(*msg1)
 	if err != nil {
@@ -132,7 +132,7 @@ func TestMessageBus_SubscribeOutbound(t *testing.T) {
 		t.Fatal("SubscribeOutbound() returned nil")
 	}
 
-	msg := NewOutboundMessage(ChannelTypeTelegram, "user123", "session456", "Hello", "", nil)
+	msg := NewOutboundMessage(ChannelTypeTelegram, "user123", "session456", "Hello", "", FormatTypePlain, nil)
 	err = bus.PublishOutbound(*msg)
 	if err != nil {
 		t.Fatalf("PublishOutbound() failed: %v", err)

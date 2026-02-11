@@ -24,6 +24,7 @@ type SendMessageArgs struct {
 	SessionID           string              `json:"session_id"`                      // required
 	Message             string              `json:"message,omitempty"`               // optional for edit/delete/media types
 	MessageType         string              `json:"message_type,omitempty"`          // text, edit, delete, photo, document
+	Format              string              `json:"format,omitempty"`                // plain, markdown, html, markdownv2 (default: plain)
 	MessageID           string              `json:"message_id,omitempty"`            // required for edit/delete
 	MediaURL            string              `json:"media_url,omitempty"`             // required for photo/document
 	MediaCaption        string              `json:"media_caption,omitempty"`         // optional caption for media
@@ -81,6 +82,11 @@ func (t *SendMessageTool) Parameters() map[string]interface{} {
 			"message": map[string]interface{}{
 				"type":        "string",
 				"description": "Message content to send. Required for 'text' and 'edit' types.",
+			},
+			"format": map[string]interface{}{
+				"type":        "string",
+				"description": "Message format: 'plain' (default), 'markdown', 'html', 'markdownv2'.",
+				"enum":        []string{"plain", "markdown", "html", "markdownv2"},
 			},
 			"message_id": map[string]interface{}{
 				"type":        "string",
@@ -169,6 +175,9 @@ func (t *SendMessageTool) Execute(args string) (string, error) {
 		messageType = "text"
 	}
 
+	// Parse format (default is empty = plain)
+	format := bus.FormatType(params.Format)
+
 	// Parse session_id to extract channel and user_id
 	parts := strings.SplitN(params.SessionID, ":", 2)
 	channelType := parts[0]
@@ -216,15 +225,15 @@ func (t *SendMessageTool) Execute(args string) (string, error) {
 		}
 		if waitForConfirmation {
 			if keyboard != nil {
-				result, err = t.sender.SendMessageWithKeyboard(userID, channelType, params.SessionID, params.Message, keyboard, timeout)
+				result, err = t.sender.SendMessageWithKeyboard(userID, channelType, params.SessionID, params.Message, keyboard, format, timeout)
 				actionDesc = "text message with keyboard"
 			} else {
-				result, err = t.sender.SendMessage(userID, channelType, params.SessionID, params.Message, timeout)
+				result, err = t.sender.SendMessage(userID, channelType, params.SessionID, params.Message, format, timeout)
 				actionDesc = "text message"
 			}
 		} else {
 			if keyboard != nil {
-				err = t.sender.SendMessageAsyncWithKeyboard(userID, channelType, params.SessionID, params.Message, keyboard)
+				err = t.sender.SendMessageAsyncWithKeyboard(userID, channelType, params.SessionID, params.Message, keyboard, format)
 			} else {
 				err = t.sender.SendMessageAsync(userID, channelType, params.SessionID, params.Message)
 			}
@@ -249,10 +258,10 @@ func (t *SendMessageTool) Execute(args string) (string, error) {
 			return "", fmt.Errorf("message parameter is required for edit messages")
 		}
 		if waitForConfirmation {
-			result, err = t.sender.SendEditMessage(userID, channelType, params.SessionID, params.MessageID, params.Message, keyboard, timeout)
+			result, err = t.sender.SendEditMessage(userID, channelType, params.SessionID, params.MessageID, params.Message, keyboard, format, timeout)
 			actionDesc = "edit message"
 		} else {
-			err = t.sender.SendEditMessageAsync(userID, channelType, params.SessionID, params.MessageID, params.Message, keyboard)
+			err = t.sender.SendEditMessageAsync(userID, channelType, params.SessionID, params.MessageID, params.Message, keyboard, format)
 			actionDesc = "edit message (async)"
 			if err != nil {
 				return "", fmt.Errorf("failed to send %s: %w", actionDesc, err)
@@ -298,10 +307,10 @@ func (t *SendMessageTool) Execute(args string) (string, error) {
 			Caption: params.MediaCaption,
 		}
 		if waitForConfirmation {
-			result, err = t.sender.SendPhotoMessage(userID, channelType, params.SessionID, media, keyboard, timeout)
+			result, err = t.sender.SendPhotoMessage(userID, channelType, params.SessionID, media, keyboard, format, timeout)
 			actionDesc = "photo message"
 		} else {
-			err = t.sender.SendPhotoMessageAsync(userID, channelType, params.SessionID, media, keyboard)
+			err = t.sender.SendPhotoMessageAsync(userID, channelType, params.SessionID, media, keyboard, format)
 			actionDesc = "photo message (async)"
 			if err != nil {
 				return "", fmt.Errorf("failed to send %s: %w", actionDesc, err)
@@ -325,10 +334,10 @@ func (t *SendMessageTool) Execute(args string) (string, error) {
 			Caption: params.MediaCaption,
 		}
 		if waitForConfirmation {
-			result, err = t.sender.SendDocumentMessage(userID, channelType, params.SessionID, media, keyboard, timeout)
+			result, err = t.sender.SendDocumentMessage(userID, channelType, params.SessionID, media, keyboard, format, timeout)
 			actionDesc = "document message"
 		} else {
-			err = t.sender.SendDocumentMessageAsync(userID, channelType, params.SessionID, media, keyboard)
+			err = t.sender.SendDocumentMessageAsync(userID, channelType, params.SessionID, media, keyboard, format)
 			actionDesc = "document message (async)"
 			if err != nil {
 				return "", fmt.Errorf("failed to send %s: %w", actionDesc, err)

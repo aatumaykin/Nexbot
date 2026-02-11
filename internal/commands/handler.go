@@ -79,7 +79,8 @@ func (h *Handler) handleNewSession(ctx context.Context, msg bus.InboundMessage) 
 		msg.UserID,
 		msg.SessionID,
 		constants.MsgSessionCleared,
-		"",  // correlationID (not used for commands)
+		"", // correlationID (not used for commands)
+		bus.FormatTypePlain,
 		nil, // metadata
 	)
 
@@ -108,7 +109,8 @@ func (h *Handler) handleStatus(ctx context.Context, msg bus.InboundMessage) erro
 			msg.UserID,
 			msg.SessionID,
 			constants.MsgStatusError,
-			"",  // correlationID (not used for commands)
+			"", // correlationID (not used for commands)
+			bus.FormatTypePlain,
 			nil, // metadata
 		)
 
@@ -141,7 +143,8 @@ func (h *Handler) handleStatus(ctx context.Context, msg bus.InboundMessage) erro
 		msg.UserID,
 		msg.SessionID,
 		statusMsg,
-		"",  // correlationID (not used for commands)
+		"", // correlationID (not used for commands)
+		bus.FormatTypePlain,
 		nil, // metadata
 	)
 
@@ -165,7 +168,8 @@ func (h *Handler) handleRestart(ctx context.Context, msg bus.InboundMessage) err
 		msg.UserID,
 		msg.SessionID,
 		constants.MsgRestarting,
-		"",  // correlationID (not used for commands)
+		"", // correlationID (not used for commands)
+		bus.FormatTypePlain,
 		nil, // metadata
 	)
 

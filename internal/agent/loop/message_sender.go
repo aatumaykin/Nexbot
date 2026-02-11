@@ -28,13 +28,13 @@ func NewAgentMessageSender(messageBus *bus.MessageBus, logger *logger.Logger) *A
 
 // SendMessage sends a message through the message bus and waits for result.
 // Implements agent.MessageSender interface.
-func (a *AgentMessageSender) SendMessage(userID, channelType, sessionID, message string, timeout time.Duration) (*agent.MessageResult, error) {
-	return a.SendMessageWithKeyboard(userID, channelType, sessionID, message, nil, timeout)
+func (a *AgentMessageSender) SendMessage(userID, channelType, sessionID, message string, format bus.FormatType, timeout time.Duration) (*agent.MessageResult, error) {
+	return a.SendMessageWithKeyboard(userID, channelType, sessionID, message, nil, format, timeout)
 }
 
 // SendMessageWithKeyboard sends a message with inline keyboard through the message bus and waits for result.
 // Implements agent.MessageSender interface.
-func (a *AgentMessageSender) SendMessageWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error) {
+func (a *AgentMessageSender) SendMessageWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard, format bus.FormatType, timeout time.Duration) (*agent.MessageResult, error) {
 	// Use default timeout of 5 seconds if not provided
 	if timeout == 0 {
 		timeout = 5 * time.Second
@@ -57,6 +57,7 @@ func (a *AgentMessageSender) SendMessageWithKeyboard(userID, channelType, sessio
 			message,
 			correlationID,
 			keyboard,
+			format,
 			nil, // metadata
 		)
 	} else {
@@ -66,6 +67,7 @@ func (a *AgentMessageSender) SendMessageWithKeyboard(userID, channelType, sessio
 			sessionID,
 			message,
 			correlationID,
+			format,
 			nil, // metadata
 		)
 	}
@@ -105,7 +107,7 @@ func (a *AgentMessageSender) SendMessageWithKeyboard(userID, channelType, sessio
 
 // SendEditMessage edits an existing message.
 // Implements agent.MessageSender interface.
-func (a *AgentMessageSender) SendEditMessage(userID, channelType, sessionID, messageID, content string, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error) {
+func (a *AgentMessageSender) SendEditMessage(userID, channelType, sessionID, messageID, content string, keyboard *bus.InlineKeyboard, format bus.FormatType, timeout time.Duration) (*agent.MessageResult, error) {
 	// Use default timeout of 5 seconds if not provided
 	if timeout == 0 {
 		timeout = 5 * time.Second
@@ -129,6 +131,7 @@ func (a *AgentMessageSender) SendEditMessage(userID, channelType, sessionID, mes
 			content,
 			keyboard,
 			correlationID,
+			format,
 			nil, // metadata
 		)
 	} else {
@@ -139,6 +142,7 @@ func (a *AgentMessageSender) SendEditMessage(userID, channelType, sessionID, mes
 			messageID,
 			content,
 			correlationID,
+			format,
 			nil, // metadata
 		)
 	}
@@ -224,7 +228,7 @@ func (a *AgentMessageSender) SendDeleteMessage(userID, channelType, sessionID, m
 
 // SendPhotoMessage sends a photo message.
 // Implements agent.MessageSender interface.
-func (a *AgentMessageSender) SendPhotoMessage(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error) {
+func (a *AgentMessageSender) SendPhotoMessage(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, format bus.FormatType, timeout time.Duration) (*agent.MessageResult, error) {
 	// Use default timeout of 5 seconds if not provided
 	if timeout == 0 {
 		timeout = 5 * time.Second
@@ -247,6 +251,7 @@ func (a *AgentMessageSender) SendPhotoMessage(userID, channelType, sessionID str
 			media,
 			keyboard,
 			correlationID,
+			format,
 			nil, // metadata
 		)
 	} else {
@@ -256,6 +261,7 @@ func (a *AgentMessageSender) SendPhotoMessage(userID, channelType, sessionID str
 			sessionID,
 			media,
 			correlationID,
+			format,
 			nil, // metadata
 		)
 	}
@@ -288,7 +294,7 @@ func (a *AgentMessageSender) SendPhotoMessage(userID, channelType, sessionID str
 
 // SendDocumentMessage sends a document message.
 // Implements agent.MessageSender interface.
-func (a *AgentMessageSender) SendDocumentMessage(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, timeout time.Duration) (*agent.MessageResult, error) {
+func (a *AgentMessageSender) SendDocumentMessage(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, format bus.FormatType, timeout time.Duration) (*agent.MessageResult, error) {
 	// Use default timeout of 5 seconds if not provided
 	if timeout == 0 {
 		timeout = 5 * time.Second
@@ -311,6 +317,7 @@ func (a *AgentMessageSender) SendDocumentMessage(userID, channelType, sessionID 
 			media,
 			keyboard,
 			correlationID,
+			format,
 			nil, // metadata
 		)
 	} else {
@@ -320,6 +327,7 @@ func (a *AgentMessageSender) SendDocumentMessage(userID, channelType, sessionID 
 			sessionID,
 			media,
 			correlationID,
+			format,
 			nil, // metadata
 		)
 	}
@@ -353,12 +361,12 @@ func (a *AgentMessageSender) SendDocumentMessage(userID, channelType, sessionID 
 // SendMessageAsync sends a message asynchronously (fire-and-forget) without waiting for result.
 // Implements agent.MessageSender interface.
 func (a *AgentMessageSender) SendMessageAsync(userID, channelType, sessionID, message string) error {
-	return a.SendMessageAsyncWithKeyboard(userID, channelType, sessionID, message, nil)
+	return a.SendMessageAsyncWithKeyboard(userID, channelType, sessionID, message, nil, "")
 }
 
 // SendMessageAsyncWithKeyboard sends a message with inline keyboard asynchronously.
 // Implements agent.MessageSender interface.
-func (a *AgentMessageSender) SendMessageAsyncWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard) error {
+func (a *AgentMessageSender) SendMessageAsyncWithKeyboard(userID, channelType, sessionID, message string, keyboard *bus.InlineKeyboard, format bus.FormatType) error {
 	correlationID := uuid.New().String()
 
 	var event *bus.OutboundMessage
@@ -370,6 +378,7 @@ func (a *AgentMessageSender) SendMessageAsyncWithKeyboard(userID, channelType, s
 			message,
 			correlationID,
 			keyboard,
+			format,
 			nil, // metadata
 		)
 	} else {
@@ -379,6 +388,7 @@ func (a *AgentMessageSender) SendMessageAsyncWithKeyboard(userID, channelType, s
 			sessionID,
 			message,
 			correlationID,
+			format,
 			nil, // metadata
 		)
 	}
@@ -395,7 +405,7 @@ func (a *AgentMessageSender) SendMessageAsyncWithKeyboard(userID, channelType, s
 
 // SendEditMessageAsync edits an existing message asynchronously.
 // Implements agent.MessageSender interface.
-func (a *AgentMessageSender) SendEditMessageAsync(userID, channelType, sessionID, messageID, content string, keyboard *bus.InlineKeyboard) error {
+func (a *AgentMessageSender) SendEditMessageAsync(userID, channelType, sessionID, messageID, content string, keyboard *bus.InlineKeyboard, format bus.FormatType) error {
 	correlationID := uuid.New().String()
 
 	var event *bus.OutboundMessage
@@ -408,6 +418,7 @@ func (a *AgentMessageSender) SendEditMessageAsync(userID, channelType, sessionID
 			content,
 			keyboard,
 			correlationID,
+			format,
 			nil, // metadata
 		)
 	} else {
@@ -418,6 +429,7 @@ func (a *AgentMessageSender) SendEditMessageAsync(userID, channelType, sessionID
 			messageID,
 			content,
 			correlationID,
+			format,
 			nil, // metadata
 		)
 	}
@@ -460,7 +472,7 @@ func (a *AgentMessageSender) SendDeleteMessageAsync(userID, channelType, session
 
 // SendPhotoMessageAsync sends a photo message asynchronously.
 // Implements agent.MessageSender interface.
-func (a *AgentMessageSender) SendPhotoMessageAsync(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard) error {
+func (a *AgentMessageSender) SendPhotoMessageAsync(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, format bus.FormatType) error {
 	correlationID := uuid.New().String()
 
 	var event *bus.OutboundMessage
@@ -472,6 +484,7 @@ func (a *AgentMessageSender) SendPhotoMessageAsync(userID, channelType, sessionI
 			media,
 			keyboard,
 			correlationID,
+			format,
 			nil, // metadata
 		)
 	} else {
@@ -481,6 +494,7 @@ func (a *AgentMessageSender) SendPhotoMessageAsync(userID, channelType, sessionI
 			sessionID,
 			media,
 			correlationID,
+			format,
 			nil, // metadata
 		)
 	}
@@ -497,7 +511,7 @@ func (a *AgentMessageSender) SendPhotoMessageAsync(userID, channelType, sessionI
 
 // SendDocumentMessageAsync sends a document message asynchronously.
 // Implements agent.MessageSender interface.
-func (a *AgentMessageSender) SendDocumentMessageAsync(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard) error {
+func (a *AgentMessageSender) SendDocumentMessageAsync(userID, channelType, sessionID string, media *bus.MediaData, keyboard *bus.InlineKeyboard, format bus.FormatType) error {
 	correlationID := uuid.New().String()
 
 	var event *bus.OutboundMessage
@@ -509,6 +523,7 @@ func (a *AgentMessageSender) SendDocumentMessageAsync(userID, channelType, sessi
 			media,
 			keyboard,
 			correlationID,
+			format,
 			nil, // metadata
 		)
 	} else {
@@ -518,6 +533,7 @@ func (a *AgentMessageSender) SendDocumentMessageAsync(userID, channelType, sessi
 			sessionID,
 			media,
 			correlationID,
+			format,
 			nil, // metadata
 		)
 	}

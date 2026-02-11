@@ -206,7 +206,7 @@ func (h *CommandHandler) listSecrets(ctx context.Context, chatID int64, sessionI
 		return h.sendMessage(ctx, chatID, "📭 Секреты не найдены")
 	}
 
-	secretList := "📋 *Список секретов:*\n\n"
+	secretList := "📋 **Список секретов:**\n\n"
 	for i, name := range names {
 		secretList += fmt.Sprintf("%d. `%s`\n", i+1, name)
 	}
@@ -215,7 +215,7 @@ func (h *CommandHandler) listSecrets(ctx context.Context, chatID int64, sessionI
 	params := &telego.SendMessageParams{
 		ChatID:    telego.ChatID{ID: chatID},
 		Text:      secretList,
-		ParseMode: telego.ModeMarkdown,
+		ParseMode: "MarkdownV2",
 	}
 
 	_, err = h.connector.bot.SendMessage(ctx, params)
