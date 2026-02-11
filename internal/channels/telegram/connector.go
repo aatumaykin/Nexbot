@@ -17,8 +17,8 @@ import (
 
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/config"
-	"github.com/aatumaykin/nexbot/internal/constants"
 	"github.com/aatumaykin/nexbot/internal/logger"
+	"github.com/aatumaykin/nexbot/internal/version"
 	"github.com/mymmrac/telego"
 )
 
@@ -201,7 +201,7 @@ func (c *Connector) sendStartupMessage() error {
 		return nil
 	}
 
-	message := constants.MsgTelegramStartup
+	message := version.FormatStartupMessage()
 
 	for _, userID := range c.cfg.AllowedUsers {
 		var chatID int64

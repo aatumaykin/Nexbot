@@ -303,10 +303,6 @@ func TestTelegramMessages(t *testing.T) {
 		value string
 	}{
 		{
-			name:  "MsgTelegramStartup",
-			value: MsgTelegramStartup,
-		},
-		{
 			name:  "TelegramMsgAuthError",
 			value: TelegramMsgAuthError,
 		},
@@ -322,7 +318,6 @@ func TestTelegramMessages(t *testing.T) {
 }
 
 func TestMessagesContainEmojis(t *testing.T) {
-	// Test that user-facing messages contain emojis for better UX
 	messagesWithEmojis := []struct {
 		name      string
 		value     string
@@ -334,7 +329,6 @@ func TestMessagesContainEmojis(t *testing.T) {
 		{"MsgConfigValid", MsgConfigValid, true},
 		{"MsgJobAdded", MsgJobAdded, true},
 		{"MsgJobRemoved", MsgJobRemoved, true},
-		{"MsgTelegramStartup", MsgTelegramStartup, true},
 		{"TelegramMsgAuthError", TelegramMsgAuthError, true},
 	}
 

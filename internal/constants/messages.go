@@ -124,9 +124,6 @@ const (
 
 // Telegram messages
 const (
-	// MsgTelegramStartup is the startup message for Telegram connector.
-	MsgTelegramStartup = "📱 Initializing Telegram connector"
-
 	// TelegramMsgAuthError is the error message for Telegram authentication failure.
 	TelegramMsgAuthError = "❌ Z.ai API key is not configured in [llm.zai.api_key]"
 )
