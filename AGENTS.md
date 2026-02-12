@@ -3,7 +3,7 @@
 **Project:** Self-hosted AI agent on Go for task management via Telegram with Z.ai LLM provider and skills system.
 
 ## Stack
-- Go 1.25.5+
+- Go 1.26+
 - LLM Provider: Z.ai (GLM-4.7 Flash)
 - Telegram: telego library
 - Config: TOML

@@ -2,7 +2,8 @@
 
 ## Development Rules
 
-- Use Go 1.25.5+
+- Use Go 1.26+
+- Use modern Go features (see Go 1.24+ Features section below)
 - Code and commits in English
 - Keep project lightweight (~8-10K lines of code)
 - Follow principles: DRY, SOLID, KISS, YAGNI
@@ -57,3 +58,32 @@
 - Feature branch: feature/<feature-name>
 - Commit message: imperative mood (e.g., "Add amazing feature")
 - Run `make ci` before committing
+
+## Go 1.24+ Features
+
+При рефакторинге и добавлении нового функционала используйте современные возможности Go:
+
+### Go 1.24 (February 2025)
+- **`go tool dist` improvements** — улучшения в toolchain
+- **Weak dependencies (`go quorum`)** — опциональные зависимости в go.mod
+- **`testing.B.Loop`** — более точные бенчмарки
+- **Improved map iteration** — детерминированный порядок итерации в тестах
+
+### Go 1.25 (August 2025)
+- **Range over integers** — `for i := range 10` (0..9)
+- **Range over functions** — custom iterators via `yield`
+- **Improved type inference** — более умный вывод типов в generics
+- **`slices.Values`, `slices.Keys`, `maps.Keys`** — iterator helpers
+- **Enhanced `go test`** — улучшенные возможности тестирования
+
+### Go 1.26 (February 2026)
+- **Improved iterators** — более стабильная поддержка range over func
+- **Performance improvements** — оптимизации runtime и GC
+- **Toolchain updates** — улучшения в go tool
+
+### Рекомендации по применению
+1. **Range over integers**: используйте `for i := range n` вместо `for i := 0; i < n; i++`
+2. **Custom iterators**: создавайте итераторы для коллекций через `yield`
+3. **slices/maps packages**: предпочитайте `slices.*` и `maps.*` вместо ручных циклов
+4. **Type inference**: упрощайте generic-код, полагаясь на вывод типов
+5. **Modern patterns**: применяйте `modernizers` для автоматического обновления кода
