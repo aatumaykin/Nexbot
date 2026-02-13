@@ -1,0 +1,58 @@
+# Stage 1: Build
+FROM golang:1.26-alpine AS builder
+
+WORKDIR /build
+
+# Кэширование зависимостей
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Копирование исходников
+COPY . .
+
+# Сборка с оптимизациями
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /subagent ./cmd/subagent
+
+# Stage 2: Runtime
+FROM alpine:3.19
+
+# Build arg для debug инструментов
+ARG INCLUDE_DEBUG_TOOLS=false
+
+# Минимальные зависимости
+RUN apk --no-cache add ca-certificates procps && \
+    if [ "$INCLUDE_DEBUG_TOOLS" = "true" ]; then \
+        apk --no-cache add curl; \
+    fi
+
+# Создание непривилегированного пользователя
+RUN adduser -D -u 1000 subagent
+
+WORKDIR /workspace
+
+# Создание директорий с правильными правами
+RUN mkdir -p /workspace/skills && chown -R subagent:subagent /workspace
+
+RUN mkdir -p /usr/local/share/subagent/prompts && \
+    chown -R subagent:subagent /usr/local/share/subagent
+
+# Копирование промптов
+COPY prompts/identity.md /usr/local/share/subagent/prompts/
+COPY prompts/security.md /usr/local/share/subagent/prompts/
+
+# Копирование бинарника
+COPY --from=builder /subagent /usr/local/bin/subagent
+RUN chmod +x /usr/local/bin/subagent
+
+# Переключение на непривилегированного пользователя
+USER subagent
+
+# Environment variables
+ENV SKILLS_PATH=/workspace/skills
+
+# HEALTHCHECK через process check (pgrep)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD pgrep -f "subagent" || exit 1
+
+# Entrypoint
+ENTRYPOINT ["/usr/local/bin/subagent"]

@@ -225,6 +225,74 @@ result_channel_capacity = 500
 # Включить приоритетную обработку результатов
 enable_high_priority_results = true
 
+# -----------------------------------------------------------------------------
+# Docker Subagent Settings
+# -----------------------------------------------------------------------------
+# Конфигурация Docker-изоляции для сабагентов (v0.17+).
+[docker]
+# Включить Docker-изоляцию сабагентов
+enabled = true
+
+# Имя Docker образа
+image_name = "nexbot/subagent"
+
+# Тег образа
+image_tag = "latest"
+
+# Политика загрузки образов: always, if-not-present, never
+pull_policy = "if-not-present"
+
+# Количество контейнеров в пуле
+container_count = 1
+
+# Таймаут выполнения задачи (в секундах)
+task_timeout_seconds = 300
+
+# Путь к workspace для монтирования
+workspace_mount = "~/.nexbot"
+
+# Путь к skills директории
+skills_path = "~/.nexbot/skills"
+
+# Лимит памяти (например: 128m, 256m, 1g)
+memory_limit = "128m"
+
+# Лимит CPU (0.5 = половина ядра)
+cpu_limit = 0.5
+
+# Лимит процессов
+pids_limit = 50
+
+# Docker security options
+security_opt = ["no-new-privileges"]
+
+# Read-only root filesystem
+readonly_rootfs = true
+
+# Переменная окружения с API ключом для LLM
+llm_api_key_env = "ZAI_API_KEY"
+
+# Rate limiting: максимум задач в минуту
+max_tasks_per_minute = 60
+
+# Circuit breaker: порог ошибок до открытия
+circuit_breaker_threshold = 5
+
+# Circuit breaker: таймаут в секундах
+circuit_breaker_timeout_seconds = 30
+
+# Интервал health check (в секундах)
+health_check_interval_seconds = 30
+
+# Максимум pending задач на контейнер
+max_pending_per_container = 100
+
+# TTL для inspect кэша (в секундах)
+inspect_ttl_seconds = 5
+
+# TTL для secrets (в секундах)
+secrets_ttl_seconds = 300
+
 # =============================================================================
 # Примеры использования переменных окружения:
 # =============================================================================

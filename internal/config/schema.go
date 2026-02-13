@@ -33,6 +33,7 @@ type Config struct {
 	Subagent   SubagentConfig   `toml:"subagent"`
 	MessageBus MessageBusConfig `toml:"message_bus"`
 	Cleanup    CleanupConfig    `toml:"cleanup"`
+	Docker     DockerConfig     `toml:"docker"`
 }
 
 // WorkspaceConfig представляет конфигурацию workspace
@@ -182,4 +183,44 @@ type CleanupConfig struct {
 // SecretsDir возвращает путь к директории для хранения секретов
 func (c *Config) SecretsDir() string {
 	return filepath.Join(c.Workspace.Path, "secrets")
+}
+
+// DockerConfig представляет конфигурацию Docker сабагентов
+type DockerConfig struct {
+	// Основные настройки
+	Enabled        bool     `toml:"enabled"`
+	ImageName      string   `toml:"image_name"`
+	ImageTag       string   `toml:"image_tag"`
+	ImageDigest    string   `toml:"image_digest"`
+	PullPolicy     string   `toml:"pull_policy"`
+	ContainerCount int      `toml:"container_count"`
+	TaskTimeout    int      `toml:"task_timeout_seconds"`
+	WorkspaceMount string   `toml:"workspace_mount"`
+	SkillsPath     string   `toml:"skills_path"`
+	Environment    []string `toml:"environment"`
+
+	// Resource limits
+	MemoryLimit string  `toml:"memory_limit"`
+	CPULimit    float64 `toml:"cpu_limit"`
+	PidsLimit   int64   `toml:"pids_limit"`
+
+	// API и безопасность
+	LLMAPIKeyEnv string `toml:"llm_api_key_env"`
+
+	// Rate limiting и Circuit Breaker
+	MaxTasksPerMinute       int `toml:"max_tasks_per_minute"`
+	CircuitBreakerThreshold int `toml:"circuit_breaker_threshold"`
+	CircuitBreakerTimeout   int `toml:"circuit_breaker_timeout_seconds"`
+
+	// Health checks
+	HealthCheckInterval    int   `toml:"health_check_interval_seconds"`
+	MaxPendingPerContainer int64 `toml:"max_pending_per_container"`
+	InspectTTL             int   `toml:"inspect_ttl_seconds"`
+
+	// Secrets
+	SecretsTTL int `toml:"secrets_ttl_seconds"`
+
+	// Container security
+	SecurityOpt    []string `toml:"security_opt"`
+	ReadonlyRootfs bool     `toml:"readonly_rootfs"`
 }

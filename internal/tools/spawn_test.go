@@ -194,15 +194,11 @@ func TestSpawnTool_Execute_InvalidTimeout(t *testing.T) {
 		t.Errorf("Expected error to mention 'positive', got: %v", err)
 	}
 
-	// Test zero timeout
+	// Test zero timeout - should be allowed (uses default)
 	args = `{"task": "Test", "timeout_seconds": 0}`
 	_, err = tool.Execute(args)
-	if err == nil {
-		t.Error("Expected error for zero timeout")
-	}
-
-	if !contains(err.Error(), "positive") {
-		t.Errorf("Expected error to mention 'positive', got: %v", err)
+	if err != nil {
+		t.Errorf("Zero timeout should be allowed (uses default), got error: %v", err)
 	}
 }
 
