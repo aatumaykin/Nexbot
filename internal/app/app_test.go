@@ -100,7 +100,8 @@ func createTestConfig(t *testing.T) *config.Config {
 			Enabled: false,
 		},
 		MessageBus: config.MessageBusConfig{
-			Capacity: 100,
+			Capacity:              100,
+			SubscriberChannelSize: 10,
 		},
 	}
 }

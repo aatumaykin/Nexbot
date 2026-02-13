@@ -20,10 +20,11 @@ const (
 
 // Store manages message history storage in various formats.
 type Store struct {
-	baseDir string          // Base directory for memory files
-	format  StorageFormat   // Storage format interface
-	parser  *MarkdownParser // Markdown parser for markdown format
-	mu      sync.RWMutex
+	baseDir     string          // Base directory for memory files
+	format      StorageFormat   // Storage format interface
+	parser      *MarkdownParser // Markdown parser for markdown format
+	maxFileSize int64           // Maximum file size in bytes (0 = no limit)
+	mu          sync.RWMutex
 }
 
 // Config holds configuration for the memory store.
@@ -49,9 +50,10 @@ func NewStore(config Config) (*Store, error) {
 	}
 
 	return &Store{
-		baseDir: config.BaseDir,
-		format:  NewStorageFormat(config.Format),
-		parser:  NewMarkdownParser(),
+		baseDir:     config.BaseDir,
+		format:      NewStorageFormat(config.Format),
+		parser:      NewMarkdownParser(),
+		maxFileSize: config.MaxFileSize,
 	}, nil
 }
 
@@ -81,6 +83,18 @@ func (s *Store) Read(sessionID string) ([]llm.Message, error) {
 	defer s.mu.RUnlock()
 
 	filePath := s.getFilePath(sessionID)
+
+	// Check file size if limit is set
+	if s.maxFileSize > 0 {
+		info, err := os.Stat(filePath)
+		if err != nil && !os.IsNotExist(err) {
+			return nil, fmt.Errorf("failed to stat file: %w", err)
+		}
+		if err == nil && info.Size() > s.maxFileSize {
+			return nil, fmt.Errorf("file size %d exceeds maximum allowed size %d", info.Size(), s.maxFileSize)
+		}
+	}
+
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {

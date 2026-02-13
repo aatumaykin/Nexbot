@@ -1,0 +1,45 @@
+groups:
+  - name: subagent
+    rules:
+      # 1. Container down (CRITICAL)
+      - alert: SubagentContainerDown
+        expr: nexbot_subagent_containers_total == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "No subagent containers running"
+          description: "All containers are down. Subagent functionality unavailable."
+      
+      # 2. High error rate (WARNING)
+      - alert: SubagentHighErrorRate
+        expr: |
+          rate(nexbot_subagent_tasks_total{status="error"}[5m])
+          /
+          rate(nexbot_subagent_tasks_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High subagent error rate"
+          description: "{{ $value | humanizePercentage }} of tasks are failing."
+      
+      # 3. Pool exhausted (WARNING)
+      - alert: SubagentPoolExhausted
+        expr: nexbot_subagent_containers_active >= nexbot_subagent_containers_total
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Subagent pool exhausted"
+          description: "All containers are busy. New requests will queue."
+      
+      # 4. Circuit breaker open (INFO)
+      - alert: SubagentCircuitBreakerOpen
+        expr: nexbot_subagent_circuit_breaker_state == 1
+        for: 1m
+        labels:
+          severity: info
+        annotations:
+          summary: "Circuit breaker open"
+          description: "Pool circuit breaker is open. Requests are being rejected."

@@ -131,7 +131,7 @@ func TestOutboundMessageDropping(t *testing.T) {
 	_ = mb.SubscribeOutbound(ctx)
 
 	for i := 0; i < 10; i++ {
-		msg := NewOutboundMessage(ChannelTypeTelegram, "user123", "session456", "test", "corr123", nil)
+		msg := NewOutboundMessage(ChannelTypeTelegram, "user123", "session456", "test", "corr123", FormatTypePlain, nil)
 		if err := mb.PublishOutbound(*msg); err != nil {
 			t.Errorf("failed to publish outbound message %d: %v", i, err)
 		}

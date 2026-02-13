@@ -5,6 +5,7 @@ package app
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aatumaykin/nexbot/internal/agent/loop"
 	"github.com/aatumaykin/nexbot/internal/agent/subagent"
@@ -14,11 +15,11 @@ import (
 	"github.com/aatumaykin/nexbot/internal/commands"
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/cron"
-
+	"github.com/aatumaykin/nexbot/internal/docker"
 	"github.com/aatumaykin/nexbot/internal/ipc"
 	"github.com/aatumaykin/nexbot/internal/logger"
+	"github.com/aatumaykin/nexbot/internal/security"
 	"github.com/aatumaykin/nexbot/internal/workers"
-	"sync"
 )
 
 // App represents the main application structure.
@@ -46,6 +47,12 @@ type App struct {
 
 	// Subagent manager
 	subagentManager *subagent.Manager
+
+	// Docker pool for isolated subagent execution
+	dockerPool *docker.ContainerPool
+
+	// Secrets store for Docker spawn tool
+	secretsStore *security.SecretsStore
 
 	// Cleanup scheduler
 	cleanupScheduler *cleanup.Scheduler

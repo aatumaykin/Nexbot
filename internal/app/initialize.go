@@ -8,14 +8,16 @@ import (
 
 	"github.com/aatumaykin/nexbot/internal/agent/loop"
 	"github.com/aatumaykin/nexbot/internal/agent/subagent"
+	"github.com/aatumaykin/nexbot/internal/app/builders"
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/channels/telegram"
 	"github.com/aatumaykin/nexbot/internal/commands"
 	"github.com/aatumaykin/nexbot/internal/cron"
-
+	"github.com/aatumaykin/nexbot/internal/docker"
 	"github.com/aatumaykin/nexbot/internal/ipc"
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
+	"github.com/aatumaykin/nexbot/internal/security"
 	"github.com/aatumaykin/nexbot/internal/tools"
 	"github.com/aatumaykin/nexbot/internal/tools/fetch"
 	"github.com/aatumaykin/nexbot/internal/tools/file"
@@ -165,6 +167,40 @@ func (a *App) Initialize(ctx context.Context) error {
 		}
 
 		a.logger.Info("✅ Spawn tool registered")
+	}
+
+	// 5.2. Initialize Docker pool for isolated subagent execution
+	if a.config.Docker.Enabled {
+		a.logger.Info("🐳 Initializing Docker pool for subagent isolation")
+
+		dockerPool, err := builders.BuildDockerPool(a.config, a.logger)
+		if err != nil {
+			a.logger.Warn("docker pool init failed, subagent isolation disabled", logger.Field{Key: "error", Value: err})
+		} else {
+			a.dockerPool = dockerPool
+
+			// Start Docker pool
+			if err := a.dockerPool.Start(ctx); err != nil {
+				a.logger.Warn("docker pool start failed", logger.Field{Key: "error", Value: err})
+				a.dockerPool = nil
+			} else {
+				a.logger.Info("docker pool started")
+
+				// Create secrets store for Docker spawn tool
+				a.secretsStore = security.NewSecretsStore(time.Duration(a.config.Docker.SecretsTTL) * time.Second)
+
+				// Create secrets filter
+				secretsFilter := docker.NewSecretsFilter(a.secretsStore)
+
+				// Create and register spawn tool with Docker
+				spawnTool := tools.NewSpawnToolWithDocker(a.dockerPool, secretsFilter, a.config.Docker.LLMAPIKeyEnv)
+				if err := a.agentLoop.RegisterTool(spawnTool); err != nil {
+					return fmt.Errorf("failed to register docker spawn tool: %w", err)
+				}
+
+				a.logger.Info("✅ Docker spawn tool registered")
+			}
+		}
 	}
 
 	// 6. Create command handler

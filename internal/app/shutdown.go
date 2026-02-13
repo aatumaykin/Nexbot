@@ -6,6 +6,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aatumaykin/nexbot/internal/ipc"
 )
@@ -111,6 +112,22 @@ func (a *App) shutdownInternal() error {
 	if a.subagentManager != nil {
 		a.logger.Info("🛑 Stopping subagent manager")
 		a.subagentManager.StopAll()
+	}
+
+	// Stop Docker pool if not nil
+	if a.dockerPool != nil {
+		a.logger.Info("🛑 Stopping Docker pool")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := a.dockerPool.Stop(shutdownCtx); err != nil {
+			a.logger.Error("Failed to stop Docker pool", err)
+		}
+	}
+
+	// Clear secrets store
+	if a.secretsStore != nil {
+		a.secretsStore.Clear()
 	}
 
 	// Stop message bus

@@ -103,7 +103,7 @@ func TestMessageBus_GracefulShutdown(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	outMsg := NewOutboundMessage(ChannelTypeTelegram, "user123", "session456", "Response", "", nil)
+	outMsg := NewOutboundMessage(ChannelTypeTelegram, "user123", "session456", "Response", "", FormatTypePlain, nil)
 	if err := bus.PublishOutbound(*outMsg); err != nil {
 		t.Fatal(err)
 	}

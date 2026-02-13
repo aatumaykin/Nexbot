@@ -6,7 +6,9 @@ import (
 	"github.com/aatumaykin/nexbot/internal/agent/loop"
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/config"
+	"github.com/aatumaykin/nexbot/internal/docker"
 	"github.com/aatumaykin/nexbot/internal/logger"
+	"github.com/aatumaykin/nexbot/internal/security"
 	"github.com/aatumaykin/nexbot/internal/tools"
 	"github.com/aatumaykin/nexbot/internal/tools/fetch"
 	"github.com/aatumaykin/nexbot/internal/tools/file"
@@ -125,5 +127,24 @@ func (b *ToolsBuilder) RegisterSpawnTool(agentLoop *loop.Loop, spawnFunc tools.S
 		return fmt.Errorf("failed to register spawn tool: %w", err)
 	}
 	b.logger.Info("Spawn tool registered")
+	return nil
+}
+
+func (b *ToolsBuilder) RegisterDockerSpawnTool(agentLoop *loop.Loop, dockerPool *docker.ContainerPool, secretsStore *security.SecretsStore) error {
+	if dockerPool == nil {
+		b.logger.Info("Docker pool not available, skipping Docker spawn tool")
+		return nil
+	}
+
+	var secretsFilter *docker.SecretsFilter
+	if secretsStore != nil {
+		secretsFilter = docker.NewSecretsFilter(secretsStore)
+	}
+
+	spawnTool := tools.NewSpawnToolWithDocker(dockerPool, secretsFilter, b.config.Docker.LLMAPIKeyEnv)
+	if err := agentLoop.RegisterTool(spawnTool); err != nil {
+		return fmt.Errorf("failed to register Docker spawn tool: %w", err)
+	}
+	b.logger.Info("Docker spawn tool registered")
 	return nil
 }

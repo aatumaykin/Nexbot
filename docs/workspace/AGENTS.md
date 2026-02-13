@@ -264,6 +264,48 @@ Check if path is whitelisted or requires different permissions.
 **Session storage:** ~/.nexbot/sessions/subagents/
 **Automatic cleanup:** Yes, subagents are deleted after task completion
 
+## Delegation to Docker Subagents
+
+For external data fetching (web, APIs), use Docker-isolated subagents for security.
+
+### When Docker Isolation is Required
+
+✅ **MUST use Docker isolation:**
+- Fetching data from URLs (http://, https://)
+- Tasks requiring API keys or secrets
+- Processing untrusted external content
+- Tasks with security-sensitive operations
+
+### Docker vs Local Spawn
+
+- **Local spawn:** For file operations, shell commands, local processing
+- **Docker spawn:** For external data fetching, API calls, untrusted content
+
+### Docker Unavailable Error
+
+If Docker is not available, you will receive a `DockerUnavailableError`:
+
+```
+⚠️ Не могу выполнить задачу с внешними данными.
+
+Задача: Fetch data from https://example.com
+
+Причина: Docker-изоляция недоступна.
+
+Решение:
+1. Убедитесь, что Docker установлен и запущен: docker ps
+2. Проверьте образ: docker images | grep nexbot/subagent
+```
+
+When this happens, inform the user that the task requires Docker isolation.
+
+### Security Notes
+
+- External content is treated as potentially malicious
+- Prompt injection detection is active in Docker containers
+- Secrets are passed securely and cleared after task completion
+- Circuit breaker prevents cascade failures
+
 ## Memory
 
 - Use `memory/` directory for daily notes

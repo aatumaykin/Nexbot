@@ -481,7 +481,7 @@ func TestAgentMessageSender(t *testing.T) {
 				}
 			}()
 
-			_, err := sender.SendMessage(tt.userID, tt.channelType, tt.sessionID, tt.message, time.Second*30)
+			_, err := sender.SendMessage(tt.userID, tt.channelType, tt.sessionID, tt.message, bus.FormatTypePlain, time.Second*30)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SendMessage() error = %v, wantErr %v", err, tt.wantErr)
 			}

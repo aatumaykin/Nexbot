@@ -214,7 +214,7 @@ func TestMessageType_Constants(t *testing.T) {
 
 // TestOutboundMessage_NewOutboundMessage tests creating a text message
 func TestOutboundMessage_NewOutboundMessage(t *testing.T) {
-	msg := NewOutboundMessage(ChannelTypeTelegram, "user123", "session456", "Hello world", "corr789", nil)
+	msg := NewOutboundMessage(ChannelTypeTelegram, "user123", "session456", "Hello world", "corr789", FormatTypePlain, nil)
 
 	if msg.Type != MessageTypeText {
 		t.Errorf("Expected type %s, got %s", MessageTypeText, msg.Type)
@@ -239,7 +239,7 @@ func TestOutboundMessage_NewOutboundMessage(t *testing.T) {
 
 // TestOutboundMessage_NewEditMessage tests creating an edit message
 func TestOutboundMessage_NewEditMessage(t *testing.T) {
-	msg := NewEditMessage(ChannelTypeTelegram, "user123", "session456", "msg789", "Updated content", "corr123", nil)
+	msg := NewEditMessage(ChannelTypeTelegram, "user123", "session456", "msg789", "Updated content", "corr123", FormatTypePlain, nil)
 
 	if msg.Type != MessageTypeEdit {
 		t.Errorf("Expected type %s, got %s", MessageTypeEdit, msg.Type)
@@ -288,7 +288,7 @@ func TestOutboundMessage_NewPhotoMessage(t *testing.T) {
 		FileName: "photo.jpg",
 	}
 
-	msg := NewPhotoMessage(ChannelTypeTelegram, "user123", "session456", media, "corr123", nil)
+	msg := NewPhotoMessage(ChannelTypeTelegram, "user123", "session456", media, "corr123", FormatTypePlain, nil)
 
 	if msg.Type != MessageTypePhoto {
 		t.Errorf("Expected type %s, got %s", MessageTypePhoto, msg.Type)
@@ -320,7 +320,7 @@ func TestOutboundMessage_NewDocumentMessage(t *testing.T) {
 		FileID:   "file123",
 	}
 
-	msg := NewDocumentMessage(ChannelTypeTelegram, "user123", "session456", media, "corr456", nil)
+	msg := NewDocumentMessage(ChannelTypeTelegram, "user123", "session456", media, "corr456", FormatTypePlain, nil)
 
 	if msg.Type != MessageTypeDocument {
 		t.Errorf("Expected type %s, got %s", MessageTypeDocument, msg.Type)

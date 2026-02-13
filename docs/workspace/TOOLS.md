@@ -151,6 +151,43 @@ Subagents can create other subagents for parallel task execution:
 - Subagents are deleted after task completion (no persistent state)
 ```
 
+### Docker Spawn (for External Data)
+
+For fetching external data (web, APIs), Docker-isolated spawn is used automatically:
+
+**When Docker isolation is activated:**
+- URL fetching (http://, https://)
+- Tasks with required secrets
+- API calls with authentication
+
+**Security features:**
+- Isolated container environment
+- Prompt injection detection
+- Secrets passed securely via stdin
+- Automatic secret cleanup after task
+
+**Docker unavailable handling:**
+
+If Docker is not available:
+1. Task is checked for safety (no URLs, no secrets)
+2. If safe: executed locally with warning
+3. If unsafe: returns `DockerUnavailableError` with instructions
+
+**Example:**
+```
+User: Fetch content from https://example.com
+
+LLM: I'll fetch the content using Docker-isolated subagent for security.
+
+[spawn with Docker: "Fetch https://example.com, extract main content"]
+
+[Docker container processes request]
+[Result returned to LLM]
+
+LLM: Here's the content from example.com:
+...
+```
+
 ---
 
 ## Using Tools
