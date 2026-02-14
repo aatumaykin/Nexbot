@@ -3,13 +3,12 @@ package config
 func DefaultDockerConfig() DockerConfig {
 	return DockerConfig{
 		Enabled:                 false,
-		ImageName:               "nexbot/subagent",
-		ImageTag:                "latest",
 		PullPolicy:              "if-not-present",
 		ContainerCount:          1,
 		TaskTimeout:             300,
 		WorkspaceMount:          "~/.nexbot",
-		SkillsPath:              "~/.nexbot/skills",
+		SubagentPromptsPath:     "~/.nexbot/subagent",
+		SkillsMountPath:         "~/.nexbot/skills",
 		MemoryLimit:             "128m",
 		CPULimit:                0.5,
 		PidsLimit:               50,

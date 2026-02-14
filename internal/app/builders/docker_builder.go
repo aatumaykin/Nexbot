@@ -51,19 +51,15 @@ func BuildDockerPool(cfg *config.Config, log *logger.Logger) (*docker.ContainerP
 	}
 
 	log.Info("initializing docker pool",
-		logger.Field{Key: "image", Value: cfg.Docker.ImageName},
 		logger.Field{Key: "containers", Value: cfg.Docker.ContainerCount})
-
-	skillsPath := expandHome(cfg.Docker.SkillsPath)
 
 	poolCfg := docker.PoolConfig{
 		ContainerCount:          cfg.Docker.ContainerCount,
-		ImageName:               cfg.Docker.ImageName,
-		ImageTag:                cfg.Docker.ImageTag,
-		ImageDigest:             cfg.Docker.ImageDigest,
 		PullPolicy:              cfg.Docker.PullPolicy,
 		TaskTimeout:             time.Duration(cfg.Docker.TaskTimeout) * time.Second,
-		SkillsPath:              skillsPath,
+		SkillsMountPath:         expandHome(cfg.Docker.SkillsMountPath),
+		BinaryPath:              expandHome(cfg.Docker.BinaryPath),
+		SubagentPromptsPath:     expandHome(cfg.Docker.SubagentPromptsPath),
 		MemoryLimit:             cfg.Docker.MemoryLimit,
 		CPULimit:                cfg.Docker.CPULimit,
 		PidsLimit:               cfg.Docker.PidsLimit,

@@ -189,15 +189,16 @@ func (c *Config) SecretsDir() string {
 type DockerConfig struct {
 	// Основные настройки
 	Enabled        bool     `toml:"enabled"`
-	ImageName      string   `toml:"image_name"`
-	ImageTag       string   `toml:"image_tag"`
-	ImageDigest    string   `toml:"image_digest"`
 	PullPolicy     string   `toml:"pull_policy"`
 	ContainerCount int      `toml:"container_count"`
 	TaskTimeout    int      `toml:"task_timeout_seconds"`
 	WorkspaceMount string   `toml:"workspace_mount"`
-	SkillsPath     string   `toml:"skills_path"`
 	Environment    []string `toml:"environment"`
+
+	// Volume mounts
+	BinaryPath          string `toml:"binary_path"`           // Optional: defaults to os.Executable()
+	SubagentPromptsPath string `toml:"subagent_prompts_path"` // Optional: defaults to {workspace}/subagent
+	SkillsMountPath     string `toml:"skills_mount_path"`     // Optional: defaults to {workspace}/skills
 
 	// Resource limits
 	MemoryLimit string  `toml:"memory_limit"`

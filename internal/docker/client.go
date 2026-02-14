@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -45,41 +46,49 @@ func (c *DockerClient) Close() error {
 }
 
 func (c *DockerClient) PullImage(ctx context.Context, cfg PoolConfig) error {
-	if cfg.PullPolicy == "never" {
-		return nil
-	}
-
-	imageRef := cfg.ImageName
-	if cfg.ImageDigest != "" {
-		imageRef = cfg.ImageName + "@" + cfg.ImageDigest
-	} else if cfg.ImageTag != "" && !strings.Contains(cfg.ImageName, ":") {
-		imageRef = cfg.ImageName + ":" + cfg.ImageTag
-	}
-
-	resp, err := c.client.ImagePull(ctx, imageRef, dockerclient.ImagePullOptions{})
-	if err != nil {
-		if cfg.PullPolicy == "if-not-present" {
-			return nil
-		}
-		return &DockerError{Op: "pull", Err: err, Message: fmt.Sprintf("failed to pull image %s", imageRef)}
-	}
-	defer resp.Close()
-
-	if err := resp.Wait(ctx); err != nil {
-		if cfg.PullPolicy == "if-not-present" {
-			return nil
-		}
-		return &DockerError{Op: "pull", Err: err, Message: fmt.Sprintf("failed to pull image %s", imageRef)}
-	}
-
+	// No image pull needed - we use binary mounting
 	return nil
 }
 
 func (c *DockerClient) CreateContainer(ctx context.Context, cfg PoolConfig) (string, error) {
+	binaryPath := cfg.BinaryPath
+	if binaryPath == "" {
+		var err error
+		binaryPath, err = os.Executable()
+		if err != nil {
+			return "", &DockerError{Op: "create", Err: err, Message: "failed to determine binary path: use BinaryPath config or ensure os.Executable() works"}
+		}
+	}
+	if _, err := os.Stat(binaryPath); err != nil {
+		return "", &DockerError{Op: "create", Err: err, Message: fmt.Sprintf("binary not found at path %s", binaryPath)}
+	}
+
+	subagentPromptsPath := cfg.SubagentPromptsPath
+	if subagentPromptsPath == "" {
+		return "", &DockerError{Op: "create", Err: nil, Message: "subagent_prompts_path not specified in config"}
+	}
+
+	skillsMountPath := cfg.SkillsMountPath
+	if skillsMountPath == "" {
+		return "", &DockerError{Op: "create", Err: nil, Message: "skills_mount_path not specified in config"}
+	}
+
 	mounts := []mount.Mount{
 		{
 			Type:     mount.TypeBind,
-			Source:   cfg.SkillsPath,
+			Source:   binaryPath,
+			Target:   "/workspace/nexbot",
+			ReadOnly: true,
+		},
+		{
+			Type:     mount.TypeBind,
+			Source:   subagentPromptsPath,
+			Target:   "/workspace/subagent",
+			ReadOnly: true,
+		},
+		{
+			Type:     mount.TypeBind,
+			Source:   skillsMountPath,
 			Target:   "/workspace/skills",
 			ReadOnly: true,
 		},
@@ -107,10 +116,14 @@ func (c *DockerClient) CreateContainer(ctx context.Context, cfg PoolConfig) (str
 
 	readonlyRootfs := cfg.ReadonlyRootfs != nil && *cfg.ReadonlyRootfs
 
+	// Use standard alpine image
+	imageRef := "alpine:3.23"
+
 	result, err := c.client.ContainerCreate(ctx, dockerclient.ContainerCreateOptions{
-		Image: cfg.ImageName,
 		Config: &container.Config{
-			Image: cfg.ImageName,
+			Image: imageRef,
+			Env:   []string{"SKILLS_PATH=/workspace/skills"},
+			Cmd:   []string{"/workspace/nexbot"},
 		},
 		HostConfig: &container.HostConfig{
 			Resources: container.Resources{

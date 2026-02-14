@@ -233,12 +233,6 @@ enable_high_priority_results = true
 # Включить Docker-изоляцию сабагентов
 enabled = true
 
-# Имя Docker образа
-image_name = "nexbot/subagent"
-
-# Тег образа
-image_tag = "latest"
-
 # Политика загрузки образов: always, if-not-present, never
 pull_policy = "if-not-present"
 
@@ -251,8 +245,14 @@ task_timeout_seconds = 300
 # Путь к workspace для монтирования
 workspace_mount = "~/.nexbot"
 
-# Путь к skills директории
-skills_path = "~/.nexbot/skills"
+# Путь к subagent prompts для монтирования
+subagent_prompts_path = "~/.nexbot/subagent"
+
+# Путь к skills директории для монтирования
+skills_mount_path = "~/.nexbot/skills"
+
+# Путь к бинарному файлу (опционально, по умолчанию os.Executable())
+# binary_path = "/usr/local/bin/nexbot"
 
 # Лимит памяти (например: 128m, 256m, 1g)
 memory_limit = "128m"

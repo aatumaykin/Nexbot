@@ -10,10 +10,6 @@ func (c *DockerConfig) Validate() error {
 		return nil
 	}
 
-	if c.ImageName == "" {
-		return fmt.Errorf("docker.image_name is required when docker.enabled=true")
-	}
-
 	validPolicies := map[string]bool{
 		"always":         true,
 		"if-not-present": true,
