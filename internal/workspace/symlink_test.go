@@ -13,7 +13,9 @@ func TestResolveSymlinks(t *testing.T) {
 
 	// Test 1: Resolve regular file path
 	regularFile := filepath.Join(tempDir, "regular.txt")
-	os.WriteFile(regularFile, []byte("content"), 0644)
+	if err := os.WriteFile(regularFile, []byte("content"), 0644); err != nil {
+		t.Fatalf("failed to write regular file: %v", err)
+	}
 
 	ws := New(config.WorkspaceConfig{Path: tempDir})
 
@@ -73,14 +75,18 @@ func TestValidatePath_SymlinkAttack(t *testing.T) {
 	tempDir := t.TempDir()
 
 	wsDir := filepath.Join(tempDir, "workspace")
-	os.MkdirAll(wsDir, 0755)
+	if err := os.MkdirAll(wsDir, 0755); err != nil {
+		t.Fatalf("failed to create workspace dir: %v", err)
+	}
 
 	ws := New(config.WorkspaceConfig{Path: wsDir})
 
 	// Test 1: Symlink pointing outside workspace
 	symlinkPath := filepath.Join(wsDir, "evil_symlink")
 	outsideFile := filepath.Join(tempDir, "outside.txt")
-	os.WriteFile(outsideFile, []byte("secret"), 0644)
+	if err := os.WriteFile(outsideFile, []byte("secret"), 0644); err != nil {
+		t.Fatalf("failed to write outside file: %v", err)
+	}
 
 	if err := os.Symlink(outsideFile, symlinkPath); err != nil {
 		t.Fatalf("failed to create symlink: %v", err)
@@ -98,7 +104,9 @@ func TestValidatePath_SymlinkAttack(t *testing.T) {
 
 	// Test 2: Internal symlink should be allowed
 	internalFile := filepath.Join(wsDir, "internal.txt")
-	os.WriteFile(internalFile, []byte("internal data"), 0644)
+	if err := os.WriteFile(internalFile, []byte("internal data"), 0644); err != nil {
+		t.Fatalf("failed to write internal file: %v", err)
+	}
 
 	internalSymlink := filepath.Join(wsDir, "internal_link")
 	if err := os.Symlink(internalFile, internalSymlink); err != nil {
@@ -115,15 +123,21 @@ func TestValidatePath_NestedSymlinkAttack(t *testing.T) {
 	tempDir := t.TempDir()
 
 	wsDir := filepath.Join(tempDir, "workspace")
-	os.MkdirAll(wsDir, 0755)
+	if err := os.MkdirAll(wsDir, 0755); err != nil {
+		t.Fatalf("failed to create workspace dir: %v", err)
+	}
 
 	subDir := filepath.Join(wsDir, "subdir")
-	os.MkdirAll(subDir, 0755)
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatalf("failed to create subdir: %v", err)
+	}
 
 	ws := New(config.WorkspaceConfig{Path: wsDir})
 
 	outsideFile := filepath.Join(tempDir, "outside.txt")
-	os.WriteFile(outsideFile, []byte("secret"), 0644)
+	if err := os.WriteFile(outsideFile, []byte("secret"), 0644); err != nil {
+		t.Fatalf("failed to write outside file: %v", err)
+	}
 
 	symlinkPath := filepath.Join(subDir, "nested_evil")
 	if err := os.Symlink(outsideFile, symlinkPath); err != nil {
@@ -145,7 +159,9 @@ func TestValidatePath_NonExistentFile(t *testing.T) {
 	tempDir := t.TempDir()
 
 	wsDir := filepath.Join(tempDir, "workspace")
-	os.MkdirAll(wsDir, 0755)
+	if err := os.MkdirAll(wsDir, 0755); err != nil {
+		t.Fatalf("failed to create workspace dir: %v", err)
+	}
 
 	ws := New(config.WorkspaceConfig{Path: wsDir})
 
@@ -161,14 +177,18 @@ func TestValidatePath_NonExistentWithSymlinkParent(t *testing.T) {
 	tempDir := t.TempDir()
 
 	wsDir := filepath.Join(tempDir, "workspace")
-	os.MkdirAll(wsDir, 0755)
+	if err := os.MkdirAll(wsDir, 0755); err != nil {
+		t.Fatalf("failed to create workspace dir: %v", err)
+	}
 
 	ws := New(config.WorkspaceConfig{Path: wsDir})
 
 	// Create symlink parent pointing outside
 	symlinkDir := filepath.Join(wsDir, "symlink_dir")
 	outsideDir := filepath.Join(tempDir, "outside")
-	os.MkdirAll(outsideDir, 0755)
+	if err := os.MkdirAll(outsideDir, 0755); err != nil {
+		t.Fatalf("failed to create outside dir: %v", err)
+	}
 
 	if err := os.Symlink(outsideDir, symlinkDir); err != nil {
 		t.Fatalf("failed to create symlink directory: %v", err)

@@ -40,10 +40,9 @@ func (p *ContainerPool) ExecuteTask(ctx context.Context, req SubagentRequest, se
 	if !container.tryIncrementPending() {
 		p.metrics.QueueFullHits.Add(1)
 		return nil, &SubagentError{
-			Code:       ErrCodeQueueFull,
-			Message:    fmt.Sprintf("pending queue full"),
-			Retry:      true,
-			RetryAfter: 500 * time.Millisecond,
+			Code:    ErrCodeQueueFull,
+			Message: "pending queue full",
+			Retry:   false,
 		}
 	}
 

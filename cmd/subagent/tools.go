@@ -20,5 +20,5 @@ func registerSubagentTools(registry *tools.Registry) {
 			},
 		},
 	}
-	registry.Register(fetch.NewFetchTool(fetchCfg, log))
+	_ = registry.Register(fetch.NewFetchTool(fetchCfg, log))
 }

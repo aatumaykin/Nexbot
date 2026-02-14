@@ -36,7 +36,9 @@ func TestSecret_Expired(t *testing.T) {
 
 func TestSecretsStore_SetAndGet(t *testing.T) {
 	store := NewSecretsStore(5 * time.Minute)
-	store.SetAll(map[string]string{"KEY": "value"})
+	if err := store.SetAll(map[string]string{"KEY": "value"}); err != nil {
+		t.Fatalf("failed to set all secrets: %v", err)
+	}
 	val, err := store.Get("KEY")
 	if err != nil || val != "value" {
 		t.Errorf("expected value, got %s, err %v", val, err)
@@ -53,7 +55,9 @@ func TestSecretsStore_GetNotFound(t *testing.T) {
 
 func TestSecretsStore_Clear(t *testing.T) {
 	store := NewSecretsStore(5 * time.Minute)
-	store.SetAll(map[string]string{"KEY": "value"})
+	if err := store.SetAll(map[string]string{"KEY": "value"}); err != nil {
+		t.Fatalf("failed to set all secrets: %v", err)
+	}
 	store.Clear()
 	_, err := store.Get("KEY")
 	if err == nil {

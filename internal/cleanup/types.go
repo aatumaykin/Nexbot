@@ -23,7 +23,6 @@ type Config struct {
 type Runner struct {
 	config  Config
 	stats   Stats
-	running bool
 	lastRun time.Time
 }
 

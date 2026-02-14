@@ -11,7 +11,6 @@ import (
 	"github.com/aatumaykin/nexbot/internal/agent/subagent"
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/channels/telegram"
-	"github.com/aatumaykin/nexbot/internal/cleanup"
 	"github.com/aatumaykin/nexbot/internal/commands"
 	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/cron"
@@ -53,9 +52,6 @@ type App struct {
 
 	// Secrets store for Docker spawn tool
 	secretsStore *security.SecretsStore
-
-	// Cleanup scheduler
-	cleanupScheduler *cleanup.Scheduler
 
 	// IPC handler
 	ipcHandler *ipc.Handler

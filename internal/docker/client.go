@@ -28,7 +28,7 @@ type DockerClient struct {
 }
 
 func NewDockerClient() (*DockerClient, error) {
-	cli, err := dockerclient.New(dockerclient.WithAPIVersionNegotiation(), dockerclient.FromEnv)
+	cli, err := dockerclient.New(dockerclient.FromEnv)
 	if err != nil {
 		return nil, &DockerError{Op: "connect", Err: err, Message: "failed to connect to Docker daemon"}
 	}

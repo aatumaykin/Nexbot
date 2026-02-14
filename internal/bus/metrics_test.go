@@ -20,7 +20,7 @@ func TestMessageDroppingWithFullSubscriberChannel(t *testing.T) {
 	if err := mb.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
-	defer mb.Stop()
+	defer func() { _ = mb.Stop() }()
 
 	_ = mb.SubscribeInbound(ctx)
 	_ = mb.SubscribeInbound(ctx)
@@ -56,7 +56,7 @@ func TestMetrics(t *testing.T) {
 	if err := mb.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
-	defer mb.Stop()
+	defer func() { _ = mb.Stop() }()
 
 	metrics := mb.GetMetrics()
 	if metrics.InboundSubscribersCount != 0 {
@@ -89,7 +89,7 @@ func TestConcurrentMessageDropping(t *testing.T) {
 	if err := mb.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
-	defer mb.Stop()
+	defer func() { _ = mb.Stop() }()
 
 	_ = mb.SubscribeInbound(ctx)
 
@@ -123,7 +123,7 @@ func TestOutboundMessageDropping(t *testing.T) {
 	if err := mb.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
-	defer mb.Stop()
+	defer func() { _ = mb.Stop() }()
 
 	_ = mb.SubscribeOutbound(ctx)
 	_ = mb.SubscribeOutbound(ctx)
@@ -156,7 +156,7 @@ func TestEventDropping(t *testing.T) {
 	if err := mb.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
-	defer mb.Stop()
+	defer func() { _ = mb.Stop() }()
 
 	_ = mb.SubscribeEvent(ctx)
 	_ = mb.SubscribeEvent(ctx)
@@ -189,7 +189,7 @@ func TestResultDropping(t *testing.T) {
 	if err := mb.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
-	defer mb.Stop()
+	defer func() { _ = mb.Stop() }()
 
 	_ = mb.SubscribeSendResults(ctx)
 	_ = mb.SubscribeSendResults(ctx)
@@ -227,7 +227,7 @@ func TestSubscriberChannelSize(t *testing.T) {
 	if err := mb.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
-	defer mb.Stop()
+	defer func() { _ = mb.Stop() }()
 
 	inboundCh := mb.SubscribeInbound(ctx)
 	if inboundCh == nil {

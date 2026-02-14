@@ -20,13 +20,6 @@ type Logger interface {
 	Error(msg string, args ...interface{})
 }
 
-var bufferPool = sync.Pool{
-	New: func() interface{} {
-		buf := make([]byte, 64*1024)
-		return &buf
-	},
-}
-
 type ContainerPool struct {
 	cfg            PoolConfig
 	client         DockerClientInterface
@@ -39,7 +32,6 @@ type ContainerPool struct {
 	draining       atomic.Bool
 	ctx            context.Context
 	cancel         context.CancelFunc
-	prometheus     *PrometheusMetrics
 	validator      *sanitizer.Validator
 }
 
@@ -88,8 +80,12 @@ func (p *ContainerPool) Start(ctx context.Context) error {
 		id, err := p.createAndStartContainer(ctx)
 		if err != nil {
 			for _, createdID := range createdContainers {
-				p.client.StopContainer(ctx, createdID, intPtr(5))
-				p.client.RemoveContainer(ctx, createdID)
+				if stopErr := p.client.StopContainer(ctx, createdID, intPtr(5)); stopErr != nil {
+					p.log.Error("failed to stop container during cleanup", "container_id", createdID, "error", stopErr)
+				}
+				if removeErr := p.client.RemoveContainer(ctx, createdID); removeErr != nil {
+					p.log.Error("failed to remove container during cleanup", "container_id", createdID, "error", removeErr)
+				}
 			}
 			return fmt.Errorf("failed to create container %d: %w", i, err)
 		}
@@ -112,14 +108,20 @@ func (p *ContainerPool) createAndStartContainer(ctx context.Context) (string, er
 	}
 
 	if err := p.client.StartContainer(ctx, id); err != nil {
-		p.client.RemoveContainer(ctx, id)
+		if removeErr := p.client.RemoveContainer(ctx, id); removeErr != nil {
+			p.log.Error("failed to remove container after start error", "container_id", id, "error", removeErr)
+		}
 		return "", err
 	}
 
 	hijack, err := p.client.AttachContainer(ctx, id)
 	if err != nil {
-		p.client.StopContainer(ctx, id, intPtr(5))
-		p.client.RemoveContainer(ctx, id)
+		if stopErr := p.client.StopContainer(ctx, id, intPtr(5)); stopErr != nil {
+			p.log.Error("failed to stop container after attach error", "container_id", id, "error", stopErr)
+		}
+		if removeErr := p.client.RemoveContainer(ctx, id); removeErr != nil {
+			p.log.Error("failed to remove container after attach error", "container_id", id, "error", removeErr)
+		}
 		return "", err
 	}
 
@@ -235,7 +237,9 @@ func (p *ContainerPool) Stop(ctx context.Context) error {
 		if err := p.client.StopContainer(ctx, id, &timeout); err != nil {
 			lastErr = err
 		}
-		p.client.RemoveContainer(ctx, id)
+		if err := p.client.RemoveContainer(ctx, id); err != nil {
+			p.log.Error("failed to remove container", "container_id", id, "error", err)
+		}
 	}
 
 	p.containers = make(map[string]*Container)

@@ -62,8 +62,12 @@ drainLoop:
 		go func(containerID string) {
 			defer wg.Done()
 			timeout := int(cfg.ForceAfter.Seconds())
-			p.client.StopContainer(shutdownCtx, containerID, &timeout)
-			p.client.RemoveContainer(shutdownCtx, containerID)
+			if err := p.client.StopContainer(shutdownCtx, containerID, &timeout); err != nil {
+				p.log.Error("failed to stop container", "container_id", containerID, "error", err)
+			}
+			if err := p.client.RemoveContainer(shutdownCtx, containerID); err != nil {
+				p.log.Error("failed to remove container", "container_id", containerID, "error", err)
+			}
 		}(id)
 	}
 
