@@ -2,8 +2,6 @@
 
 ## Basic Info
 
-**Name**: {{USER_NAME}}
-**Timezone**: {{USER_TIMEZONE}}
 **Language**: English, Russian
 **Preferred Style**: Concise, practical
 

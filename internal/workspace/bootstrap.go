@@ -125,7 +125,7 @@ func (bl *BootstrapLoader) Load() (map[string]string, error) {
 
 // Assemble loads all bootstrap files and assembles them into a single string.
 // Files are concatenated in priority order with separator lines.
-// Missing files are skipped.
+// Missing files use embedded defaults as fallback.
 // Content is truncated if it exceeds maxChars.
 func (bl *BootstrapLoader) Assemble() (string, error) {
 	// Load all bootstrap files
@@ -134,12 +134,24 @@ func (bl *BootstrapLoader) Assemble() (string, error) {
 		return "", err
 	}
 
-	// Assemble in priority order
+	// Assemble in priority order, using fallback for missing files
 	var parts []string
 	for _, bf := range defaultBootstrapFiles {
-		if content, ok := files[bf.Name]; ok {
-			parts = append(parts, content)
+		content, ok := files[bf.Name]
+		if !ok {
+			// Try fallback to embedded defaults
+			defaultContent := GetDefaultFile(bf.Name)
+			if defaultContent != "" {
+				if bl.loggerFunc != nil {
+					bl.loggerFunc("using embedded default for %s (file not found in workspace)", bf.Name)
+				}
+				content = defaultContent
+			} else {
+				// Skip files with no default
+				continue
+			}
 		}
+		parts = append(parts, content)
 	}
 
 	assembled := strings.Join(parts, "\n\n---\n\n")

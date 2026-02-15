@@ -19,4 +19,5 @@ func init() {
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(testCmd)
+	rootCmd.AddCommand(SubagentCmd)
 }

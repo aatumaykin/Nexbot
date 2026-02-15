@@ -102,10 +102,20 @@ func TestAssembleNoLimit(t *testing.T) {
 	cfg := config.WorkspaceConfig{Path: tmpDir, BootstrapMaxChars: 0}
 	ws := New(cfg)
 
-	testContent := "# Test\n\nContent"
-	testFile := filepath.Join(tmpDir, BootstrapIdentity)
-	if err := os.WriteFile(testFile, []byte(testContent), 0644); err != nil {
-		t.Fatalf("failed to create test file: %v", err)
+	largeContent := strings.Repeat("This is a very long line. ", 100)
+	testFiles := map[string]string{
+		BootstrapIdentity: "# Identity\n\n" + largeContent,
+		BootstrapAgents:   "# Agents\n\n" + largeContent,
+		BootstrapSoul:     "# Soul\n\n" + largeContent,
+		BootstrapUser:     "# User\n\n" + largeContent,
+		BootstrapTools:    "# Tools\n\n" + largeContent,
+	}
+
+	for name, content := range testFiles {
+		filePath := filepath.Join(tmpDir, name)
+		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+			t.Fatalf("failed to create test file %s: %v", name, err)
+		}
 	}
 
 	loader := NewBootstrapLoader(ws, cfg, nil)
@@ -115,8 +125,15 @@ func TestAssembleNoLimit(t *testing.T) {
 		t.Fatalf("Assemble() failed: %v", err)
 	}
 
-	if assembled != testContent {
-		t.Errorf("Assemble() = %v, want %v", assembled, testContent)
+	// Calculate expected length
+	expectedLength := 0
+	for _, content := range testFiles {
+		expectedLength += len(content)
+	}
+	expectedLength += len("\n\n---\n\n") * 4 // 4 separators between 5 files
+
+	if len(assembled) != expectedLength {
+		t.Errorf("Assemble() returned %d characters, want %d (no truncation)", len(assembled), expectedLength)
 	}
 }
 
