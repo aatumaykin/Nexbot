@@ -16,7 +16,7 @@ func TestNewBootstrapLoader(t *testing.T) {
 	cfg := config.WorkspaceConfig{Path: tmpDir, BootstrapMaxChars: 10000}
 	ws := New(cfg)
 
-	loader := NewBootstrapLoader(ws, cfg, nil)
+	loader := NewBootstrapLoader(ws, cfg, nil, "")
 
 	if loader.workspace != ws {
 		t.Error("workspace not set correctly")
@@ -37,7 +37,7 @@ func TestNewBootstrapLoaderDefault(t *testing.T) {
 	cfg := config.WorkspaceConfig{Path: tmpDir} // BootstrapMaxChars = 0
 	ws := New(cfg)
 
-	loader := NewBootstrapLoader(ws, cfg, nil)
+	loader := NewBootstrapLoader(ws, cfg, nil, "")
 
 	if loader.maxChars != 20000 { // Default should be 20000
 		t.Errorf("maxChars = %d, want 20000 (default)", loader.maxChars)
@@ -57,7 +57,7 @@ func TestLoadFile(t *testing.T) {
 		t.Fatalf("failed to create test file: %v", err)
 	}
 
-	loader := NewBootstrapLoader(ws, cfg, nil)
+	loader := NewBootstrapLoader(ws, cfg, nil, "")
 
 	content, err := loader.LoadFile("TEST.md")
 	if err != nil {
@@ -83,7 +83,7 @@ func TestLoadFileErrors(t *testing.T) {
 	cfg := config.WorkspaceConfig{Path: tmpDir}
 	ws := New(cfg)
 
-	loader := NewBootstrapLoader(ws, cfg, nil)
+	loader := NewBootstrapLoader(ws, cfg, nil, "")
 
 	tests := []struct {
 		name        string
@@ -135,7 +135,7 @@ func TestSetMaxChars(t *testing.T) {
 	cfg := config.WorkspaceConfig{Path: tmpDir}
 	ws := New(cfg)
 
-	loader := NewBootstrapLoader(ws, cfg, nil)
+	loader := NewBootstrapLoader(ws, cfg, nil, "")
 
 	loader.SetMaxChars(5000)
 

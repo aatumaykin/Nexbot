@@ -29,7 +29,7 @@ func TestLoad(t *testing.T) {
 		}
 	}
 
-	loader := NewBootstrapLoader(ws, cfg, nil)
+	loader := NewBootstrapLoader(ws, cfg, nil, "")
 
 	files, err := loader.Load()
 	if err != nil {
@@ -73,7 +73,7 @@ func TestLoadMissingFiles(t *testing.T) {
 		warnings = append(warnings, fmt.Sprintf(format, args...))
 	}
 
-	loader := NewBootstrapLoader(ws, cfg, loggerFunc)
+	loader := NewBootstrapLoader(ws, cfg, loggerFunc, "")
 
 	files, err := loader.Load()
 	if err != nil {

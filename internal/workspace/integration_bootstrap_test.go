@@ -32,7 +32,7 @@ func TestWorkspaceBootstrapIntegration(t *testing.T) {
 		}
 	}
 
-	loader := NewBootstrapLoader(ws, cfg, nil)
+	loader := NewBootstrapLoader(ws, cfg, nil, "")
 	files, err := loader.Load()
 	if err != nil {
 		t.Fatalf("Load() failed: %v", err)

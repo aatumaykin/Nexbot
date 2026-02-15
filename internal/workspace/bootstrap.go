@@ -28,6 +28,7 @@ package workspace
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -36,9 +37,10 @@ import (
 
 // BootstrapLoader loads and assembles bootstrap files for the system prompt.
 type BootstrapLoader struct {
-	workspace  *Workspace
-	maxChars   int
-	loggerFunc func(string, ...any) // For logging warnings about missing files
+	workspace    *Workspace
+	subdirectory string // "main" or "subagent" for workspace subdirectory
+	maxChars     int
+	loggerFunc   func(string, ...any) // For logging warnings about missing files
 }
 
 // BootstrapFile represents a bootstrap file with its name and priority.
@@ -68,16 +70,19 @@ var defaultBootstrapFiles = []BootstrapFile{
 // NewBootstrapLoader creates a new BootstrapLoader.
 // If maxChars is 0, no limit is enforced.
 // loggerFunc is an optional function for logging warnings (can be nil).
-func NewBootstrapLoader(ws *Workspace, cfg config.WorkspaceConfig, loggerFunc func(string, ...any)) *BootstrapLoader {
+// subdirectory specifies the workspace subdirectory to load from ("main" or "subagent").
+// If subdirectory is empty, files are loaded from workspace root.
+func NewBootstrapLoader(ws *Workspace, cfg config.WorkspaceConfig, loggerFunc func(string, ...any), subdirectory string) *BootstrapLoader {
 	maxChars := cfg.BootstrapMaxChars
 	if maxChars == 0 {
 		maxChars = 20000 // Default from config
 	}
 
 	return &BootstrapLoader{
-		workspace:  ws,
-		maxChars:   maxChars,
-		loggerFunc: loggerFunc,
+		workspace:    ws,
+		subdirectory: subdirectory,
+		maxChars:     maxChars,
+		loggerFunc:   loggerFunc,
 	}
 }
 
@@ -89,7 +94,12 @@ func (bl *BootstrapLoader) LoadFile(filename string) (string, error) {
 		return "", fmt.Errorf("filename is empty")
 	}
 
-	filePath := bl.workspace.Subpath(filename)
+	var filePath string
+	if bl.subdirectory != "" {
+		filePath = bl.workspace.Subpath(filepath.Join(bl.subdirectory, filename))
+	} else {
+		filePath = bl.workspace.Subpath(filename)
+	}
 
 	content, err := os.ReadFile(filePath)
 	if err != nil {

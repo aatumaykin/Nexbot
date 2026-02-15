@@ -30,7 +30,7 @@ func TestAssemble(t *testing.T) {
 		}
 	}
 
-	loader := NewBootstrapLoader(ws, cfg, nil)
+	loader := NewBootstrapLoader(ws, cfg, nil, "")
 
 	assembled, err := loader.Assemble()
 	if err != nil {
@@ -69,7 +69,7 @@ func TestAssembleTruncation(t *testing.T) {
 		warnings = append(warnings, fmt.Sprintf(format, args...))
 	}
 
-	loader := NewBootstrapLoader(ws, cfg, loggerFunc)
+	loader := NewBootstrapLoader(ws, cfg, loggerFunc, "")
 
 	assembled, err := loader.Assemble()
 	if err != nil {
@@ -118,7 +118,7 @@ func TestAssembleNoLimit(t *testing.T) {
 		}
 	}
 
-	loader := NewBootstrapLoader(ws, cfg, nil)
+	loader := NewBootstrapLoader(ws, cfg, nil, "")
 
 	assembled, err := loader.Assemble()
 	if err != nil {
@@ -157,7 +157,7 @@ func TestAssembleEmptyFiles(t *testing.T) {
 		}
 	}
 
-	loader := NewBootstrapLoader(ws, cfg, nil)
+	loader := NewBootstrapLoader(ws, cfg, nil, "")
 
 	assembled, err := loader.Assemble()
 	if err != nil {
@@ -189,7 +189,7 @@ func TestAssembleMalformedMarkdown(t *testing.T) {
 		t.Fatalf("failed to create test file: %v", err)
 	}
 
-	loader := NewBootstrapLoader(ws, cfg, nil)
+	loader := NewBootstrapLoader(ws, cfg, nil, "")
 
 	assembled, err := loader.Assemble()
 	if err != nil {

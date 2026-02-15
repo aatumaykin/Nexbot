@@ -16,7 +16,7 @@ func TestSubstituteVariables(t *testing.T) {
 	cfg := config.WorkspaceConfig{Path: tmpDir}
 	ws := New(cfg)
 
-	loader := NewBootstrapLoader(ws, cfg, nil)
+	loader := NewBootstrapLoader(ws, cfg, nil, "")
 
 	tests := []struct {
 		name  string
@@ -81,7 +81,7 @@ func TestPriorityOrder(t *testing.T) {
 		}
 	}
 
-	loader := NewBootstrapLoader(ws, cfg, nil)
+	loader := NewBootstrapLoader(ws, cfg, nil, "")
 	assembled, err := loader.Assemble()
 
 	if err != nil {
@@ -131,7 +131,7 @@ func TestIntegrationBootstrapLoader(t *testing.T) {
 		}
 	}
 
-	loader := NewBootstrapLoader(ws, cfg, nil)
+	loader := NewBootstrapLoader(ws, cfg, nil, "")
 
 	files, err := loader.Load()
 	if err != nil {
