@@ -83,6 +83,7 @@ type PoolConfig struct {
 	PidsLimit   int64
 
 	LLMAPIKeyEnv string
+	Environment  []string // Additional environment variables
 
 	PullPolicy string
 

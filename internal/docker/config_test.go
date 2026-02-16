@@ -144,3 +144,45 @@ func TestPoolConfig_VolumePathsCorrectness(t *testing.T) {
 		})
 	}
 }
+
+func TestPoolConfig_EnvironmentVariables(t *testing.T) {
+	tests := []struct {
+		name          string
+		cfg           PoolConfig
+		wantLLMKeyEnv string
+		wantEnvCount  int
+	}{
+		{
+			name: "with LLM API key env",
+			cfg: PoolConfig{
+				LLMAPIKeyEnv: "ZAI_API_KEY",
+				Environment:  []string{"VAR1=value1", "VAR2=value2"},
+			},
+			wantLLMKeyEnv: "ZAI_API_KEY",
+			wantEnvCount:  2,
+		},
+		{
+			name: "with empty LLM API key env",
+			cfg: PoolConfig{
+				LLMAPIKeyEnv: "",
+				Environment:  []string{"VAR1=value1"},
+			},
+			wantLLMKeyEnv: "",
+			wantEnvCount:  1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := tt.cfg
+
+			if cfg.LLMAPIKeyEnv != tt.wantLLMKeyEnv {
+				t.Errorf("LLMAPIKeyEnv = %v, want %v", cfg.LLMAPIKeyEnv, tt.wantLLMKeyEnv)
+			}
+
+			if len(cfg.Environment) != tt.wantEnvCount {
+				t.Errorf("Environment count = %v, want %v", len(cfg.Environment), tt.wantEnvCount)
+			}
+		})
+	}
+}
