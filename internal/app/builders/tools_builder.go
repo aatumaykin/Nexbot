@@ -10,7 +10,6 @@ import (
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/security"
 	"github.com/aatumaykin/nexbot/internal/tools"
-	"github.com/aatumaykin/nexbot/internal/tools/fetch"
 	"github.com/aatumaykin/nexbot/internal/tools/file"
 	"github.com/aatumaykin/nexbot/internal/workspace"
 )
@@ -48,12 +47,6 @@ func (b *ToolsBuilder) RegisterAllTools(agentLoop *loop.Loop) error {
 
 	if b.config.Tools.File.Enabled {
 		if err := b.RegisterFileTools(agentLoop); err != nil {
-			return err
-		}
-	}
-
-	if b.config.Tools.Fetch.Enabled {
-		if err := b.RegisterFetchTool(agentLoop); err != nil {
 			return err
 		}
 	}
@@ -100,15 +93,6 @@ func (b *ToolsBuilder) RegisterFileTools(agentLoop *loop.Loop) error {
 		return fmt.Errorf("failed to register delete file tool: %w", err)
 	}
 
-	return nil
-}
-
-func (b *ToolsBuilder) RegisterFetchTool(agentLoop *loop.Loop) error {
-	fetchTool := fetch.NewFetchTool(b.config, b.logger)
-	if err := agentLoop.RegisterTool(fetchTool); err != nil {
-		return fmt.Errorf("failed to register fetch tool: %w", err)
-	}
-	b.logger.Info("Fetch tool registered")
 	return nil
 }
 

@@ -137,7 +137,7 @@ func (c *DockerClient) CreateContainer(ctx context.Context, cfg PoolConfig) (str
 		Config: &container.Config{
 			Image:        imageRef,
 			Env:          env,
-			Cmd:          []string{"/workspace/nexbot", "serve"},
+			Cmd:          []string{"/workspace/nexbot", "subagent"},
 			OpenStdin:    true,
 			Tty:          false,
 			StdinOnce:    true,

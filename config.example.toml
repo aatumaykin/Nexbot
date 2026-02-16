@@ -146,7 +146,7 @@ timeout_seconds = 30
 # Конфигурация инструмента загрузки веб-страниц.
 [tools.fetch]
 # Включить загрузку контента по URL
-enabled = true
+enabled = false
 
 # Таймаут HTTP запроса (в секундах)
 timeout_seconds = 30

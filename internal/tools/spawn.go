@@ -101,8 +101,8 @@ func (t *SpawnTool) Parameters() map[string]interface{} {
 			},
 			"timeout_seconds": map[string]interface{}{
 				"type":        "number",
-				"description": "Task timeout in seconds (default: 60)",
-				"default":     60,
+				"description": "Task timeout in seconds (default: 120)",
+				"default":     120,
 			},
 			"required_secrets": map[string]interface{}{
 				"type":        "array",
@@ -167,7 +167,7 @@ func (t *SpawnTool) executeWithDocker(ctx context.Context, spawnArgs SpawnArgs) 
 
 	timeout := spawnArgs.TimeoutSeconds
 	if timeout == 0 {
-		timeout = 60
+		timeout = 120
 	}
 
 	req := docker.SubagentRequest{

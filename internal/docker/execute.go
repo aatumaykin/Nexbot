@@ -31,7 +31,9 @@ func (p *ContainerPool) ExecuteTask(ctx context.Context, req SubagentRequest, se
 		"task", sanitizer.RedactForLog(req.Task, secrets),
 		"secret_count", len(secrets))
 
-	container, err := p.acquire()
+	acquireCtx, acquireCancel := context.WithTimeout(ctx, 25*time.Second)
+	defer acquireCancel()
+	container, err := p.acquireWithContext(acquireCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -191,6 +193,10 @@ func (c *Container) IsRunning(ctx context.Context, client DockerClientInterface)
 }
 
 func (p *ContainerPool) acquire() (*Container, error) {
+	return p.acquireWithContext(context.Background())
+}
+
+func (p *ContainerPool) acquireWithContext(ctx context.Context) (*Container, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -211,9 +217,12 @@ func (p *ContainerPool) acquire() (*Container, error) {
 	}
 
 	p.mu.Unlock()
-	container, err := p.CreateContainer(context.Background())
+
+	createCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	container, err := p.CreateContainer(createCtx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create container: %w", err)
 	}
 
 	p.mu.Lock()
