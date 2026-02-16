@@ -73,6 +73,7 @@ func (c *DockerClient) CreateContainer(ctx context.Context, cfg PoolConfig) (str
 		return "", &DockerError{Op: "create", Err: nil, Message: "skills_mount_path not specified in config"}
 	}
 
+	// Build mounts list
 	mounts := []mount.Mount{
 		{
 			Type:     mount.TypeBind,
@@ -92,6 +93,16 @@ func (c *DockerClient) CreateContainer(ctx context.Context, cfg PoolConfig) (str
 			Target:   "/workspace/skills",
 			ReadOnly: true,
 		},
+	}
+
+	// Add config mount if ConfigPath is specified
+	if cfg.ConfigPath != "" {
+		mounts = append(mounts, mount.Mount{
+			Type:     mount.TypeBind,
+			Source:   cfg.ConfigPath,
+			Target:   "/root/.config/nexbot/config.toml",
+			ReadOnly: true,
+		})
 	}
 
 	memoryLimit := parseMemory(cfg.MemoryLimit)
@@ -121,11 +132,18 @@ func (c *DockerClient) CreateContainer(ctx context.Context, cfg PoolConfig) (str
 
 	result, err := c.client.ContainerCreate(ctx, dockerclient.ContainerCreateOptions{
 		Config: &container.Config{
-			Image: imageRef,
-			Env:   []string{"SKILLS_PATH=/workspace/skills"},
-			Cmd:   []string{"/workspace/nexbot"},
+			Image:        imageRef,
+			Env:          []string{"SKILLS_PATH=/workspace/skills"},
+			Cmd:          []string{"/workspace/nexbot", "serve"},
+			OpenStdin:    true,
+			Tty:          false,
+			StdinOnce:    true,
+			AttachStdin:  false,
+			AttachStdout: true,
+			AttachStderr: true,
 		},
 		HostConfig: &container.HostConfig{
+			AutoRemove: true,
 			Resources: container.Resources{
 				Memory:    memoryLimit,
 				NanoCPUs:  int64(cpuLimit * 1e9),

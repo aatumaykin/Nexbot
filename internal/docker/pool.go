@@ -69,60 +69,29 @@ func (p *ContainerPool) Start(ctx context.Context) error {
 		return err
 	}
 
-	containerCount := p.cfg.ContainerCount
-	if containerCount == 0 {
-		containerCount = 1
-	}
-
-	var createdContainers []string
-
-	for i := 0; i < containerCount; i++ {
-		id, err := p.createAndStartContainer(ctx)
-		if err != nil {
-			for _, createdID := range createdContainers {
-				if stopErr := p.client.StopContainer(ctx, createdID, intPtr(5)); stopErr != nil {
-					p.log.Error("failed to stop container during cleanup", "container_id", createdID, "error", stopErr)
-				}
-				if removeErr := p.client.RemoveContainer(ctx, createdID); removeErr != nil {
-					p.log.Error("failed to remove container during cleanup", "container_id", createdID, "error", removeErr)
-				}
-			}
-			return fmt.Errorf("failed to create container %d: %w", i, err)
-		}
-		createdContainers = append(createdContainers, id)
-	}
-
 	go p.startCleanupLoop()
 
-	p.log.Info("docker pool started", "containers", containerCount)
+	p.log.Info("docker pool started (on-demand mode)")
 	return nil
 }
 
-func (p *ContainerPool) createAndStartContainer(ctx context.Context) (string, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
+func (p *ContainerPool) CreateContainer(ctx context.Context) (*Container, error) {
 	id, err := p.client.CreateContainer(ctx, p.cfg)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if err := p.client.StartContainer(ctx, id); err != nil {
-		if removeErr := p.client.RemoveContainer(ctx, id); removeErr != nil {
-			p.log.Error("failed to remove container after start error", "container_id", id, "error", removeErr)
-		}
-		return "", err
+		p.client.StopContainer(ctx, id, intPtr(5))
+		p.client.RemoveContainer(ctx, id)
+		return nil, err
 	}
 
 	hijack, err := p.client.AttachContainer(ctx, id)
 	if err != nil {
-		if stopErr := p.client.StopContainer(ctx, id, intPtr(5)); stopErr != nil {
-			p.log.Error("failed to stop container after attach error", "container_id", id, "error", stopErr)
-		}
-		if removeErr := p.client.RemoveContainer(ctx, id); removeErr != nil {
-			p.log.Error("failed to remove container after attach error", "container_id", id, "error", removeErr)
-		}
-		return "", err
+		p.client.StopContainer(ctx, id, intPtr(5))
+		p.client.RemoveContainer(ctx, id)
+		return nil, err
 	}
 
 	containerCtx, containerCancel := context.WithCancel(p.ctx)
@@ -154,7 +123,15 @@ func (p *ContainerPool) createAndStartContainer(ctx context.Context) (string, er
 	p.containers[id] = container
 	go p.readResponses(container)
 
-	return id, nil
+	return container, nil
+}
+
+func (p *ContainerPool) createAndStartContainer(ctx context.Context) (string, error) {
+	container, err := p.CreateContainer(ctx)
+	if err != nil {
+		return "", err
+	}
+	return container.ID, nil
 }
 
 func (p *ContainerPool) readResponses(c *Container) {
@@ -236,9 +213,6 @@ func (p *ContainerPool) Stop(ctx context.Context) error {
 		timeout := 30
 		if err := p.client.StopContainer(ctx, id, &timeout); err != nil {
 			lastErr = err
-		}
-		if err := p.client.RemoveContainer(ctx, id); err != nil {
-			p.log.Error("failed to remove container", "container_id", id, "error", err)
 		}
 	}
 

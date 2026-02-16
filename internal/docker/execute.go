@@ -210,7 +210,16 @@ func (p *ContainerPool) acquire() (*Container, error) {
 		return c, nil
 	}
 
-	return nil, fmt.Errorf("no idle containers available")
+	p.mu.Unlock()
+	container, err := p.CreateContainer(context.Background())
+	p.mu.Lock()
+	if err != nil {
+		return nil, err
+	}
+
+	container.Status = StatusBusy
+	container.LastUsed = time.Now()
+	return container, nil
 }
 
 func (p *ContainerPool) Release(containerID string) {
@@ -219,6 +228,15 @@ func (p *ContainerPool) Release(containerID string) {
 
 	if c, ok := p.containers[containerID]; ok {
 		c.Status = StatusIdle
+
+		timeout := 5
+		if err := p.client.StopContainer(context.Background(), containerID, &timeout); err != nil {
+			p.log.Warn("failed to stop container", "container_id", containerID, "error", err)
+		}
+
+		c.Close()
+		delete(p.containers, containerID)
+		p.log.Info("container stopped and removed", "container_id", containerID)
 	}
 }
 
