@@ -26,6 +26,9 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
+	// Store the actual file path
+	cfg.FilePath = path
+
 	applyDefaults(&cfg)
 
 	if err := expandEnvVars(&cfg); err != nil {

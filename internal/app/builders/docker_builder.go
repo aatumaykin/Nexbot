@@ -60,6 +60,7 @@ func BuildDockerPool(cfg *config.Config, log *logger.Logger) (*docker.ContainerP
 		SkillsMountPath:         expandHome(cfg.Docker.SkillsMountPath),
 		BinaryPath:              expandHome(cfg.Docker.BinaryPath),
 		SubagentPromptsPath:     expandHome(cfg.Docker.SubagentPromptsPath),
+		ConfigPath:              cfg.FilePath,
 		MemoryLimit:             cfg.Docker.MemoryLimit,
 		CPULimit:                cfg.Docker.CPULimit,
 		PidsLimit:               cfg.Docker.PidsLimit,

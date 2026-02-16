@@ -34,6 +34,9 @@ type Config struct {
 	MessageBus MessageBusConfig `toml:"message_bus"`
 	Cleanup    CleanupConfig    `toml:"cleanup"`
 	Docker     DockerConfig     `toml:"docker"`
+
+	// FilePath stores the actual path to the loaded config file
+	FilePath string
 }
 
 // WorkspaceConfig представляет конфигурацию workspace

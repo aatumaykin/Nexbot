@@ -78,6 +78,7 @@ type PoolConfig struct {
 	SkillsMountPath     string
 	BinaryPath          string // Path to binary executable (e.g., os.Executable())
 	SubagentPromptsPath string // Path to subagent prompts directory
+	ConfigPath          string // Path to config.toml file (optional, defaults to ~/.config/nexbot/config.toml)
 
 	MemoryLimit string
 	CPULimit    float64
