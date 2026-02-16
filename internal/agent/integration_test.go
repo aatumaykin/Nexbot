@@ -42,7 +42,7 @@ func TestAgentIntegration_FullWorkflow(t *testing.T) {
 	t.Run("context builder + session manager integration", func(t *testing.T) {
 		// Создать context builder
 		contextBuilder, err := agentcontext.NewBuilder(agentcontext.Config{
-			Workspace: tmpDir,
+			Workspace: ws,
 		})
 		require.NoError(t, err)
 		require.NotNil(t, contextBuilder)
@@ -106,7 +106,7 @@ func TestAgentIntegration_FullWorkflow(t *testing.T) {
 
 		// Создать context builder
 		contextBuilder, err := agentcontext.NewBuilder(agentcontext.Config{
-			Workspace: tmpDir,
+			Workspace: ws,
 		})
 		require.NoError(t, err)
 
@@ -145,7 +145,7 @@ func TestAgentIntegration_FullWorkflow(t *testing.T) {
 
 		// Создать loop config
 		loopCfg := loop.Config{
-			Workspace:         tmpDir,
+			Workspace:         ws,
 			SessionDir:        sessionDir,
 			LLMProvider:       testLLM,
 			Logger:            log,
@@ -211,7 +211,7 @@ func TestAgentIntegration_FullWorkflow(t *testing.T) {
 			responses: []string{"Concise answer"},
 		}
 		loopInstance, err := loop.NewLoop(loop.Config{
-			Workspace:         tmpDir,
+			Workspace:         ws,
 			SessionDir:        sessionDir,
 			LLMProvider:       testLLM,
 			Logger:            log,
@@ -241,13 +241,13 @@ func TestAgentIntegration_FullWorkflow(t *testing.T) {
 
 func TestAgentIntegration_ErrorHandling(t *testing.T) {
 	tmpDir := t.TempDir()
-	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
 	t.Run("context builder with non-existent workspace", func(t *testing.T) {
 		nonExistentDir := filepath.Join(tmpDir, "does-not-exist")
+		nonExistentWs := workspace.New(config.WorkspaceConfig{Path: nonExistentDir})
 
 		_, err := agentcontext.NewBuilder(agentcontext.Config{
-			Workspace: nonExistentDir,
+			Workspace: nonExistentWs,
 		})
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "not found")
@@ -274,7 +274,7 @@ func TestAgentIntegration_ErrorHandling(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = loop.NewLoop(loop.Config{
-			Workspace:  tmpDir,
+			Workspace:  workspace.New(config.WorkspaceConfig{Path: tmpDir}),
 			SessionDir: tmpDir,
 			Logger:     log,
 		})
@@ -284,7 +284,7 @@ func TestAgentIntegration_ErrorHandling(t *testing.T) {
 		// Missing logger
 		testLLM := &mockLLMProvider{}
 		_, err = loop.NewLoop(loop.Config{
-			Workspace:   tmpDir,
+			Workspace:   workspace.New(config.WorkspaceConfig{Path: tmpDir}),
 			SessionDir:  tmpDir,
 			LLMProvider: testLLM,
 		})
@@ -295,7 +295,6 @@ func TestAgentIntegration_ErrorHandling(t *testing.T) {
 
 func TestAgentIntegration_ConcurrentAccess(t *testing.T) {
 	tmpDir := t.TempDir()
-	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 	sessionDir := filepath.Join(tmpDir, "sessions")
 
 	t.Run("concurrent session operations", func(t *testing.T) {
@@ -382,16 +381,19 @@ func TestAgentIntegration_ConcurrentAccess(t *testing.T) {
 // Helper functions
 
 func createBootstrapFiles(t *testing.T, dir string) {
-	identityPath := filepath.Join(dir, workspace.BootstrapIdentity)
+	mainDir := filepath.Join(dir, "main")
+	require.NoError(t, os.MkdirAll(mainDir, 0755))
+
+	identityPath := filepath.Join(mainDir, workspace.BootstrapIdentity)
 	require.NoError(t, os.WriteFile(identityPath, []byte("Test Identity"), 0644))
 
-	agentsPath := filepath.Join(dir, workspace.BootstrapAgents)
+	agentsPath := filepath.Join(mainDir, workspace.BootstrapAgents)
 	require.NoError(t, os.WriteFile(agentsPath, []byte("Test Agents"), 0644))
 
-	userPath := filepath.Join(dir, workspace.BootstrapUser)
+	userPath := filepath.Join(mainDir, workspace.BootstrapUser)
 	require.NoError(t, os.WriteFile(userPath, []byte("Test User"), 0644))
 
-	toolsPath := filepath.Join(dir, workspace.BootstrapTools)
+	toolsPath := filepath.Join(mainDir, workspace.BootstrapTools)
 	require.NoError(t, os.WriteFile(toolsPath, []byte("Test Tools"), 0644))
 }
 

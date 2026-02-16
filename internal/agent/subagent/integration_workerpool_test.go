@@ -31,7 +31,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{response: "Worker task completed"},
 			Logger:      log,

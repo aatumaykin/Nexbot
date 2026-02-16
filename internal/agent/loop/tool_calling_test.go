@@ -42,8 +42,8 @@ func TestLoop_ToolCalling(t *testing.T) {
 		t.Fatalf("Failed to create sessions directory: %v", err)
 	}
 
-	// Create test file
-	testFile := filepath.Join(workspaceDir, "test.txt")
+	// Create test file in workspace directory
+	testFile := filepath.Join(ws.Path(), "test.txt")
 	testContent := "Hello, World!\nThis is a test file."
 	if err := os.WriteFile(testFile, []byte(testContent), 0644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
@@ -78,14 +78,14 @@ func TestLoop_ToolCalling(t *testing.T) {
 
 	// Create loop
 	looper, _ := NewLoop(Config{
-		Workspace:   workspaceDir,
-		SessionDir:  sessionDir,
-		LLMProvider: mockProvider,
-		Logger:      log,
+		Workspace:    ws,
+		WorkspaceCfg: config.WorkspaceConfig{Path: workspaceDir},
+		SessionDir:   sessionDir,
+		LLMProvider:  mockProvider,
+		Logger:       log,
 	})
 
 	// Register read_file tool
-	ws := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
 	readFileTool := file.NewReadFileTool(ws, testConfig())
 	if err := looper.RegisterTool(readFileTool); err != nil {
 		t.Fatalf("Failed to register tool: %v", err)

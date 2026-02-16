@@ -80,7 +80,6 @@ func (m *ToolCallingMockProvider) GetCallCount() int {
 // Telegram message -> bus -> agent -> LLM with tool calls -> tools execution -> response
 func TestE2E_TelegramToAgentWithToolCalls(t *testing.T) {
 	tmpDir := t.TempDir()
-	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 	workspaceDir := filepath.Join(tmpDir, "workspace")
 	sessionDir := filepath.Join(tmpDir, "sessions")
 
@@ -128,7 +127,7 @@ func TestE2E_TelegramToAgentWithToolCalls(t *testing.T) {
 	mockProvider := NewToolCallingMockProvider(mockLLMResponses)
 
 	agentLoop, err := loop.NewLoop(loop.Config{
-		Workspace:   workspaceDir,
+		Workspace:   ws,
 		SessionDir:  sessionDir,
 		LLMProvider: mockProvider,
 		Logger:      log,
@@ -235,7 +234,6 @@ func TestE2E_TelegramToAgentWithToolCalls(t *testing.T) {
 // TestE2E_MultipleToolCalls tests multiple tool calls in sequence
 func TestE2E_MultipleToolCalls(t *testing.T) {
 	tmpDir := t.TempDir()
-	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 	workspaceDir := filepath.Join(tmpDir, "workspace")
 	sessionDir := filepath.Join(tmpDir, "sessions")
 
@@ -276,7 +274,7 @@ func TestE2E_MultipleToolCalls(t *testing.T) {
 	mockProvider := NewToolCallingMockProvider(mockLLMResponses)
 
 	agentLoop, _ := loop.NewLoop(loop.Config{
-		Workspace:   workspaceDir,
+		Workspace:   ws,
 		SessionDir:  sessionDir,
 		LLMProvider: mockProvider,
 		Logger:      log,

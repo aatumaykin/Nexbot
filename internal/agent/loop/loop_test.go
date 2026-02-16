@@ -43,10 +43,11 @@ func TestLoop_AddMessageToSession(t *testing.T) {
 	}
 
 	looper, _ := NewLoop(Config{
-		Workspace:   workspaceDir,
-		SessionDir:  sessionDir,
-		LLMProvider: mockProvider,
-		Logger:      log,
+		Workspace:    ws,
+		WorkspaceCfg: config.WorkspaceConfig{Path: workspaceDir},
+		SessionDir:   sessionDir,
+		LLMProvider:  mockProvider,
+		Logger:       log,
 	})
 
 	tests := []struct {
@@ -139,10 +140,11 @@ func TestLoop_ClearSession(t *testing.T) {
 	}
 
 	looper, _ := NewLoop(Config{
-		Workspace:   workspaceDir,
-		SessionDir:  sessionDir,
-		LLMProvider: mockProvider,
-		Logger:      log,
+		Workspace:    ws,
+		WorkspaceCfg: config.WorkspaceConfig{Path: workspaceDir},
+		SessionDir:   sessionDir,
+		LLMProvider:  mockProvider,
+		Logger:       log,
 	})
 
 	sessionID := "test-session"
@@ -202,10 +204,11 @@ func TestLoop_DeleteSession(t *testing.T) {
 	}
 
 	looper, _ := NewLoop(Config{
-		Workspace:   workspaceDir,
-		SessionDir:  sessionDir,
-		LLMProvider: mockProvider,
-		Logger:      log,
+		Workspace:    ws,
+		WorkspaceCfg: config.WorkspaceConfig{Path: workspaceDir},
+		SessionDir:   sessionDir,
+		LLMProvider:  mockProvider,
+		Logger:       log,
 	})
 
 	sessionID := "test-session-delete"
@@ -261,13 +264,14 @@ func TestLoop_Getters(t *testing.T) {
 	}
 
 	looper, _ := NewLoop(Config{
-		Workspace:   workspaceDir,
-		SessionDir:  sessionDir,
-		LLMProvider: mockProvider,
-		Logger:      log,
-		Model:       "test-model",
-		MaxTokens:   2048,
-		Temperature: 0.5,
+		Workspace:    ws,
+		WorkspaceCfg: config.WorkspaceConfig{Path: workspaceDir},
+		SessionDir:   sessionDir,
+		LLMProvider:  mockProvider,
+		Logger:       log,
+		Model:        "test-model",
+		MaxTokens:    2048,
+		Temperature:  0.5,
 	})
 
 	tests := []struct {
@@ -367,13 +371,14 @@ func TestLoop_GetSessionStatus(t *testing.T) {
 	}
 
 	looper, _ := NewLoop(Config{
-		Workspace:   workspaceDir,
-		SessionDir:  sessionDir,
-		LLMProvider: mockProvider,
-		Logger:      log,
-		Model:       "test-model",
-		MaxTokens:   2048,
-		Temperature: 0.5,
+		Workspace:    ws,
+		WorkspaceCfg: config.WorkspaceConfig{Path: workspaceDir},
+		SessionDir:   sessionDir,
+		LLMProvider:  mockProvider,
+		Logger:       log,
+		Model:        "test-model",
+		MaxTokens:    2048,
+		Temperature:  0.5,
 	})
 
 	sessionID := "status-test-session"
@@ -531,13 +536,14 @@ func TestSessionOperations(t *testing.T) {
 		callIndex: 0,
 	}
 	looper, _ := NewLoop(Config{
-		Workspace:   workspaceDir,
-		SessionDir:  sessionDir,
-		LLMProvider: mockProvider,
-		Logger:      log,
-		Model:       "test-model",
-		MaxTokens:   2048,
-		Temperature: 0.5,
+		Workspace:    ws,
+		WorkspaceCfg: config.WorkspaceConfig{Path: workspaceDir},
+		SessionDir:   sessionDir,
+		LLMProvider:  mockProvider,
+		Logger:       log,
+		Model:        "test-model",
+		MaxTokens:    2048,
+		Temperature:  0.5,
 	})
 
 	t.Run("ClearSession", func(t *testing.T) {

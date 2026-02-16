@@ -15,7 +15,6 @@ func TestNewBuilder(t *testing.T) {
 	t.Run("valid workspace", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-		ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 		builder, err := NewBuilder(Config{
 			Workspace:    ws,
 			WorkspaceCfg: config.WorkspaceConfig{Path: tmpDir},
@@ -48,13 +47,22 @@ func TestBuild(t *testing.T) {
 	t.Run("build with all components", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-		ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
-		if err := os.WriteFile(filepath.Join(tmpDir, "main", "IDENTITY.md"), []byte("# Identity\nTest identity"), 0644); err != nil {
+		mainDir := filepath.Join(tmpDir, "main")
+		if err := os.MkdirAll(mainDir, 0755); err != nil {
+			t.Fatalf("Failed to create main directory: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "IDENTITY.md"), []byte("# Identity\nTest identity"), 0644); err != nil {
 			t.Fatalf("Failed to create main/IDENTITY.md: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(tmpDir, "main", "AGENTS.md"), []byte("# Agents\nTest agents"), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(mainDir, "AGENTS.md"), []byte("# Agents\nTest agents"), 0644); err != nil {
 			t.Fatalf("Failed to create main/AGENTS.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "USER.md"), []byte("# User\nTest user"), 0644); err != nil {
+			t.Fatalf("Failed to create main/USER.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "TOOLS.md"), []byte("# Tools\nTest tools"), 0644); err != nil {
+			t.Fatalf("Failed to create main/TOOLS.md: %v", err)
 		}
 
 		builder, err := NewBuilder(Config{
@@ -93,8 +101,21 @@ func TestBuildWithMemory(t *testing.T) {
 		tmpDir := t.TempDir()
 		ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
-		if err := os.WriteFile(filepath.Join(tmpDir, "IDENTITY.md"), []byte("# Identity\nTest"), 0644); err != nil {
-			t.Fatalf("Failed to create IDENTITY.md: %v", err)
+		mainDir := filepath.Join(tmpDir, "main")
+		if err := os.MkdirAll(mainDir, 0755); err != nil {
+			t.Fatalf("Failed to create main directory: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "IDENTITY.md"), []byte("# Identity\nTest"), 0644); err != nil {
+			t.Fatalf("Failed to create main/IDENTITY.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "USER.md"), []byte("# User\nTest user"), 0644); err != nil {
+			t.Fatalf("Failed to create main/USER.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "TOOLS.md"), []byte("# Tools\nTest tools"), 0644); err != nil {
+			t.Fatalf("Failed to create main/TOOLS.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "AGENTS.md"), []byte("# Agents\nTest agents"), 0644); err != nil {
+			t.Fatalf("Failed to create main/AGENTS.md: %v", err)
 		}
 
 		builder, err := NewBuilder(Config{
@@ -168,6 +189,11 @@ func TestPriorityOrder(t *testing.T) {
 		tmpDir := t.TempDir()
 		ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
+		mainDir := filepath.Join(tmpDir, "main")
+		if err := os.MkdirAll(mainDir, 0755); err != nil {
+			t.Fatalf("Failed to create main directory: %v", err)
+		}
+
 		components := map[string]string{
 			"IDENTITY": "MARKER_IDENTITY_2",
 			"AGENTS":   "MARKER_AGENTS_1",
@@ -176,7 +202,7 @@ func TestPriorityOrder(t *testing.T) {
 		}
 
 		for name, content := range components {
-			if err := os.WriteFile(filepath.Join(tmpDir, name+".md"), []byte(content), 0644); err != nil {
+			if err := os.WriteFile(filepath.Join(mainDir, name+".md"), []byte(content), 0644); err != nil {
 				t.Fatalf("Failed to create %s.md: %v", name, err)
 			}
 		}

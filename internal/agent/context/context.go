@@ -67,7 +67,7 @@ func (b *Builder) Build() (string, error) {
 	var builder strings.Builder
 
 	// 1. AGENTS - Agent instructions and behavior
-	agents, err := b.loader.LoadFile(workspace.BootstrapIdentity)
+	agents, err := b.loader.LoadFile(workspace.BootstrapAgents)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Try fallback to embedded defaults

@@ -29,7 +29,7 @@ func TestNewManager(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{},
 			Logger:      log,
@@ -76,7 +76,7 @@ func TestManagerSpawn(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{},
 			Logger:      log,
@@ -116,7 +116,7 @@ func TestManagerSpawnMultiple(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{},
 			Logger:      log,
@@ -166,7 +166,7 @@ func TestManagerStop(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{},
 			Logger:      log,
@@ -208,7 +208,7 @@ func TestManagerStopAll(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{},
 			Logger:      log,
@@ -246,7 +246,7 @@ func TestManagerList(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{},
 			Logger:      log,
@@ -287,7 +287,7 @@ func TestManagerGet(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{},
 			Logger:      log,
@@ -318,14 +318,25 @@ func TestSubagentProcess(t *testing.T) {
 	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
+	// Create bootstrap files in main/ subdirectory
+	mainDir := filepath.Join(tempDir, "main")
+	require.NoError(t, os.MkdirAll(mainDir, 0755))
+
+	// Create simple bootstrap files
+	require.NoError(t, os.WriteFile(filepath.Join(mainDir, "IDENTITY.md"), []byte("# Identity\nTest"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(mainDir, "AGENTS.md"), []byte("# Agents\nTest"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(mainDir, "USER.md"), []byte("# User\nTest"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(mainDir, "TOOLS.md"), []byte("# Tools\nTest"), 0644))
+
 	manager, err := NewManager(Config{
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
-			SessionDir:  tempDir,
-			LLMProvider: &mockLLMProvider{response: "Mock response"},
-			Logger:      log,
+			Workspace:    ws,
+			WorkspaceCfg: config.WorkspaceConfig{Path: tempDir},
+			SessionDir:   tempDir,
+			LLMProvider:  &mockLLMProvider{response: "Mock response"},
+			Logger:       log,
 		},
 	})
 	require.NoError(t, err)
@@ -351,7 +362,7 @@ func TestSubagentContextCancellation(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{},
 			Logger:      log,
@@ -382,7 +393,7 @@ func TestManagerConcurrency(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{},
 			Logger:      log,
@@ -423,7 +434,6 @@ func TestManagerConcurrency(t *testing.T) {
 
 func TestStorageNewStorage(t *testing.T) {
 	tempDir := t.TempDir()
-	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 
 	storage, err := NewStorage(tempDir)
 	require.NoError(t, err)
@@ -438,7 +448,6 @@ func TestStorageNewStorage(t *testing.T) {
 
 func TestStorageSaveAndLoad(t *testing.T) {
 	tempDir := t.TempDir()
-	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 
 	storage, err := NewStorage(tempDir)
 	require.NoError(t, err)
@@ -462,7 +471,6 @@ func TestStorageSaveAndLoad(t *testing.T) {
 
 func TestStorageDelete(t *testing.T) {
 	tempDir := t.TempDir()
-	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 
 	storage, err := NewStorage(tempDir)
 	require.NoError(t, err)
@@ -494,7 +502,6 @@ func TestStorageDelete(t *testing.T) {
 
 func TestStorageList(t *testing.T) {
 	tempDir := t.TempDir()
-	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 
 	storage, err := NewStorage(tempDir)
 	require.NoError(t, err)

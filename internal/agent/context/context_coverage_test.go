@@ -15,9 +15,8 @@ import (
 func TestBuilderGetWorkspace(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
-	builder, err := NewBuilder(Config{Workspace: tmpDir})
+	builder, err := NewBuilder(Config{Workspace: ws, WorkspaceCfg: config.WorkspaceConfig{Path: tmpDir}})
 	if err != nil {
 		t.Fatalf("Failed to create builder: %v", err)
 	}
@@ -32,30 +31,34 @@ func TestBuilderGetWorkspace(t *testing.T) {
 func TestBuilderGetComponent(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+
+	mainDir := filepath.Join(tmpDir, "main")
+	if err := os.MkdirAll(mainDir, 0755); err != nil {
+		t.Fatalf("Failed to create main directory: %v", err)
+	}
 
 	// Create test bootstrap files
 	identityContent := "# Identity\nThis is a test identity."
-	if err := os.WriteFile(filepath.Join(tmpDir, workspace.BootstrapIdentity), []byte(identityContent), 0644); err != nil {
-		t.Fatalf("Failed to create IDENTITY.md: %v", err)
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapIdentity), []byte(identityContent), 0644); err != nil {
+		t.Fatalf("Failed to create main/IDENTITY.md: %v", err)
 	}
 
 	agentsContent := "# Agents\nTest agents content."
-	if err := os.WriteFile(filepath.Join(tmpDir, workspace.BootstrapAgents), []byte(agentsContent), 0644); err != nil {
-		t.Fatalf("Failed to create AGENTS.md: %v", err)
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapAgents), []byte(agentsContent), 0644); err != nil {
+		t.Fatalf("Failed to create main/AGENTS.md: %v", err)
 	}
 
 	userContent := "# User\nTest user content."
-	if err := os.WriteFile(filepath.Join(tmpDir, workspace.BootstrapUser), []byte(userContent), 0644); err != nil {
-		t.Fatalf("Failed to create USER.md: %v", err)
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapUser), []byte(userContent), 0644); err != nil {
+		t.Fatalf("Failed to create main/USER.md: %v", err)
 	}
 
 	toolsContent := "# Tools\nTest tools content."
-	if err := os.WriteFile(filepath.Join(tmpDir, workspace.BootstrapTools), []byte(toolsContent), 0644); err != nil {
-		t.Fatalf("Failed to create TOOLS.md: %v", err)
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapTools), []byte(toolsContent), 0644); err != nil {
+		t.Fatalf("Failed to create main/TOOLS.md: %v", err)
 	}
 
-	builder, err := NewBuilder(Config{Workspace: tmpDir})
+	builder, err := NewBuilder(Config{Workspace: ws, WorkspaceCfg: config.WorkspaceConfig{Path: tmpDir}})
 	if err != nil {
 		t.Fatalf("Failed to create builder: %v", err)
 	}
@@ -121,9 +124,8 @@ func TestBuilderGetComponent(t *testing.T) {
 func TestBuilderGetComponentMissingFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
-	builder, err := NewBuilder(Config{Workspace: tmpDir})
+	builder, err := NewBuilder(Config{Workspace: ws, WorkspaceCfg: config.WorkspaceConfig{Path: tmpDir}})
 	if err != nil {
 		t.Fatalf("Failed to create builder: %v", err)
 	}
@@ -143,15 +145,28 @@ func TestBuilderGetComponentMissingFile(t *testing.T) {
 func TestBuilderBuildWithMemoryEmpty(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+
+	mainDir := filepath.Join(tmpDir, "main")
+	if err := os.MkdirAll(mainDir, 0755); err != nil {
+		t.Fatalf("Failed to create main directory: %v", err)
+	}
 
 	// Create a bootstrap file so Build returns something
 	identityContent := "# Identity\nTest identity."
-	if err := os.WriteFile(filepath.Join(tmpDir, workspace.BootstrapIdentity), []byte(identityContent), 0644); err != nil {
-		t.Fatalf("Failed to create IDENTITY.md: %v", err)
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapIdentity), []byte(identityContent), 0644); err != nil {
+		t.Fatalf("Failed to create main/IDENTITY.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapUser), []byte("# User\nTest user"), 0644); err != nil {
+		t.Fatalf("Failed to create main/USER.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapTools), []byte("# Tools\nTest tools"), 0644); err != nil {
+		t.Fatalf("Failed to create main/TOOLS.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapAgents), []byte("# Agents\nTest agents"), 0644); err != nil {
+		t.Fatalf("Failed to create main/AGENTS.md: %v", err)
 	}
 
-	builder, err := NewBuilder(Config{Workspace: tmpDir})
+	builder, err := NewBuilder(Config{Workspace: ws, WorkspaceCfg: config.WorkspaceConfig{Path: tmpDir}})
 	if err != nil {
 		t.Fatalf("Failed to create builder: %v", err)
 	}
@@ -178,15 +193,28 @@ func TestBuilderBuildWithMemoryEmpty(t *testing.T) {
 func TestBuilderBuildWithMemoryMultipleMessages(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+
+	mainDir := filepath.Join(tmpDir, "main")
+	if err := os.MkdirAll(mainDir, 0755); err != nil {
+		t.Fatalf("Failed to create main directory: %v", err)
+	}
 
 	// Create a bootstrap file so Build returns something
 	identityContent := "# Identity\nTest identity."
-	if err := os.WriteFile(filepath.Join(tmpDir, workspace.BootstrapIdentity), []byte(identityContent), 0644); err != nil {
-		t.Fatalf("Failed to create IDENTITY.md: %v", err)
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapIdentity), []byte(identityContent), 0644); err != nil {
+		t.Fatalf("Failed to create main/IDENTITY.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapUser), []byte("# User\nTest user"), 0644); err != nil {
+		t.Fatalf("Failed to create main/USER.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapTools), []byte("# Tools\nTest tools"), 0644); err != nil {
+		t.Fatalf("Failed to create main/TOOLS.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapAgents), []byte("# Agents\nTest agents"), 0644); err != nil {
+		t.Fatalf("Failed to create main/AGENTS.md: %v", err)
 	}
 
-	builder, err := NewBuilder(Config{Workspace: tmpDir})
+	builder, err := NewBuilder(Config{Workspace: ws, WorkspaceCfg: config.WorkspaceConfig{Path: tmpDir}})
 	if err != nil {
 		t.Fatalf("Failed to create builder: %v", err)
 	}
@@ -225,15 +253,28 @@ func TestBuilderBuildWithMemoryMultipleMessages(t *testing.T) {
 func TestBuilderBuildForSession(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+
+	mainDir := filepath.Join(tmpDir, "main")
+	if err := os.MkdirAll(mainDir, 0755); err != nil {
+		t.Fatalf("Failed to create main directory: %v", err)
+	}
 
 	// Create a bootstrap file so Build returns something
 	identityContent := "# Identity\nTest identity."
-	if err := os.WriteFile(filepath.Join(tmpDir, workspace.BootstrapIdentity), []byte(identityContent), 0644); err != nil {
-		t.Fatalf("Failed to create IDENTITY.md: %v", err)
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapIdentity), []byte(identityContent), 0644); err != nil {
+		t.Fatalf("Failed to create main/IDENTITY.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapUser), []byte("# User\nTest user"), 0644); err != nil {
+		t.Fatalf("Failed to create main/USER.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapTools), []byte("# Tools\nTest tools"), 0644); err != nil {
+		t.Fatalf("Failed to create main/TOOLS.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapAgents), []byte("# Agents\nTest agents"), 0644); err != nil {
+		t.Fatalf("Failed to create main/AGENTS.md: %v", err)
 	}
 
-	builder, err := NewBuilder(Config{Workspace: tmpDir})
+	builder, err := NewBuilder(Config{Workspace: ws, WorkspaceCfg: config.WorkspaceConfig{Path: tmpDir}})
 	if err != nil {
 		t.Fatalf("Failed to create builder: %v", err)
 	}
@@ -258,15 +299,28 @@ func TestBuilderBuildForSession(t *testing.T) {
 func TestBuilderBuildForSessionWithChannelChatID(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+
+	mainDir := filepath.Join(tmpDir, "main")
+	if err := os.MkdirAll(mainDir, 0755); err != nil {
+		t.Fatalf("Failed to create main directory: %v", err)
+	}
 
 	// Create a bootstrap file so Build returns something
 	identityContent := "# Identity\nTest identity."
-	if err := os.WriteFile(filepath.Join(tmpDir, workspace.BootstrapIdentity), []byte(identityContent), 0644); err != nil {
-		t.Fatalf("Failed to create IDENTITY.md: %v", err)
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapIdentity), []byte(identityContent), 0644); err != nil {
+		t.Fatalf("Failed to create main/IDENTITY.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapUser), []byte("# User\nTest user"), 0644); err != nil {
+		t.Fatalf("Failed to create main/USER.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapTools), []byte("# Tools\nTest tools"), 0644); err != nil {
+		t.Fatalf("Failed to create main/TOOLS.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapAgents), []byte("# Agents\nTest agents"), 0644); err != nil {
+		t.Fatalf("Failed to create main/AGENTS.md: %v", err)
 	}
 
-	builder, err := NewBuilder(Config{Workspace: tmpDir})
+	builder, err := NewBuilder(Config{Workspace: ws, WorkspaceCfg: config.WorkspaceConfig{Path: tmpDir}})
 	if err != nil {
 		t.Fatalf("Failed to create builder: %v", err)
 	}
@@ -301,7 +355,11 @@ func TestBuilderBuildForSessionWithChannelChatID(t *testing.T) {
 func TestBuilderProcessTemplates(t *testing.T) {
 	tmpDir := t.TempDir()
 	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
-	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+
+	mainDir := filepath.Join(tmpDir, "main")
+	if err := os.MkdirAll(mainDir, 0755); err != nil {
+		t.Fatalf("Failed to create main directory: %v", err)
+	}
 
 	// Create IDENTITY.md with template variables
 	identityContent := `# Identity
@@ -309,11 +367,20 @@ Workspace: {{WORKSPACE_PATH}}
 Time: {{CURRENT_TIME}}
 Date: {{CURRENT_DATE}}
 `
-	if err := os.WriteFile(filepath.Join(tmpDir, workspace.BootstrapIdentity), []byte(identityContent), 0644); err != nil {
-		t.Fatalf("Failed to create IDENTITY.md: %v", err)
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapIdentity), []byte(identityContent), 0644); err != nil {
+		t.Fatalf("Failed to create main/IDENTITY.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapUser), []byte("# User\nTest user"), 0644); err != nil {
+		t.Fatalf("Failed to create main/USER.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapTools), []byte("# Tools\nTest tools"), 0644); err != nil {
+		t.Fatalf("Failed to create main/TOOLS.md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(mainDir, workspace.BootstrapAgents), []byte("# Agents\nTest agents"), 0644); err != nil {
+		t.Fatalf("Failed to create main/AGENTS.md: %v", err)
 	}
 
-	builder, err := NewBuilder(Config{Workspace: tmpDir})
+	builder, err := NewBuilder(Config{Workspace: ws, WorkspaceCfg: config.WorkspaceConfig{Path: tmpDir}})
 	if err != nil {
 		t.Fatalf("Failed to create builder: %v", err)
 	}

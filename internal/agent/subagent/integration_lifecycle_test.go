@@ -28,7 +28,7 @@ func TestSubagentSessionIsolation(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{response: "OK"},
 			Logger:      log,
@@ -78,7 +78,7 @@ func TestSubagentLifecycle(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{response: "Lifecycle OK"},
 			Logger:      log,
@@ -132,7 +132,7 @@ func TestSpawnToolSchemaSerialization(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{},
 			Logger:      log,

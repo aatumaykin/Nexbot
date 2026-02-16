@@ -29,7 +29,7 @@ func TestMultiSubagent(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{response: "Task completed"},
 			Logger:      log,

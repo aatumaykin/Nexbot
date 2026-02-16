@@ -28,7 +28,7 @@ func TestSpawnWorkflow(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{response: "Subagent task completed"},
 			Logger:      log,
@@ -109,7 +109,7 @@ func TestSubagentWithScheduler(t *testing.T) {
 		SessionDir: tempDir,
 		Logger:     log,
 		LoopConfig: loop.Config{
-			Workspace:   tempDir,
+			Workspace:   ws,
 			SessionDir:  tempDir,
 			LLMProvider: &mockLLMProvider{response: "Scheduled task completed"},
 			Logger:      log,

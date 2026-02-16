@@ -8,7 +8,9 @@ import (
 
 	"github.com/aatumaykin/nexbot/internal/agent/memory"
 	"github.com/aatumaykin/nexbot/internal/agent/session"
+	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/llm"
+	"github.com/aatumaykin/nexbot/internal/workspace"
 )
 
 // TestFullContextWorkflow tests the complete workflow: Session → Memory → Context
@@ -21,16 +23,25 @@ func TestFullContextWorkflow(t *testing.T) {
 		if err := os.MkdirAll(workspaceDir, 0755); err != nil {
 			t.Fatalf("Failed to create workspace: %v", err)
 		}
+		ws := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
 
-		// Create context files
-		if err := os.WriteFile(filepath.Join(workspaceDir, "IDENTITY.md"), []byte("# Identity\nNexbot Assistant"), 0644); err != nil {
-			t.Fatalf("Failed to create IDENTITY.md: %v", err)
+		// Create context files in main/
+		mainDir := filepath.Join(workspaceDir, "main")
+		if err := os.MkdirAll(mainDir, 0755); err != nil {
+			t.Fatalf("Failed to create main directory: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(workspaceDir, "AGENTS.md"), []byte("# Agents\nBe helpful"), 0644); err != nil {
-			t.Fatalf("Failed to create AGENTS.md: %v", err)
+
+		if err := os.WriteFile(filepath.Join(mainDir, "IDENTITY.md"), []byte("# Identity\nNexbot Assistant"), 0644); err != nil {
+			t.Fatalf("Failed to create main/IDENTITY.md: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(workspaceDir, "TOOLS.md"), []byte("# Tools\nFile ops, Shell commands"), 0644); err != nil {
-			t.Fatalf("Failed to create TOOLS.md: %v", err)
+		if err := os.WriteFile(filepath.Join(mainDir, "AGENTS.md"), []byte("# Agents\nBe helpful"), 0644); err != nil {
+			t.Fatalf("Failed to create main/AGENTS.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "TOOLS.md"), []byte("# Tools\nFile ops, Shell commands"), 0644); err != nil {
+			t.Fatalf("Failed to create main/TOOLS.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "USER.md"), []byte("# User\nTest user"), 0644); err != nil {
+			t.Fatalf("Failed to create main/USER.md: %v", err)
 		}
 
 		// Create session manager
@@ -52,7 +63,8 @@ func TestFullContextWorkflow(t *testing.T) {
 
 		// Create context builder
 		ctxBuilder, err := NewBuilder(Config{
-			Workspace: workspaceDir,
+			Workspace:    ws,
+			WorkspaceCfg: config.WorkspaceConfig{Path: workspaceDir},
 		})
 		if err != nil {
 			t.Fatalf("Failed to create context builder: %v", err)
@@ -202,9 +214,24 @@ func TestContextBuilderWithMemory(t *testing.T) {
 		if err := os.MkdirAll(workspaceDir, 0755); err != nil {
 			t.Fatalf("Failed to create workspace: %v", err)
 		}
+		ws := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
 
-		if err := os.WriteFile(filepath.Join(workspaceDir, "IDENTITY.md"), []byte("# Identity\nTest Assistant"), 0644); err != nil {
-			t.Fatalf("Failed to create IDENTITY.md: %v", err)
+		mainDir := filepath.Join(workspaceDir, "main")
+		if err := os.MkdirAll(mainDir, 0755); err != nil {
+			t.Fatalf("Failed to create main directory: %v", err)
+		}
+
+		if err := os.WriteFile(filepath.Join(mainDir, "IDENTITY.md"), []byte("# Identity\nTest Assistant"), 0644); err != nil {
+			t.Fatalf("Failed to create main/IDENTITY.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "USER.md"), []byte("# User\nTest user"), 0644); err != nil {
+			t.Fatalf("Failed to create main/USER.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "TOOLS.md"), []byte("# Tools\nTest tools"), 0644); err != nil {
+			t.Fatalf("Failed to create main/TOOLS.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "AGENTS.md"), []byte("# Agents\nTest agents"), 0644); err != nil {
+			t.Fatalf("Failed to create main/AGENTS.md: %v", err)
 		}
 
 		// Create memory store with messages
@@ -235,12 +262,13 @@ func TestContextBuilderWithMemory(t *testing.T) {
 		// Get recent messages (last 2)
 		recent, err := memStore.GetLastN(sessionID, 2)
 		if err != nil {
-			t.Fatalf("Failed to get recent messages: %v", err)
+			t.Fatalf("Failed to create memory store: %v", err)
 		}
 
-		// Build context with recent memory
+		// Create context builder
 		ctxBuilder, err := NewBuilder(Config{
-			Workspace: workspaceDir,
+			Workspace:    ws,
+			WorkspaceCfg: config.WorkspaceConfig{Path: workspaceDir},
 		})
 		if err != nil {
 			t.Fatalf("Failed to create context builder: %v", err)
@@ -279,9 +307,24 @@ func TestMultipleSessionsWithSameContext(t *testing.T) {
 		if err := os.MkdirAll(workspaceDir, 0755); err != nil {
 			t.Fatalf("Failed to create workspace: %v", err)
 		}
+		ws := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
 
-		if err := os.WriteFile(filepath.Join(workspaceDir, "IDENTITY.md"), []byte("# Identity\nShared Assistant"), 0644); err != nil {
-			t.Fatalf("Failed to create IDENTITY.md: %v", err)
+		mainDir := filepath.Join(workspaceDir, "main")
+		if err := os.MkdirAll(mainDir, 0755); err != nil {
+			t.Fatalf("Failed to create main directory: %v", err)
+		}
+
+		if err := os.WriteFile(filepath.Join(mainDir, "IDENTITY.md"), []byte("# Identity\nShared Assistant"), 0644); err != nil {
+			t.Fatalf("Failed to create main/IDENTITY.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "USER.md"), []byte("# User\nTest user"), 0644); err != nil {
+			t.Fatalf("Failed to create main/USER.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "TOOLS.md"), []byte("# Tools\nTest tools"), 0644); err != nil {
+			t.Fatalf("Failed to create main/TOOLS.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "AGENTS.md"), []byte("# Agents\nTest agents"), 0644); err != nil {
+			t.Fatalf("Failed to create main/AGENTS.md: %v", err)
 		}
 
 		// Create session manager
@@ -303,7 +346,8 @@ func TestMultipleSessionsWithSameContext(t *testing.T) {
 
 		// Create context builder
 		ctxBuilder, err := NewBuilder(Config{
-			Workspace: workspaceDir,
+			Workspace:    ws,
+			WorkspaceCfg: config.WorkspaceConfig{Path: workspaceDir},
 		})
 		if err != nil {
 			t.Fatalf("Failed to create context builder: %v", err)
@@ -407,13 +451,29 @@ func TestMemoryFormatsIntegration(t *testing.T) {
 		if err := os.MkdirAll(workspaceDir, 0755); err != nil {
 			t.Fatalf("Failed to create workspace: %v", err)
 		}
+		ws := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
 
-		if err := os.WriteFile(filepath.Join(workspaceDir, "IDENTITY.md"), []byte("# Identity\nTest"), 0644); err != nil {
-			t.Fatalf("Failed to create IDENTITY.md: %v", err)
+		mainDir := filepath.Join(workspaceDir, "main")
+		if err := os.MkdirAll(mainDir, 0755); err != nil {
+			t.Fatalf("Failed to create main directory: %v", err)
+		}
+
+		if err := os.WriteFile(filepath.Join(mainDir, "IDENTITY.md"), []byte("# Identity\nTest"), 0644); err != nil {
+			t.Fatalf("Failed to create main/IDENTITY.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "USER.md"), []byte("# User\nTest user"), 0644); err != nil {
+			t.Fatalf("Failed to create main/USER.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "TOOLS.md"), []byte("# Tools\nTest tools"), 0644); err != nil {
+			t.Fatalf("Failed to create main/TOOLS.md: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(mainDir, "AGENTS.md"), []byte("# Agents\nTest agents"), 0644); err != nil {
+			t.Fatalf("Failed to create main/AGENTS.md: %v", err)
 		}
 
 		ctxBuilder, err := NewBuilder(Config{
-			Workspace: workspaceDir,
+			Workspace:    ws,
+			WorkspaceCfg: config.WorkspaceConfig{Path: workspaceDir},
 		})
 		if err != nil {
 			t.Fatalf("Failed to create context builder: %v", err)
