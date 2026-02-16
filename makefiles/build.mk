@@ -2,7 +2,7 @@
 # Build & Deploy
 # ==========================================
 
-.PHONY: build build-all build-linux build-darwin build-darwin-arm build-windows install install-user release
+.PHONY: build build-all build-linux build-linux-arm64 build-darwin build-darwin-arm build-windows install install-user release
 
 build: ## Build binary for current platform
 	@echo "🔨 Building $(BINARY_NAME) for $(GOOS)/$(GOARCH)..."
@@ -40,6 +40,15 @@ build-linux: ## Build for Linux (amd64)
 		-o $(OUTPUT_DIR)/$(BINARY_NAME)-linux-amd64 \
 		$(MAIN_PATH)
 	@echo "✅ Build complete: $(OUTPUT_DIR)/$(BINARY_NAME)-linux-amd64"
+
+build-linux-arm64: ## Build for Linux (ARM64)
+	@echo "🔨 Building for Linux ARM64..."
+	@mkdir -p $(OUTPUT_DIR)
+	GOOS=linux GOARCH=arm64 go build -v \
+		-ldflags "$(LDFLAGS)" \
+		-o $(OUTPUT_DIR)/$(BINARY_NAME)-linux-arm64 \
+		$(MAIN_PATH)
+	@echo "✅ Build complete: $(OUTPUT_DIR)/$(BINARY_NAME)-linux-arm64"
 
 build-darwin: ## Build for macOS (amd64)
 	@echo "🔨 Building for macOS amd64..."
