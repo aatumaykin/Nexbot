@@ -108,7 +108,6 @@ func (p *ContainerPool) CreateContainer(ctx context.Context) (*Container, error)
 
 	container := &Container{
 		ID:         id,
-		Status:     StatusIdle,
 		StdinPipe:  hijack.Conn,
 		StdoutPipe: hijack.Reader,
 		hijackConn: hijack.Conn,
@@ -119,19 +118,11 @@ func (p *ContainerPool) CreateContainer(ctx context.Context) (*Container, error)
 		maxPending: maxPending,
 		inspectTTL: inspectTTL,
 	}
+	container.SetStatus(StatusIdle)
 
-	p.containers[id] = container
 	go p.readResponses(container)
 
 	return container, nil
-}
-
-func (p *ContainerPool) createAndStartContainer(ctx context.Context) (string, error) {
-	container, err := p.CreateContainer(ctx)
-	if err != nil {
-		return "", err
-	}
-	return container.ID, nil
 }
 
 func (p *ContainerPool) readResponses(c *Container) {
@@ -231,7 +222,7 @@ func (p *ContainerPool) IsHealthy() bool {
 	}
 
 	for _, c := range p.containers {
-		if c.Status == StatusIdle {
+		if c.GetStatus() == StatusIdle {
 			return true
 		}
 	}

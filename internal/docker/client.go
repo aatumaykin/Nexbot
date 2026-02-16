@@ -130,26 +130,6 @@ func (c *DockerClient) CreateContainer(ctx context.Context, cfg PoolConfig) (str
 	// Build environment variables
 	env := []string{"SKILLS_PATH=/workspace/skills"}
 
-	// Add LLM API key from environment
-	if cfg.LLMAPIKeyEnv != "" {
-		apiKeyValue := os.Getenv(cfg.LLMAPIKeyEnv)
-		if apiKeyValue != "" {
-			env = append(env, fmt.Sprintf("%s=%s", cfg.LLMAPIKeyEnv, apiKeyValue))
-		}
-	}
-
-	// Add additional environment variables from config
-	for _, envVar := range cfg.Environment {
-		parts := strings.SplitN(envVar, "=", 2)
-		if len(parts) == 1 {
-			if value := os.Getenv(parts[0]); value != "" {
-				env = append(env, fmt.Sprintf("%s=%s", parts[0], value))
-			}
-		} else {
-			env = append(env, envVar)
-		}
-	}
-
 	// Use standard alpine image
 	imageRef := "alpine:3.23"
 

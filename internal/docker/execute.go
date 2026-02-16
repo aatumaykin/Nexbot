@@ -195,29 +195,30 @@ func (p *ContainerPool) acquire() (*Container, error) {
 	defer p.mu.Unlock()
 
 	for _, c := range p.containers {
-		if c.Status != StatusIdle {
+		if c.GetStatus() != StatusIdle {
 			continue
 		}
 
 		isRunning, err := c.IsRunning(p.ctx, p.client)
 		if err != nil || !isRunning {
-			c.Status = StatusError
+			c.SetStatus(StatusError)
 			continue
 		}
 
-		c.Status = StatusBusy
+		c.SetStatus(StatusBusy)
 		c.LastUsed = time.Now()
 		return c, nil
 	}
 
 	p.mu.Unlock()
 	container, err := p.CreateContainer(context.Background())
-	p.mu.Lock()
 	if err != nil {
 		return nil, err
 	}
 
-	container.Status = StatusBusy
+	p.mu.Lock()
+	p.containers[container.ID] = container
+	container.SetStatus(StatusBusy)
 	container.LastUsed = time.Now()
 	return container, nil
 }
@@ -227,7 +228,7 @@ func (p *ContainerPool) Release(containerID string) {
 	defer p.mu.Unlock()
 
 	if c, ok := p.containers[containerID]; ok {
-		c.Status = StatusIdle
+		c.SetStatus(StatusIdle)
 
 		timeout := 5
 		if err := p.client.StopContainer(context.Background(), containerID, &timeout); err != nil {
@@ -241,8 +242,11 @@ func (p *ContainerPool) Release(containerID string) {
 }
 
 func (p *ContainerPool) markContainerDead(containerID string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if c, ok := p.containers[containerID]; ok {
-		c.Status = StatusError
+		c.SetStatus(StatusError)
 		p.log.Warn("container marked as dead", "container_id", containerID)
 	}
 }

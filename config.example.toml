@@ -267,10 +267,6 @@ readonly_rootfs = false
 # Переменная окружения с API ключом для LLM
 llm_api_key_env = "ZAI_API_KEY"
 
-# Дополнительные переменные окружения для контейнера
-# Можно указать NAME=value или просто NAME (значение берется из хоста)
-# environment = ["TELEGRAM_BOT_TOKEN", "CUSTOM_VAR=value"]
-
 # Rate limiting: максимум задач в минуту
 max_tasks_per_minute = 60
 

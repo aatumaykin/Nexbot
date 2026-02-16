@@ -13,12 +13,12 @@ import (
 
 const ProtocolVersion = "1.0"
 
-type ContainerStatus string
+type ContainerStatus int32
 
 const (
-	StatusIdle  ContainerStatus = "idle"
-	StatusBusy  ContainerStatus = "busy"
-	StatusError ContainerStatus = "error"
+	StatusIdle ContainerStatus = iota
+	StatusBusy
+	StatusError
 )
 
 type pendingEntry struct {
@@ -30,7 +30,7 @@ type pendingEntry struct {
 
 type Container struct {
 	ID                    string
-	Status                ContainerStatus
+	status                atomic.Int32
 	StdinPipe             io.Writer
 	StdoutPipe            io.Reader
 	hijackConn            io.ReadWriteCloser
@@ -47,6 +47,14 @@ type Container struct {
 	lastInspect       time.Time
 	lastInspectResult *container.InspectResponse
 	inspectTTL        time.Duration
+}
+
+func (c *Container) GetStatus() ContainerStatus {
+	return ContainerStatus(c.status.Load())
+}
+
+func (c *Container) SetStatus(s ContainerStatus) {
+	c.status.Store(int32(s))
 }
 
 func (c *Container) Close() error {
@@ -83,7 +91,6 @@ type PoolConfig struct {
 	PidsLimit   int64
 
 	LLMAPIKeyEnv string
-	Environment  []string // Additional environment variables
 
 	PullPolicy string
 

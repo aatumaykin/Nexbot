@@ -2,6 +2,7 @@ package docker
 
 import (
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -27,19 +28,19 @@ func TestContainer_TryIncrementPending_Concurrent(t *testing.T) {
 		maxPending: 100,
 	}
 	var wg sync.WaitGroup
-	var success int64
+	var success atomic.Int64
 	for i := 0; i < 200; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			if c.tryIncrementPending() {
-				success++
+				success.Add(1)
 			}
 		}()
 	}
 	wg.Wait()
-	if success != 100 {
-		t.Errorf("expected 100 successes, got %d", success)
+	if success.Load() != 100 {
+		t.Errorf("expected 100 successes, got %d", success.Load())
 	}
 }
 

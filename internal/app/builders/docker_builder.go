@@ -63,7 +63,6 @@ func BuildDockerPool(cfg *config.Config, log *logger.Logger) (*docker.ContainerP
 		CPULimit:                cfg.Docker.CPULimit,
 		PidsLimit:               cfg.Docker.PidsLimit,
 		LLMAPIKeyEnv:            cfg.Docker.LLMAPIKeyEnv,
-		Environment:             cfg.Docker.Environment,
 		MaxTasksPerMinute:       cfg.Docker.MaxTasksPerMinute,
 		CircuitBreakerThreshold: cfg.Docker.CircuitBreakerThreshold,
 		CircuitBreakerTimeout:   time.Duration(cfg.Docker.CircuitBreakerTimeout) * time.Second,

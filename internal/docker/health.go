@@ -101,9 +101,14 @@ func (p *ContainerPool) RecreateUnhealthy(ctx context.Context) error {
 				p.log.Error("failed to remove unhealthy container", "container_id", status.ContainerID, "error", err)
 			}
 
-			if _, err := p.createAndStartContainer(ctx); err != nil {
+			container, err := p.CreateContainer(ctx)
+			if err != nil {
 				return fmt.Errorf("failed to recreate container: %w", err)
 			}
+
+			p.mu.Lock()
+			p.containers[container.ID] = container
+			p.mu.Unlock()
 
 			p.metrics.Recreations.Add(1)
 		}

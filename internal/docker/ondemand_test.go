@@ -67,14 +67,6 @@ func TestOnDemandContainerCreation(t *testing.T) {
 		t.Fatal("Container is nil")
 	}
 
-	pool.mu.RLock()
-	containerCountAfterCreate := len(pool.containers)
-	pool.mu.RUnlock()
-
-	if containerCountAfterCreate != 1 {
-		t.Errorf("Expected 1 container after CreateContainer, got %d", containerCountAfterCreate)
-	}
-
 	time.Sleep(1 * time.Second)
 
 	pool.Release(container.ID)

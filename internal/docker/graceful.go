@@ -25,7 +25,7 @@ drainLoop:
 		busyCount := 0
 		p.mu.RLock()
 		for _, c := range p.containers {
-			if c.Status == StatusBusy {
+			if c.GetStatus() == StatusBusy {
 				busyCount++
 			}
 		}
