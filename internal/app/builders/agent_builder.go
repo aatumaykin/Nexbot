@@ -32,7 +32,8 @@ func NewAgentBuilder(cfg *config.Config, log *logger.Logger, provider llm.Provid
 
 func (b *AgentBuilder) BuildLoop() (*loop.Loop, error) {
 	agentLoop, err := loop.NewLoop(loop.Config{
-		Workspace:         b.workspace.Path(),
+		Workspace:         b.workspace,
+		WorkspaceCfg:      config.WorkspaceConfig{Path: b.workspace.Path()},
 		SessionDir:        b.workspace.Subpath("sessions"),
 		Timezone:          b.config.Cron.Timezone,
 		LLMProvider:       b.provider,
@@ -60,7 +61,8 @@ func (b *AgentBuilder) BuildSubagentManager(agentLoop *loop.Loop) (*subagent.Man
 		SessionDir: b.workspace.Subpath("sessions"),
 		Logger:     b.logger,
 		LoopConfig: loop.Config{
-			Workspace:         b.workspace.Path(),
+			Workspace:         b.workspace,
+			WorkspaceCfg:      config.WorkspaceConfig{Path: b.workspace.Path()},
 			SessionDir:        b.workspace.Subpath("sessions"),
 			LLMProvider:       b.provider,
 			Logger:            b.logger,

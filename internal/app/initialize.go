@@ -12,6 +12,7 @@ import (
 	"github.com/aatumaykin/nexbot/internal/bus"
 	"github.com/aatumaykin/nexbot/internal/channels/telegram"
 	"github.com/aatumaykin/nexbot/internal/commands"
+	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/cron"
 	"github.com/aatumaykin/nexbot/internal/docker"
 	"github.com/aatumaykin/nexbot/internal/ipc"
@@ -85,6 +86,18 @@ func (a *App) Initialize(ctx context.Context) error {
 	if err := ws.EnsureSubpath("sessions"); err != nil {
 		return fmt.Errorf("failed to create sessions subdirectory: %w", err)
 	}
+	if err := ws.EnsureSubpath("main"); err != nil {
+		return fmt.Errorf("failed to create main subdirectory: %w", err)
+	}
+	if err := ws.EnsureSubpath("subagent"); err != nil {
+		return fmt.Errorf("failed to create subagent subdirectory: %w", err)
+	}
+	if err := ws.EnsureSubpath("memory"); err != nil {
+		return fmt.Errorf("failed to create memory subdirectory: %w", err)
+	}
+	if err := ws.EnsureSubpath("skills"); err != nil {
+		return fmt.Errorf("failed to create skills subdirectory: %w", err)
+	}
 
 	// 4.1. Initialize secrets directory
 	secretsDir := a.config.SecretsDir()
@@ -110,7 +123,8 @@ func (a *App) Initialize(ctx context.Context) error {
 
 	// 5. Initialize agent loop
 	agentLoop, err := loop.NewLoop(loop.Config{
-		Workspace:         ws.Path(),
+		Workspace:         ws,
+		WorkspaceCfg:      config.WorkspaceConfig{Path: ws.Path()},
 		SessionDir:        ws.Subpath("sessions"),
 		Timezone:          a.config.Cron.Timezone,
 		LLMProvider:       provider,
@@ -134,7 +148,8 @@ func (a *App) Initialize(ctx context.Context) error {
 			SessionDir: ws.Subpath("sessions"),
 			Logger:     a.logger,
 			LoopConfig: loop.Config{
-				Workspace:         ws.Path(),
+				Workspace:         ws,
+				WorkspaceCfg:      config.WorkspaceConfig{Path: ws.Path()},
 				SessionDir:        ws.Subpath("sessions"),
 				LLMProvider:       provider,
 				Logger:            a.logger,
