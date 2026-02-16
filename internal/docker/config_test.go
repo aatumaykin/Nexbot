@@ -39,10 +39,8 @@ func TestPoolConfig_VolumeMounts(t *testing.T) {
 			errContains: "skills_mount_path not specified",
 		},
 		{
-			name: "all paths missing",
-			cfg: PoolConfig{
-				ContainerCount: 1,
-			},
+			name:        "all paths missing",
+			cfg:         PoolConfig{},
 			wantErr:     true,
 			errContains: "subagent_prompts_path not specified",
 		},

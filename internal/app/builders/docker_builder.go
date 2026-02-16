@@ -50,11 +50,9 @@ func BuildDockerPool(cfg *config.Config, log *logger.Logger) (*docker.ContainerP
 		return nil, nil
 	}
 
-	log.Info("initializing docker pool",
-		logger.Field{Key: "containers", Value: cfg.Docker.ContainerCount})
+	log.Info("initializing docker pool")
 
 	poolCfg := docker.PoolConfig{
-		ContainerCount:          cfg.Docker.ContainerCount,
 		PullPolicy:              cfg.Docker.PullPolicy,
 		TaskTimeout:             time.Duration(cfg.Docker.TaskTimeout) * time.Second,
 		SkillsMountPath:         expandHome(cfg.Docker.SkillsMountPath),
@@ -77,9 +75,6 @@ func BuildDockerPool(cfg *config.Config, log *logger.Logger) (*docker.ContainerP
 	}
 
 	// Apply defaults if zero
-	if poolCfg.ContainerCount == 0 {
-		poolCfg.ContainerCount = 1
-	}
 	if poolCfg.MemoryLimit == "" {
 		poolCfg.MemoryLimit = "128m"
 	}

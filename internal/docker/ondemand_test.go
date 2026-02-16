@@ -25,11 +25,10 @@ func TestOnDemandContainerCreation(t *testing.T) {
 	defer client.Close()
 
 	poolCfg := PoolConfig{
-		BinaryPath:          "/tmp/nexbot-bin/nexbot",
+		BinaryPath:          "/Users/atumaikin/Projects/Nexbot/bin/nexbot-linux-arm64",
 		SubagentPromptsPath: "/Users/atumaikin/.nexbot/subagent",
 		SkillsMountPath:     "/Users/atumaikin/.nexbot/skills",
 		ConfigPath:          "/Users/atumaikin/.config/nexbot/config.toml",
-		ContainerCount:      0,
 		TaskTimeout:         30 * time.Second,
 		MemoryLimit:         "128m",
 		CPULimit:            0.5,

@@ -72,9 +72,7 @@ func (c *Container) tryIncrementPending() bool {
 }
 
 type PoolConfig struct {
-	ContainerCount      int
 	TaskTimeout         time.Duration
-	WorkspacePath       string
 	SkillsMountPath     string
 	BinaryPath          string // Path to binary executable (e.g., os.Executable())
 	SubagentPromptsPath string // Path to subagent prompts directory
