@@ -191,12 +191,10 @@ func (c *Config) SecretsDir() string {
 // DockerConfig представляет конфигурацию Docker сабагентов
 type DockerConfig struct {
 	// Основные настройки
-	Enabled        bool     `toml:"enabled"`
-	PullPolicy     string   `toml:"pull_policy"`
-	ContainerCount int      `toml:"container_count"`
-	TaskTimeout    int      `toml:"task_timeout_seconds"`
-	WorkspaceMount string   `toml:"workspace_mount"`
-	Environment    []string `toml:"environment"`
+	Enabled     bool     `toml:"enabled"`
+	PullPolicy  string   `toml:"pull_policy"`
+	TaskTimeout int      `toml:"task_timeout_seconds"`
+	Environment []string `toml:"environment"`
 
 	// Volume mounts
 	BinaryPath          string `toml:"binary_path"`           // Optional: defaults to os.Executable()

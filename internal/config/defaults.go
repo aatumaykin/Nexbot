@@ -4,9 +4,7 @@ func DefaultDockerConfig() DockerConfig {
 	return DockerConfig{
 		Enabled:                 false,
 		PullPolicy:              "if-not-present",
-		ContainerCount:          1,
 		TaskTimeout:             300,
-		WorkspaceMount:          "~/.nexbot",
 		SubagentPromptsPath:     "~/.nexbot/subagent",
 		SkillsMountPath:         "~/.nexbot/skills",
 		MemoryLimit:             "128m",
@@ -21,6 +19,6 @@ func DefaultDockerConfig() DockerConfig {
 		InspectTTL:              5,
 		SecretsTTL:              300,
 		SecurityOpt:             []string{"no-new-privileges"},
-		ReadonlyRootfs:          true,
+		ReadonlyRootfs:          false,
 	}
 }

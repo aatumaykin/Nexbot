@@ -19,10 +19,6 @@ func (c *DockerConfig) Validate() error {
 		return fmt.Errorf("docker.pull_policy must be one of: always, if-not-present, never")
 	}
 
-	if c.ContainerCount < 1 {
-		return fmt.Errorf("docker.container_count must be >= 1")
-	}
-
 	if c.TaskTimeout < 1 {
 		return fmt.Errorf("docker.task_timeout_seconds must be >= 1")
 	}

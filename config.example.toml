@@ -236,14 +236,8 @@ enabled = true
 # Политика загрузки образов: always, if-not-present, never
 pull_policy = "if-not-present"
 
-# Количество контейнеров в пуле
-container_count = 1
-
 # Таймаут выполнения задачи (в секундах)
 task_timeout_seconds = 300
-
-# Путь к workspace для монтирования
-workspace_mount = "~/.nexbot"
 
 # Путь к subagent prompts для монтирования
 subagent_prompts_path = "~/.nexbot/subagent"
@@ -252,7 +246,8 @@ subagent_prompts_path = "~/.nexbot/subagent"
 skills_mount_path = "~/.nexbot/skills"
 
 # Путь к бинарному файлу (опционально, по умолчанию os.Executable())
-# binary_path = "/usr/local/bin/nexbot"
+# Для Docker на macOS с ARM64: build-linux-arm64 и укажите путь к нему
+# binary_path = "/path/to/nexbot/bin/nexbot-linux-arm64"
 
 # Лимит памяти (например: 128m, 256m, 1g)
 memory_limit = "128m"
