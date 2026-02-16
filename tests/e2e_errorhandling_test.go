@@ -20,6 +20,7 @@ import (
 // TestE2E_ToolErrorHandling tests error handling when tools fail
 func TestE2E_ToolErrorHandling(t *testing.T) {
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 	workspaceDir := filepath.Join(tmpDir, "workspace")
 	sessionDir := filepath.Join(tmpDir, "sessions")
 
@@ -100,6 +101,7 @@ func TestE2E_ToolErrorHandling(t *testing.T) {
 // TestE2E_ShellExecTool tests shell_exec tool execution
 func TestE2E_ShellExecTool(t *testing.T) {
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 	workspaceDir := filepath.Join(tmpDir, "workspace")
 	sessionDir := filepath.Join(tmpDir, "sessions")
 
