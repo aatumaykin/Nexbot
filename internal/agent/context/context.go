@@ -7,41 +7,57 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/workspace"
 )
 
-// Context defines the structure for context components.
+// Context defines a structure for context components.
 type Context struct {
 	Workspace string // Workspace directory path
 }
 
 // Builder builds system prompts from various context components.
 type Builder struct {
-	workspace string
-	timezone  string
+	workspace    *workspace.Workspace
+	workspaceCfg config.WorkspaceConfig
+	timezone     string
+	loader       *workspace.BootstrapLoader
 }
 
-// Config holds configuration for the context builder.
+// Config holds configuration for context builder.
 type Config struct {
-	Workspace string // Workspace directory path
-	Timezone  string // User timezone (e.g., "Europe/Moscow")
+	Workspace    *workspace.Workspace
+	WorkspaceCfg config.WorkspaceConfig
+	Timezone     string // User timezone (e.g., "Europe/Moscow")
 }
 
 // NewBuilder creates a new context builder.
 func NewBuilder(config Config) (*Builder, error) {
-	if config.Workspace == "" {
-		return nil, fmt.Errorf("workspace path cannot be empty")
+	if config.Workspace == nil {
+		return nil, fmt.Errorf("workspace cannot be nil")
 	}
 
+	wsPath := config.Workspace.Path()
+
 	// Verify workspace exists
-	if _, err := os.Stat(config.Workspace); err != nil {
+	if _, err := os.Stat(wsPath); err != nil {
 		return nil, fmt.Errorf("workspace directory not found: %w", err)
 	}
 
+	workspaceCfg := config.WorkspaceCfg
+	if workspaceCfg.Path == "" {
+		workspaceCfg.Path = wsPath
+	}
+
+	// Create bootstrap loader for main agent
+	loader := workspace.NewBootstrapLoader(config.Workspace, workspaceCfg, nil, "main")
+
 	return &Builder{
-		workspace: config.Workspace,
-		timezone:  config.Timezone,
+		workspace:    config.Workspace,
+		workspaceCfg: workspaceCfg,
+		timezone:     config.Timezone,
+		loader:       loader,
 	}, nil
 }
 
@@ -51,9 +67,17 @@ func (b *Builder) Build() (string, error) {
 	var builder strings.Builder
 
 	// 1. AGENTS - Agent instructions and behavior
-	agents, err := b.readFile(workspace.BootstrapAgents)
-	if err != nil && !os.IsNotExist(err) {
-		return "", fmt.Errorf("failed to read AGENTS.md: %w", err)
+	agents, err := b.loader.LoadFile(workspace.BootstrapIdentity)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Try fallback to embedded defaults
+			agents = workspace.GetDefaultFile(workspace.BootstrapIdentity)
+			if agents == "" {
+				return "", fmt.Errorf("no AGENTS.md found and no embedded default")
+			}
+		} else {
+			return "", fmt.Errorf("failed to read AGENTS.md: %w", err)
+		}
 	}
 	if agents != "" {
 		processed, err := b.processTemplates(agents)
@@ -65,9 +89,17 @@ func (b *Builder) Build() (string, error) {
 	}
 
 	// 2. IDENTITY - Core identity and purpose
-	identity, err := b.readFile(workspace.BootstrapIdentity)
-	if err != nil && !os.IsNotExist(err) {
-		return "", fmt.Errorf("failed to read IDENTITY.md: %w", err)
+	identity, err := b.loader.LoadFile(workspace.BootstrapIdentity)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Try fallback to embedded defaults
+			identity = workspace.GetDefaultFile(workspace.BootstrapIdentity)
+			if identity == "" {
+				return "", fmt.Errorf("no IDENTITY.md found and no embedded default")
+			}
+		} else {
+			return "", fmt.Errorf("failed to read IDENTITY.md: %w", err)
+		}
 	}
 	if identity != "" {
 		processed, err := b.processTemplates(identity)
@@ -79,9 +111,17 @@ func (b *Builder) Build() (string, error) {
 	}
 
 	// 3. USER - User profile and preferences
-	user, err := b.readFile(workspace.BootstrapUser)
-	if err != nil && !os.IsNotExist(err) {
-		return "", fmt.Errorf("failed to read USER.md: %w", err)
+	user, err := b.loader.LoadFile(workspace.BootstrapUser)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Try fallback to embedded defaults
+			user = workspace.GetDefaultFile(workspace.BootstrapUser)
+			if user == "" {
+				// User.md is optional, skip if not found
+			}
+		} else {
+			return "", fmt.Errorf("failed to read USER.md: %w", err)
+		}
 	}
 	if user != "" {
 		processed, err := b.processTemplates(user)
@@ -93,9 +133,17 @@ func (b *Builder) Build() (string, error) {
 	}
 
 	// 4. TOOLS - Available tools and operations
-	tools, err := b.readFile(workspace.BootstrapTools)
-	if err != nil && !os.IsNotExist(err) {
-		return "", fmt.Errorf("failed to read TOOLS.md: %w", err)
+	tools, err := b.loader.LoadFile(workspace.BootstrapTools)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Try fallback to embedded defaults
+			tools = workspace.GetDefaultFile(workspace.BootstrapTools)
+			if tools == "" {
+				return "", fmt.Errorf("no TOOLS.md found and no embedded default")
+			}
+		} else {
+			return "", fmt.Errorf("failed to read TOOLS.md: %w", err)
+		}
 	}
 	if tools != "" {
 		processed, err := b.processTemplates(tools)
@@ -175,7 +223,7 @@ func (b *Builder) BuildForSession(sessionID string, messages []llm.Message) (str
 
 // ReadMemory reads memory files from the workspace memory directory.
 func (b *Builder) ReadMemory() ([]llm.Message, error) {
-	memoryDir := filepath.Join(b.workspace, "memory")
+	memoryDir := b.workspace.Subpath("memory")
 
 	// Check if memory directory exists
 	if _, err := os.Stat(memoryDir); os.IsNotExist(err) {
@@ -228,7 +276,7 @@ func (b *Builder) processTemplates(content string) (string, error) {
 	data := map[string]string{
 		"CURRENT_TIME":   now.Format("15:04:05"),
 		"CURRENT_DATE":   now.Format("2006-01-02"),
-		"WORKSPACE_PATH": b.workspace,
+		"WORKSPACE_PATH": b.workspace.Path(),
 		"TIMEZONE":       timezone,
 	}
 
@@ -241,9 +289,9 @@ func (b *Builder) processTemplates(content string) (string, error) {
 	return result, nil
 }
 
-// readFile reads a file from the workspace.
+// readFile reads a file from the workspace (deprecated, use loader).
 func (b *Builder) readFile(filename string) (string, error) {
-	filePath := filepath.Join(b.workspace, filename)
+	filePath := b.workspace.Subpath(filename)
 
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -255,20 +303,20 @@ func (b *Builder) readFile(filename string) (string, error) {
 
 // GetWorkspace returns the workspace path.
 func (b *Builder) GetWorkspace() string {
-	return b.workspace
+	return b.workspace.Path()
 }
 
 // GetComponent returns a specific context component by name.
 func (b *Builder) GetComponent(name string) (string, error) {
 	switch name {
 	case "IDENTITY":
-		return b.readFile(workspace.BootstrapIdentity)
+		return b.loader.LoadFile(workspace.BootstrapIdentity)
 	case "AGENTS":
-		return b.readFile(workspace.BootstrapAgents)
+		return b.loader.LoadFile(workspace.BootstrapAgents)
 	case "USER":
-		return b.readFile(workspace.BootstrapUser)
+		return b.loader.LoadFile(workspace.BootstrapUser)
 	case "TOOLS":
-		return b.readFile(workspace.BootstrapTools)
+		return b.loader.LoadFile(workspace.BootstrapTools)
 	default:
 		return "", fmt.Errorf("unknown component: %s", name)
 	}

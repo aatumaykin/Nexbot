@@ -1,6 +1,7 @@
 package context
 
 import (
+	"github.com/aatumaykin/nexbot/internal/config"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +14,8 @@ import (
 // TestBuilderGetWorkspace tests the GetWorkspace method
 func TestBuilderGetWorkspace(t *testing.T) {
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
 	builder, err := NewBuilder(Config{Workspace: tmpDir})
 	if err != nil {
@@ -28,6 +31,8 @@ func TestBuilderGetWorkspace(t *testing.T) {
 // TestBuilderGetComponent tests the GetComponent method
 func TestBuilderGetComponent(t *testing.T) {
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
 	// Create test bootstrap files
 	identityContent := "# Identity\nThis is a test identity."
@@ -115,6 +120,8 @@ func TestBuilderGetComponent(t *testing.T) {
 // TestBuilderGetComponentMissingFile tests GetComponent with missing file
 func TestBuilderGetComponentMissingFile(t *testing.T) {
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
 	builder, err := NewBuilder(Config{Workspace: tmpDir})
 	if err != nil {
@@ -135,6 +142,8 @@ func TestBuilderGetComponentMissingFile(t *testing.T) {
 // TestBuilderBuildWithMemoryEmpty tests BuildWithMemory with empty memory
 func TestBuilderBuildWithMemoryEmpty(t *testing.T) {
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
 	// Create a bootstrap file so Build returns something
 	identityContent := "# Identity\nTest identity."
@@ -168,6 +177,8 @@ func TestBuilderBuildWithMemoryEmpty(t *testing.T) {
 // TestBuilderBuildWithMemoryMultipleMessages tests BuildWithMemory with multiple messages
 func TestBuilderBuildWithMemoryMultipleMessages(t *testing.T) {
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
 	// Create a bootstrap file so Build returns something
 	identityContent := "# Identity\nTest identity."
@@ -213,6 +224,8 @@ func TestBuilderBuildWithMemoryMultipleMessages(t *testing.T) {
 // TestBuilderBuildForSession tests BuildForSession method
 func TestBuilderBuildForSession(t *testing.T) {
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
 	// Create a bootstrap file so Build returns something
 	identityContent := "# Identity\nTest identity."
@@ -244,6 +257,8 @@ func TestBuilderBuildForSession(t *testing.T) {
 // TestBuilderBuildForSessionWithChannelChatID tests BuildForSession with channel:chat_id format
 func TestBuilderBuildForSessionWithChannelChatID(t *testing.T) {
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
 	// Create a bootstrap file so Build returns something
 	identityContent := "# Identity\nTest identity."
@@ -285,6 +300,8 @@ func TestBuilderBuildForSessionWithChannelChatID(t *testing.T) {
 // TestBuilderProcessTemplates tests processTemplates with template variables
 func TestBuilderProcessTemplates(t *testing.T) {
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
 	// Create IDENTITY.md with template variables
 	identityContent := `# Identity

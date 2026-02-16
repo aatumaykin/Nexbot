@@ -6,14 +6,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/llm"
+	"github.com/aatumaykin/nexbot/internal/workspace"
 )
 
 func TestNewBuilder(t *testing.T) {
 	t.Run("valid workspace", func(t *testing.T) {
 		tmpDir := t.TempDir()
+		ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+		ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 		builder, err := NewBuilder(Config{
-			Workspace: tmpDir,
+			Workspace:    ws,
+			WorkspaceCfg: config.WorkspaceConfig{Path: tmpDir},
 		})
 		if err != nil {
 			t.Fatalf("NewBuilder() error = %v", err)
@@ -24,17 +29,17 @@ func TestNewBuilder(t *testing.T) {
 			return
 		}
 
-		if builder.workspace != tmpDir {
-			t.Errorf("Builder.workspace = %v, want %v", builder.workspace, tmpDir)
+		if builder.workspace.Path() != tmpDir {
+			t.Errorf("Builder.workspace = %v, want %v", builder.workspace.Path(), tmpDir)
 		}
 	})
 
-	t.Run("empty workspace", func(t *testing.T) {
+	t.Run("nil workspace", func(t *testing.T) {
 		_, err := NewBuilder(Config{
-			Workspace: "",
+			Workspace: nil,
 		})
 		if err == nil {
-			t.Error("NewBuilder() should return error for empty workspace")
+			t.Error("NewBuilder() should return error for nil workspace")
 		}
 	})
 }
@@ -42,16 +47,19 @@ func TestNewBuilder(t *testing.T) {
 func TestBuild(t *testing.T) {
 	t.Run("build with all components", func(t *testing.T) {
 		tmpDir := t.TempDir()
+		ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
+		ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
-		if err := os.WriteFile(filepath.Join(tmpDir, "IDENTITY.md"), []byte("# Identity\nTest identity"), 0644); err != nil {
-			t.Fatalf("Failed to create IDENTITY.md: %v", err)
+		if err := os.WriteFile(filepath.Join(tmpDir, "main", "IDENTITY.md"), []byte("# Identity\nTest identity"), 0644); err != nil {
+			t.Fatalf("Failed to create main/IDENTITY.md: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(tmpDir, "AGENTS.md"), []byte("# Agents\nTest agents"), 0644); err != nil {
-			t.Fatalf("Failed to create AGENTS.md: %v", err)
+		if err := os.WriteFile(filepath.Join(tmpDir, "main", "AGENTS.md"), []byte("# Agents\nTest agents"), 0644); err != nil {
+			t.Fatalf("Failed to create main/AGENTS.md: %v", err)
 		}
 
 		builder, err := NewBuilder(Config{
-			Workspace: tmpDir,
+			Workspace:    ws,
+			WorkspaceCfg: config.WorkspaceConfig{Path: tmpDir},
 		})
 		if err != nil {
 			t.Fatalf("Failed to create builder: %v", err)
@@ -83,13 +91,15 @@ func TestBuild(t *testing.T) {
 func TestBuildWithMemory(t *testing.T) {
 	t.Run("build with memory messages", func(t *testing.T) {
 		tmpDir := t.TempDir()
+		ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
 		if err := os.WriteFile(filepath.Join(tmpDir, "IDENTITY.md"), []byte("# Identity\nTest"), 0644); err != nil {
 			t.Fatalf("Failed to create IDENTITY.md: %v", err)
 		}
 
 		builder, err := NewBuilder(Config{
-			Workspace: tmpDir,
+			Workspace:    ws,
+			WorkspaceCfg: config.WorkspaceConfig{Path: tmpDir},
 		})
 		if err != nil {
 			t.Fatalf("Failed to create builder: %v", err)
@@ -117,6 +127,7 @@ func TestBuildWithMemory(t *testing.T) {
 func TestReadMemory(t *testing.T) {
 	t.Run("read memory files from workspace", func(t *testing.T) {
 		tmpDir := t.TempDir()
+		ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
 		memoryDir := filepath.Join(tmpDir, "memory")
 		if err := os.MkdirAll(memoryDir, 0755); err != nil {
@@ -128,7 +139,8 @@ func TestReadMemory(t *testing.T) {
 		}
 
 		builder, err := NewBuilder(Config{
-			Workspace: tmpDir,
+			Workspace:    ws,
+			WorkspaceCfg: config.WorkspaceConfig{Path: tmpDir},
 		})
 		if err != nil {
 			t.Fatalf("Failed to create builder: %v", err)
@@ -154,6 +166,7 @@ func TestReadMemory(t *testing.T) {
 func TestPriorityOrder(t *testing.T) {
 	t.Run("verify component priority order", func(t *testing.T) {
 		tmpDir := t.TempDir()
+		ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
 		components := map[string]string{
 			"IDENTITY": "MARKER_IDENTITY_2",
@@ -169,7 +182,8 @@ func TestPriorityOrder(t *testing.T) {
 		}
 
 		builder, err := NewBuilder(Config{
-			Workspace: tmpDir,
+			Workspace:    ws,
+			WorkspaceCfg: config.WorkspaceConfig{Path: tmpDir},
 		})
 		if err != nil {
 			t.Fatalf("Failed to create builder: %v", err)
