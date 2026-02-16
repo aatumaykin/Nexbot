@@ -239,6 +239,11 @@ func processAgentLoop(ctx context.Context, looper *loop.Loop, msgBus *bus.Messag
 
 // Helper function to create test bootstrap files
 func createTestBootstrapFiles(t *testing.T, ws *workspace.Workspace) {
+	mainDir := ws.Path()
+	if err := os.MkdirAll(mainDir, 0755); err != nil {
+		t.Fatalf("Failed to create main directory: %v", err)
+	}
+
 	bootstrapFiles := map[string]string{
 		"IDENTITY.md": "# Nexbot Identity\n\nI am Nexbot, a lightweight AI agent.",
 		"AGENTS.md":   "# Agent Instructions\n\nBe helpful and concise.",
@@ -248,10 +253,7 @@ func createTestBootstrapFiles(t *testing.T, ws *workspace.Workspace) {
 	}
 
 	for filename, content := range bootstrapFiles {
-		path, err := ws.ResolvePath(filename)
-		if err != nil {
-			t.Fatalf("Failed to resolve path for %s: %v", filename, err)
-		}
+		path := filepath.Join(mainDir, filename)
 		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 			t.Fatalf("Failed to create bootstrap file %s: %v", filename, err)
 		}

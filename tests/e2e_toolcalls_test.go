@@ -90,9 +90,12 @@ func TestE2E_TelegramToAgentWithToolCalls(t *testing.T) {
 		t.Fatalf("Failed to create session directory: %v", err)
 	}
 
-	ws := workspace.New(config.WorkspaceConfig{
-		Path: workspaceDir,
-	})
+	mainDir := filepath.Join(workspaceDir, "main")
+	if err := os.MkdirAll(mainDir, 0755); err != nil {
+		t.Fatalf("Failed to create main directory: %v", err)
+	}
+
+	ws := workspace.New(config.WorkspaceConfig{Path: workspaceDir})
 	createTestBootstrapFiles(t, ws)
 
 	log, err := logger.New(logger.Config{
@@ -241,6 +244,11 @@ func TestE2E_MultipleToolCalls(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(sessionDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	mainDir := filepath.Join(workspaceDir, "main")
+	if err := os.MkdirAll(mainDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
