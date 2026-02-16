@@ -44,7 +44,7 @@ func (e *DockerUnavailableError) UserMessage() string {
 			"Причина: Docker-изоляция недоступна.\n\n"+
 			"Решение:\n"+
 			"1. Убедитесь, что Docker установлен и запущен: docker ps\n"+
-			"2. Проверьте образ: docker images | grep nexbot/subagent",
+			"2. Проверьте образ: docker images | grep alpine",
 		e.Task,
 	)
 }
