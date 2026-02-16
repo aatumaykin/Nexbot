@@ -32,6 +32,7 @@ func TestLoop_ToolCalling(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 	workspaceDir := filepath.Join(tmpDir, "workspace")
 	sessionDir := filepath.Join(tmpDir, "sessions")
 	if err := os.MkdirAll(workspaceDir, 0755); err != nil {

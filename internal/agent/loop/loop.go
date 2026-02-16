@@ -6,10 +6,12 @@ import (
 
 	agentcontext "github.com/aatumaykin/nexbot/internal/agent/context"
 	"github.com/aatumaykin/nexbot/internal/agent/session"
+	"github.com/aatumaykin/nexbot/internal/config"
 	"github.com/aatumaykin/nexbot/internal/llm"
 	"github.com/aatumaykin/nexbot/internal/logger"
 	"github.com/aatumaykin/nexbot/internal/secrets"
 	"github.com/aatumaykin/nexbot/internal/tools"
+	"github.com/aatumaykin/nexbot/internal/workspace"
 )
 
 // contextKey is the type for context keys to avoid collisions
@@ -22,7 +24,7 @@ var (
 // Loop manages the agent's execution loop, coordinating between
 // LLM provider, session management, and tools.
 type Loop struct {
-	workspace    string
+	workspace    *workspace.Workspace
 	sessionDir   string
 	sessionMgr   *session.Manager
 	sessionOps   *SessionOperations
@@ -37,7 +39,8 @@ type Loop struct {
 
 // Config holds configuration for the loop.
 type Config struct {
-	Workspace         string
+	Workspace         *workspace.Workspace
+	WorkspaceCfg      config.WorkspaceConfig
 	SessionDir        string
 	Timezone          string
 	LLMProvider       llm.Provider
@@ -52,8 +55,8 @@ type Config struct {
 // NewLoop creates a new execution loop.
 func NewLoop(cfg Config) (*Loop, error) {
 	// Validate configuration
-	if cfg.Workspace == "" {
-		return nil, fmt.Errorf("workspace path cannot be empty")
+	if cfg.Workspace == nil {
+		return nil, fmt.Errorf("workspace cannot be nil")
 	}
 	if cfg.SessionDir == "" {
 		return nil, fmt.Errorf("session directory cannot be empty")
@@ -86,8 +89,9 @@ func NewLoop(cfg Config) (*Loop, error) {
 
 	// Create context builder
 	contextBldr, err := agentcontext.NewBuilder(agentcontext.Config{
-		Workspace: cfg.Workspace,
-		Timezone:  cfg.Timezone,
+		Workspace:    cfg.Workspace,
+		WorkspaceCfg: cfg.WorkspaceCfg,
+		Timezone:     cfg.Timezone,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create context builder: %w", err)

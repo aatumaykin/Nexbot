@@ -2,6 +2,8 @@ package loop
 
 import (
 	"context"
+	"github.com/aatumaykin/nexbot/internal/config"
+	"github.com/aatumaykin/nexbot/internal/workspace"
 	"os"
 	"path/filepath"
 	"testing"
@@ -19,6 +21,7 @@ func TestLoop_AddMessageToSession(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 	workspaceDir := filepath.Join(tmpDir, "workspace")
 	sessionDir := filepath.Join(tmpDir, "sessions")
 	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
@@ -114,6 +117,7 @@ func TestLoop_ClearSession(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 	workspaceDir := filepath.Join(tmpDir, "workspace")
 	sessionDir := filepath.Join(tmpDir, "sessions")
 	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
@@ -176,6 +180,7 @@ func TestLoop_DeleteSession(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 	workspaceDir := filepath.Join(tmpDir, "workspace")
 	sessionDir := filepath.Join(tmpDir, "sessions")
 	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
@@ -234,6 +239,7 @@ func TestLoop_Getters(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 	workspaceDir := filepath.Join(tmpDir, "workspace")
 	sessionDir := filepath.Join(tmpDir, "sessions")
 	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
@@ -339,6 +345,7 @@ func TestLoop_GetSessionStatus(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 	workspaceDir := filepath.Join(tmpDir, "workspace")
 	sessionDir := filepath.Join(tmpDir, "sessions")
 	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
@@ -495,6 +502,7 @@ func TestSessionOperations(t *testing.T) {
 	log, _ := logger.New(logger.Config{Level: "debug", Format: "text", Output: "stdout"})
 
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 	sessionDir := filepath.Join(tmpDir, "sessions")
 	if err := os.MkdirAll(sessionDir, 0755); err != nil {
 		t.Fatalf("Failed to create sessions directory: %v", err)

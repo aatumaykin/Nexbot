@@ -2,6 +2,7 @@ package agent_test
 
 import (
 	"context"
+	"github.com/aatumaykin/nexbot/internal/config"
 	"os"
 	"path/filepath"
 	"testing"
@@ -20,6 +21,7 @@ import (
 func TestAgentIntegration_FullWorkflow(t *testing.T) {
 	// Настройка временной директории
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 	sessionDir := filepath.Join(tmpDir, "sessions")
 	memoryDir := filepath.Join(tmpDir, "memory")
 
@@ -239,6 +241,7 @@ func TestAgentIntegration_FullWorkflow(t *testing.T) {
 
 func TestAgentIntegration_ErrorHandling(t *testing.T) {
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 
 	t.Run("context builder with non-existent workspace", func(t *testing.T) {
 		nonExistentDir := filepath.Join(tmpDir, "does-not-exist")
@@ -292,6 +295,7 @@ func TestAgentIntegration_ErrorHandling(t *testing.T) {
 
 func TestAgentIntegration_ConcurrentAccess(t *testing.T) {
 	tmpDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tmpDir})
 	sessionDir := filepath.Join(tmpDir, "sessions")
 
 	t.Run("concurrent session operations", func(t *testing.T) {
