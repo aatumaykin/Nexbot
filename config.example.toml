@@ -267,7 +267,7 @@ pids_limit = 50
 security_opt = ["no-new-privileges"]
 
 # Read-only root filesystem
-readonly_rootfs = true
+readonly_rootfs = false
 
 # Переменная окружения с API ключом для LLM
 llm_api_key_env = "ZAI_API_KEY"
