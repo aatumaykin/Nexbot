@@ -2,6 +2,8 @@ package subagent
 
 import (
 	"context"
+	"github.com/aatumaykin/nexbot/internal/config"
+	"github.com/aatumaykin/nexbot/internal/workspace"
 	"os"
 	"path/filepath"
 	"testing"
@@ -17,6 +19,7 @@ import (
 func TestNewManager(t *testing.T) {
 	// Create temporary directory for testing
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 
 	// Create logger
 	log := testLogger()
@@ -66,6 +69,7 @@ func TestNewManagerInvalidConfig(t *testing.T) {
 
 func TestManagerSpawn(t *testing.T) {
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
 	manager, err := NewManager(Config{
@@ -105,6 +109,7 @@ func TestManagerSpawn(t *testing.T) {
 
 func TestManagerSpawnMultiple(t *testing.T) {
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
 	manager, err := NewManager(Config{
@@ -154,6 +159,7 @@ func TestManagerSpawnMultiple(t *testing.T) {
 
 func TestManagerStop(t *testing.T) {
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
 	manager, err := NewManager(Config{
@@ -195,6 +201,7 @@ func TestManagerStop(t *testing.T) {
 
 func TestManagerStopAll(t *testing.T) {
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
 	manager, err := NewManager(Config{
@@ -232,6 +239,7 @@ func TestManagerStopAll(t *testing.T) {
 
 func TestManagerList(t *testing.T) {
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
 	manager, err := NewManager(Config{
@@ -272,6 +280,7 @@ func TestManagerList(t *testing.T) {
 
 func TestManagerGet(t *testing.T) {
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
 	manager, err := NewManager(Config{
@@ -306,6 +315,7 @@ func TestManagerGet(t *testing.T) {
 
 func TestSubagentProcess(t *testing.T) {
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
 	manager, err := NewManager(Config{
@@ -334,6 +344,7 @@ func TestSubagentProcess(t *testing.T) {
 
 func TestSubagentContextCancellation(t *testing.T) {
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
 	manager, err := NewManager(Config{
@@ -364,6 +375,7 @@ func TestSubagentContextCancellation(t *testing.T) {
 
 func TestManagerConcurrency(t *testing.T) {
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
 	manager, err := NewManager(Config{
@@ -411,6 +423,7 @@ func TestManagerConcurrency(t *testing.T) {
 
 func TestStorageNewStorage(t *testing.T) {
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 
 	storage, err := NewStorage(tempDir)
 	require.NoError(t, err)
@@ -425,6 +438,7 @@ func TestStorageNewStorage(t *testing.T) {
 
 func TestStorageSaveAndLoad(t *testing.T) {
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 
 	storage, err := NewStorage(tempDir)
 	require.NoError(t, err)
@@ -448,6 +462,7 @@ func TestStorageSaveAndLoad(t *testing.T) {
 
 func TestStorageDelete(t *testing.T) {
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 
 	storage, err := NewStorage(tempDir)
 	require.NoError(t, err)
@@ -479,6 +494,7 @@ func TestStorageDelete(t *testing.T) {
 
 func TestStorageList(t *testing.T) {
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 
 	storage, err := NewStorage(tempDir)
 	require.NoError(t, err)

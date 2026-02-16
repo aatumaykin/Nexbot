@@ -2,6 +2,8 @@ package subagent
 
 import (
 	"context"
+	"github.com/aatumaykin/nexbot/internal/config"
+	"github.com/aatumaykin/nexbot/internal/workspace"
 	"sync"
 	"testing"
 
@@ -18,6 +20,7 @@ func TestSpawnWorkflow(t *testing.T) {
 	}
 
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
 	// Create subagent manager
@@ -98,6 +101,7 @@ func TestSubagentWithScheduler(t *testing.T) {
 	}
 
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
 	// Create subagent manager

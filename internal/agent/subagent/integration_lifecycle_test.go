@@ -3,6 +3,8 @@ package subagent
 import (
 	"context"
 	"encoding/json"
+	"github.com/aatumaykin/nexbot/internal/config"
+	"github.com/aatumaykin/nexbot/internal/workspace"
 	"testing"
 
 	"github.com/aatumaykin/nexbot/internal/agent/loop"
@@ -18,6 +20,7 @@ func TestSubagentSessionIsolation(t *testing.T) {
 	}
 
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
 	// Create subagent manager
@@ -67,6 +70,7 @@ func TestSubagentLifecycle(t *testing.T) {
 	}
 
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
 	// Create subagent manager
@@ -120,6 +124,7 @@ func TestSubagentLifecycle(t *testing.T) {
 // TestSpawnToolSchemaSerialization tests that the spawn tool schema can be serialized correctly.
 func TestSpawnToolSchemaSerialization(t *testing.T) {
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
 	// Create subagent manager

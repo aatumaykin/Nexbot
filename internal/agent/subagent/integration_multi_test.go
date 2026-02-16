@@ -3,6 +3,8 @@ package subagent
 import (
 	"context"
 	"fmt"
+	"github.com/aatumaykin/nexbot/internal/config"
+	"github.com/aatumaykin/nexbot/internal/workspace"
 	"sync"
 	"testing"
 
@@ -19,6 +21,7 @@ func TestMultiSubagent(t *testing.T) {
 	}
 
 	tempDir := t.TempDir()
+	ws := workspace.New(config.WorkspaceConfig{Path: tempDir})
 	log := testLogger()
 
 	// Create subagent manager
